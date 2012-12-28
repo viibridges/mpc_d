@@ -591,6 +591,28 @@ cmd_playlist(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection 
 	return 0;
 }
 
+#include <ctype.h>
+
+static
+int is_substring_ignorecase(char *main, char *sub)
+{
+  char lower_main[64], lower_sub[64], *pt;
+  int i;
+
+  pt = main, i = 0;
+  for(i = 0; main[i] && i < 64; i++)
+	lower_main[i] = isalpha(main[i]) ?
+	  (islower(main[i]) ? main[i] : (char)tolower(main[i])) : main[i];
+  lower_main[i] = '\0';
+
+  for(i = 0; sub[i] && i < 64; i++)
+	lower_sub[i] = isalpha(sub[i]) ?
+	  (islower(sub[i]) ? sub[i] : (char)tolower(sub[i])) : sub[i];
+  lower_sub[i] = '\0';
+
+  return strstr(lower_main, lower_sub);
+}
+
 int
 cmd_search_general(mpd_unused int argc, mpd_unused char **argv,
 				   struct mpd_connection *conn, enum mpd_tag_type search_type)
@@ -609,7 +631,7 @@ cmd_search_general(mpd_unused int argc, mpd_unused char **argv,
 	  {
 		j++;
 		if((song_item = mpd_song_get_tag(song, search_type, 0)))
-		  if(strstr(song_item, argv[i]))
+		  if(is_substring_ignorecase(song_item, argv[i]))
 			{
 			  printf("%d. ", j);
 			  pretty_print_song(song);
