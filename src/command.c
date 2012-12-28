@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
@@ -588,6 +589,54 @@ cmd_playlist(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection 
 	my_finishCommand(conn);
 
 	return 0;
+}
+
+int
+cmd_search_general(mpd_unused int argc, mpd_unused char **argv,
+				   struct mpd_connection *conn, enum mpd_tag_type search_type)
+{
+	struct mpd_song *song;
+	int i, j = 0;
+	char *song_item;
+	
+	if (!mpd_send_list_queue_meta(conn))
+		printErrorAndExit(conn);
+
+	for(i = 0; i < argc-1; i++)
+	  printf("skip '%s'\n", argv[i]);
+
+	while ((song = mpd_recv_song(conn)) != NULL)
+	  {
+		j++;
+		if((song_item = mpd_song_get_tag(song, search_type, 0)))
+		  if(strstr(song_item, argv[i]))
+			{
+			  printf("%d. ", j);
+			  pretty_print_song(song);
+			  printf("\n");
+			}
+
+		mpd_song_free(song);
+	  }
+
+	my_finishCommand(conn);
+
+	return 0;
+}
+
+int cmd_search_title ( int argc, char ** argv, struct mpd_connection *conn )
+{
+  return cmd_search_general(argc, argv, conn, MPD_TAG_TITLE);
+}
+
+int cmd_search_artist ( int argc, char ** argv, struct mpd_connection *conn )
+{
+  return cmd_search_general(argc, argv, conn, MPD_TAG_ARTIST);
+}
+
+int cmd_search_album ( int argc, char ** argv, struct mpd_connection *conn )
+{
+  return cmd_search_general(argc, argv, conn, MPD_TAG_ALBUM);
 }
 
 int cmd_listall ( int argc, char ** argv, struct mpd_connection *conn )

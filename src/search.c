@@ -152,37 +152,6 @@ cmd_search(int argc, char **argv, struct mpd_connection *conn)
 }
 
 int
-cmd_search_type(int argc, char **argv, struct mpd_connection *conn, const char * search_type)
-{
-  char *new_argv[20];
-  int i;
-
-  new_argv[0] = search_type;
-  for(i = 1; i <= argc && i < 20; i++)
-	new_argv[i] = argv[i - 1];
-
-  return do_search(i, new_argv, conn, 0);
-}
-
-int
-cmd_search_title(int argc, char **argv, struct mpd_connection *conn)
-{
-  return cmd_search_type(argc, argv, conn, "Title");
-}
-
-int
-cmd_search_artist(int argc, char **argv, struct mpd_connection *conn)
-{
-  return cmd_search_type(argc, argv, conn, "Artist");
-}
-
-int
-cmd_search_album(int argc, char **argv, struct mpd_connection *conn)
-{
-  return cmd_search_type(argc, argv, conn, "Album");
-}
-
-int
 cmd_find(int argc, char **argv, struct mpd_connection *conn)
 {
 	return do_search(argc, argv, conn, 1);

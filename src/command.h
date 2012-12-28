@@ -24,6 +24,7 @@
 #define COMMAND_H
 
 struct mpd_connection;
+enum mpd_tag_type;
 
 int cmd_status(int argc, char **argv, struct mpd_connection *conn);
 int cmd_add(int argc, char **argv, struct mpd_connection *conn);
@@ -67,6 +68,11 @@ int cmd_lstab(int argc, char **argv, struct mpd_connection *conn);
 int cmd_tab(int argc, char **argv, struct mpd_connection *conn);
 int cmd_stats(int argc, char **argv, struct mpd_connection *conn);
 int cmd_toggle(int argc, char **argv, struct mpd_connection *conn);
+int cmd_search_general(int argc, char **argv,
+					   struct mpd_connection *conn, enum mpd_tag_type search_type);
+int cmd_search_title( int argc, char ** argv, struct mpd_connection *conn);
+int cmd_search_artist( int argc, char ** argv, struct mpd_connection *conn);
+int cmd_search_album( int argc, char ** argv, struct mpd_connection *conn);
 
 int
 cmd_replaygain(int argc, char **argv, struct mpd_connection *conn);

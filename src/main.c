@@ -318,9 +318,11 @@ static int
 is_self_define_option(char **argv)
 {
   char *opt = argv[1];
-  if(opt[0] == '-' && opt[2] == '\0')
-	if(opt[1] == 's' || opt[1] == 't' || opt[1] == 'a' || opt[1] == 'A')
-	  return 1;
+
+  if(opt)
+	if(opt[0] == '-' && opt[2] == '\0')
+	  if(opt[1] == 's' || opt[1] == 't' || opt[1] == 'a' || opt[1] == 'A')
+		return 1;
   
   return 0;
 }
@@ -335,7 +337,6 @@ int main(int argc, char ** argv)
 	  parse_options(&argc, argv);
 
 	/* parse command and arguments */
-
 	if (argc >= 2)
 		command_name = argv[1];
 	else {
