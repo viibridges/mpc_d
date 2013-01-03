@@ -273,7 +273,7 @@ int cmd_list_around(mpd_unused int argc, mpd_unused char ** argv, struct mpd_con
 	if (song != NULL) {
 	  int i = 1, current_id, span;
 	  
-	  current_id = mpd_song_get_id(song);
+	  current_id = mpd_song_get_id(song) + 1;
 	  span = argc > 0 ? atoi(argv[0]) : 3;
 
 	  mpd_song_free(song);
