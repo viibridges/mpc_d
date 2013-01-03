@@ -243,6 +243,70 @@ int cmd_current(mpd_unused int argc, mpd_unused char ** argv, struct mpd_connect
 	return 0;
 }
 
+/** list song around, the default span is 3;
+ ** this function is adapted from cmd_current() */
+int cmd_list_around(mpd_unused int argc, mpd_unused char ** argv, struct mpd_connection *conn)
+{
+  if (options.wait)
+	wait_current(conn);
+
+  struct mpd_status *status;
+
+  if (!mpd_command_list_begin(conn, true) ||
+	  !mpd_send_status(conn) ||
+	  !mpd_send_current_song(conn) ||
+	  !mpd_command_list_end(conn))
+	printErrorAndExit(conn);
+
+  status = mpd_recv_status(conn);
+  if (status == NULL)
+	printErrorAndExit(conn);
+
+  if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
+	  mpd_status_get_state(status) == MPD_STATE_PAUSE) {
+	struct mpd_song *song;
+
+	if (!mpd_response_next(conn))
+	  printErrorAndExit(conn);
+
+	song = mpd_recv_song(conn);
+	if (song != NULL) {
+	  int i = 1, current_id, span;
+	  
+	  current_id = mpd_song_get_id(song);
+	  span = argc > 0 ? atoi(argv[0]) : 3;
+
+	  mpd_song_free(song);
+	  my_finishCommand(conn);	  
+
+	  if(!mpd_send_list_queue_meta(conn))
+		printErrorAndExit(conn);
+	  
+	  while((song = mpd_recv_song(conn)) != NULL)
+		{
+		  if(i >= current_id - span && i <= current_id + span)
+			{
+			  printf("%d",i);
+			  if( i == current_id )
+				printf("*  ");
+			  else
+				printf(".  ");
+			  pretty_print_song(song);
+			  printf("\n");
+			}
+		  
+		  mpd_song_free(song);
+		  i++;
+		}
+	}
+
+	my_finishCommand(conn);
+  }
+  mpd_status_free(status);
+
+  return 0;
+}
+
 int cmd_del ( int argc, char ** argv, struct mpd_connection *conn )
 {
 	int i,j;

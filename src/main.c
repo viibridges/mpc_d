@@ -62,7 +62,8 @@ static struct command {
 	{"-s",      1,   -1,  0,    cmd_search_title,      "<key words>", "Search for a song by title"},
 	{"-t",      1,   -1,  0,    cmd_search_title,      "<key words>", "Search for a song by title"},
 	{"-a",      1,   -1,  0,    cmd_search_artist,      "<key words>", "Search for a song by artist"},
-	{"-A",      1,   -1,  0,    cmd_search_album,      "<key words>", "Search for a song by album"},   		
+	{"-A",      1,   -1,  0,    cmd_search_album,      "<key words>", "Search for a song by album"},
+	{"-l",      0,   -1,  0,    cmd_list_around,      "<list span>", "list songs around"},
 	{"add",         0,   -1,  1,    cmd_add,         "<file>", "Add a song to the current playlist"},
 	{"crop",        0,   0,   0,    cmd_crop,        "", "Remove all but the currently playing song"},
 	{ "current", 0, 0, 0, cmd_current,
@@ -321,7 +322,7 @@ is_self_define_option(char **argv)
 
   if(opt)
 	if(opt[0] == '-' && opt[2] == '\0')
-	  if(opt[1] == 's' || opt[1] == 't' || opt[1] == 'a' || opt[1] == 'A')
+	  if(opt[1] == 's' || opt[1] == 't' || opt[1] == 'a' || opt[1] == 'A' || opt[1] == 'l')
 		return 1;
   
   return 0;
