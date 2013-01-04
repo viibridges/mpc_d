@@ -74,6 +74,7 @@ int cmd_search_title( int argc, char ** argv, struct mpd_connection *conn);
 int cmd_search_artist( int argc, char ** argv, struct mpd_connection *conn);
 int cmd_search_album( int argc, char ** argv, struct mpd_connection *conn);
 int cmd_list_around( int argc,  char ** argv, struct mpd_connection *conn);
+int cmd_illustrate( int argc,  char ** argv, struct mpd_connection *conn);
 
 int
 cmd_replaygain(int argc, char **argv, struct mpd_connection *conn);

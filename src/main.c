@@ -64,6 +64,7 @@ static struct command {
 	{"-a",      1,   -1,  0,    cmd_search_artist,      "<key words>", "Search for a song by artist"},
 	{"-A",      1,   -1,  0,    cmd_search_album,      "<key words>", "Search for a song by album"},
 	{"-l",      0,   -1,  0,    cmd_list_around,      "<list span>", "list songs around current playing song"},
+	{"-i",      0,   -1,  0,    cmd_illustrate,      "<id [, span]>", "Illustrate songs around <id>"},
 	{"add",         0,   -1,  1,    cmd_add,         "<file>", "Add a song to the current playlist"},
 	{"crop",        0,   0,   0,    cmd_crop,        "", "Remove all but the currently playing song"},
 	{ "current", 0, 0, 0, cmd_current,
