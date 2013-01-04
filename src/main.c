@@ -63,7 +63,7 @@ static struct command {
 	{"-t",      1,   -1,  0,    cmd_search_title,      "<key words>", "Search for a song by title"},
 	{"-a",      1,   -1,  0,    cmd_search_artist,      "<key words>", "Search for a song by artist"},
 	{"-A",      1,   -1,  0,    cmd_search_album,      "<key words>", "Search for a song by album"},
-	{"-l",      0,   -1,  0,    cmd_list_around,      "<list span>", "list songs around"},
+	{"-l",      0,   -1,  0,    cmd_list_around,      "<list span>", "list songs around current playing song"},
 	{"add",         0,   -1,  1,    cmd_add,         "<file>", "Add a song to the current playlist"},
 	{"crop",        0,   0,   0,    cmd_crop,        "", "Remove all but the currently playing song"},
 	{ "current", 0, 0, 0, cmd_current,
@@ -178,6 +178,7 @@ static int print_help(char * progname, char * command)
 	}
 
 	printf("  %s %*s  Display status\n",progname,max," ");
+	printf("  %s <id> %*s  Start playing at <id>\n",progname,max-5," ");
 
 	for (i=0; mpc_table[i].command; ++i) {
 		int spaces;
@@ -318,13 +319,14 @@ run(const struct command *command, int argc, char **array)
 static int
 is_self_define_option(char **argv)
 {
-  char *opt = argv[1];
+  char *opt = argv[1], *cmd;
+  int i;
 
-  if(opt)
-	if(opt[0] == '-' && opt[2] == '\0')
-	  if(opt[1] == 's' || opt[1] == 't' || opt[1] == 'a' || opt[1] == 'A' || opt[1] == 'l')
-		return 1;
-  
+  if(opt && opt[0] == '-' && opt[2] == '\0')
+  	for( i = 0; (cmd = mpc_table[i].command) != NULL; i++ )
+  	  if( cmd[0] == '-' && cmd[1] == opt[1] )
+  		return 1;
+
   return 0;
 }
 
@@ -349,6 +351,15 @@ int main(int argc, char ** argv)
 		argc = 2;
 	}
 
+	/* we accept number directly followed after the
+	   program name. this allow the user play song without
+	   specifing the 'play' command */
+	if( atoi(command_name) )
+	  {
+		command = find_command("play");
+		return run(command, argc-1, &argv[1]);
+	  }
+
 	command = find_command(command_name);
 	if (command == NULL)
 	  return 1; //print_help(argv[0], argv[1]);
@@ -356,15 +367,12 @@ int main(int argc, char ** argv)
 	argv = check_args(command, &argc, argv);
 
 	/* initialization */
-
 	charset_init(true, true);
 
 	/* run */
-
 	ret = run(command, argc, argv);
 
 	/* cleanup */
-
 	charset_deinit();
 
 	if (command->pipe < 0)
