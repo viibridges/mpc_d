@@ -307,6 +307,47 @@ int cmd_list_around(mpd_unused int argc, mpd_unused char ** argv, struct mpd_con
   return 0;
 }
 
+int cmd_playback(mpd_unused int argc, mpd_unused char ** argv, struct mpd_connection *conn)
+{
+  if (options.wait)
+	wait_current(conn);
+
+  struct mpd_status *status;
+
+  if (!mpd_command_list_begin(conn, true) ||
+	  !mpd_send_status(conn) ||
+	  !mpd_send_current_song(conn) ||
+	  !mpd_command_list_end(conn))
+	printErrorAndExit(conn);
+
+  status = mpd_recv_status(conn);
+  if (status == NULL)
+	printErrorAndExit(conn);
+
+  if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
+	  mpd_status_get_state(status) == MPD_STATE_PAUSE) {
+	struct mpd_song *song;
+
+	if (!mpd_response_next(conn))
+	  printErrorAndExit(conn);
+
+	song = mpd_recv_song(conn);
+	my_finishCommand(conn);
+	
+	if (song != NULL)
+	  {
+		int song_id;
+		song_id = mpd_song_get_id(song);
+		mpd_run_play_pos(conn, song_id);
+
+		mpd_song_free(song);
+	  }
+  }
+  mpd_status_free(status);
+
+  return 0;
+}
+
 /** list song around, the default span is 3;
  ** this function is adapted from cmd_current() */
 int cmd_illustrate(mpd_unused int argc, mpd_unused char ** argv, struct mpd_connection *conn)
