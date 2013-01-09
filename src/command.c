@@ -309,43 +309,18 @@ int cmd_list_around(mpd_unused int argc, mpd_unused char ** argv, struct mpd_con
 
 int cmd_playback(mpd_unused int argc, mpd_unused char ** argv, struct mpd_connection *conn)
 {
-  if (options.wait)
-	wait_current(conn);
+  int ret;
+  char *sargv[1], s[8];
+  
+  if(argc == 0)
+	snprintf(s, 7, "0");
+  else
+	snprintf(s, 7, "%d%%", atoi(argv[0]));
 
-  struct mpd_status *status;
+  sargv[0] = s;
+  ret = cmd_seek(1, sargv, conn);
 
-  if (!mpd_command_list_begin(conn, true) ||
-	  !mpd_send_status(conn) ||
-	  !mpd_send_current_song(conn) ||
-	  !mpd_command_list_end(conn))
-	printErrorAndExit(conn);
-
-  status = mpd_recv_status(conn);
-  if (status == NULL)
-	printErrorAndExit(conn);
-
-  if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
-	  mpd_status_get_state(status) == MPD_STATE_PAUSE) {
-	struct mpd_song *song;
-
-	if (!mpd_response_next(conn))
-	  printErrorAndExit(conn);
-
-	song = mpd_recv_song(conn);
-	my_finishCommand(conn);
-	
-	if (song != NULL)
-	  {
-		int song_id;
-		song_id = mpd_song_get_id(song);
-		mpd_run_play_pos(conn, song_id);
-
-		mpd_song_free(song);
-	  }
-  }
-  mpd_status_free(status);
-
-  return 0;
+  return ret;
 }
 
 /** list song around, the default span is 3;
@@ -581,7 +556,7 @@ cmd_seek(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *con
 	struct mpd_status *status;
 	char * arg = argv[0];
 	char * test;
-
+	
 	int seekchange;
 	int total_secs;
 	int seekto;
@@ -699,10 +674,10 @@ cmd_seek(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *con
 	if (seekto > (int)mpd_status_get_total_time(status))
 		DIE("Seek amount would seek past the end of the song\n");
 
-	mpd_status_free(status);
-
 	if (!mpd_run_seek_id(conn, mpd_status_get_song_id(status), seekto))
 		printErrorAndExit(conn);
+
+	mpd_status_free(status);
 
 	return 1;
 }
