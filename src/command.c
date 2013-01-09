@@ -356,20 +356,25 @@ int cmd_illustrate(mpd_unused int argc, mpd_unused char ** argv, struct mpd_conn
 	wait_current(conn);
 
   struct mpd_song *song;
-  int i = 1, current_id, span = 3;
-
+  int i = 1, current_id, span = 3, playlist_len;
+  
+  struct mpd_status *status = getStatus(conn);
+  playlist_len = mpd_status_get_queue_length(status);
+  
   if(argc == 0)
-	{
-	  struct mpd_status *status = getStatus(conn);
-	  current_id = mpd_status_get_queue_length(status) / 2;
-	  mpd_status_free(status);
-	}
+	current_id = playlist_len / 2;
   else
 	{
 	  current_id = atoi(argv[0]);
+	  if(current_id < 1)
+		current_id = 1;
+	  else if(current_id > playlist_len)
+		current_id = playlist_len;
 	  if(argc > 1)
 		span = atoi(argv[1]);
 	}
+
+  mpd_status_free(status);
 
   if(!mpd_send_list_queue_meta(conn))
 	printErrorAndExit(conn);
@@ -747,9 +752,10 @@ cmd_playlist(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection 
 #include <ctype.h>
 
 static
-int is_substring_ignorecase(char *main, char *sub)
+int is_substring_ignorecase(const char *main, char *sub)
 {
-  char lower_main[64], lower_sub[64], *pt;
+  char lower_main[64], lower_sub[64];
+  const char *pt;
   int i;
 
   pt = main, i = 0;
@@ -763,7 +769,7 @@ int is_substring_ignorecase(char *main, char *sub)
 	  (islower(sub[i]) ? sub[i] : (char)tolower(sub[i])) : sub[i];
   lower_sub[i] = '\0';
 
-  return strstr(lower_main, lower_sub);
+  return (int)strstr(lower_main, lower_sub);
 }
 
 int
@@ -772,7 +778,7 @@ cmd_search_general(mpd_unused int argc, mpd_unused char **argv,
 {
 	struct mpd_song *song;
 	int i, j = 0;
-	char *song_item;
+	const char *song_item;
 	
 	if (!mpd_send_list_queue_meta(conn))
 		printErrorAndExit(conn);
@@ -783,7 +789,9 @@ cmd_search_general(mpd_unused int argc, mpd_unused char **argv,
 	while ((song = mpd_recv_song(conn)) != NULL)
 	  {
 		j++;
-		if((song_item = mpd_song_get_tag(song, search_type, 0)))
+		song_item = mpd_song_get_tag(song, search_type, 0);
+		
+		if(song_item)
 		  if(is_substring_ignorecase(song_item, argv[i]))
 			{
 			  printf("%d. ", j);

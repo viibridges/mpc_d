@@ -144,13 +144,13 @@ static struct command {
 };
 
 static void
-print_usage(FILE * outfp, char * progname)
+print_usage(FILE * outfp, const char * progname)
 {
 	fprintf(outfp,"Usage: %s [options] <command> [<arguments>]\n"
 		"mpc version: "VERSION"\n",progname);
 }
 
-static int print_help(char * progname, char * command)
+static int print_help(const char * progname, const char * command)
 {
 	int i, max = 0;
 
@@ -227,7 +227,7 @@ find_command(const char *name)
 {
   static struct command *conflict_list[8];
   int i, j, list_sentinel = 0, max_match = 0;
-  char *icmd_pt, *name_pt;
+  const char *icmd_pt, *name_pt;
   
   for ( i = 0; mpc_table[i].command != NULL; ++i)
 	{
@@ -320,7 +320,8 @@ run(const struct command *command, int argc, char **array)
 static int
 is_self_define_option(char **argv)
 {
-  char *opt = argv[1], *cmd;
+  char *opt = argv[1];
+  const char* cmd;
   int i;
 
   if(opt && opt[0] == '-' && opt[2] == '\0')
