@@ -34,6 +34,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
@@ -1381,4 +1383,134 @@ cmd_replaygain(int argc, char **argv, struct mpd_connection *connection)
 	}
 
 	return 0;
+}
+
+typedef struct
+{
+  int *quit_signal;
+  struct mpd_connection *conn;
+}Thr_update_args;
+
+static unsigned
+update_time(struct mpd_status *status, struct mpd_connection *conn)
+{
+  unsigned crt_time;
+  
+  status = getStatus(conn);
+  crt_time = mpd_status_get_elapsed_time(status);
+  mpd_status_free(status);
+
+  return crt_time;
+}
+
+static void
+print_time_axis(unsigned crt_time_perc)
+{
+  int fill_len, empty_len;
+  const int axis_len = 50;
+  fill_len = crt_time_perc * axis_len / 100;
+  empty_len = axis_len - fill_len;
+  
+  printf("|");
+  for(int i = 0; i < fill_len-1; printf("="), i++);
+  printf(">");
+  for(int i = 0; i < empty_len; printf(" "), i++);
+  printf("|");
+}
+
+static void
+*song_update_stat(void *void_thr_arg)
+{
+  Thr_update_args *thr_arg = void_thr_arg;
+  struct mpd_status *status;
+  unsigned crt_time, total_length, crt_time_perc;
+
+  status = getStatus(thr_arg->conn);
+  total_length = mpd_status_get_total_time(status);
+  mpd_status_free(status);
+
+  // PRINT INITIAL SONG INFO
+  for(;;)
+	{
+	  // PRINT SONG time axis
+	  crt_time = update_time(status, thr_arg->conn);
+	  crt_time_perc = 100 * crt_time / total_length;
+	  printf("\r");
+	  fflush(stdout);
+	  print_time_axis(crt_time_perc);
+	  printf(" %3i:%02i/%i:%02i (%u%%)",
+			 crt_time / 60,
+			 crt_time % 60,
+			 total_length / 60,
+			 total_length % 60,
+			 crt_time_perc);
+	  fflush(stdout);
+	  usleep(300);
+	  if(*thr_arg->quit_signal)
+		break;
+	}
+
+  printf("\n");
+
+  return NULL;
+}
+
+static Thr_update_args *
+thr_args_init(struct mpd_connection *conn)
+{
+  Thr_update_args *ret;
+  
+  ret = (Thr_update_args*)malloc(sizeof(Thr_update_args));
+  ret->quit_signal = (int*)malloc(sizeof(int));
+  *ret->quit_signal = 0;
+  ret->conn = conn;
+
+  return ret;
+}
+
+static void
+thr_args_release(Thr_update_args *thr_args)
+{
+  free(thr_args->quit_signal);
+  free(thr_args);
+}
+
+int
+cmd_control(mpd_unused int argc, mpd_unused char **argv,
+			struct mpd_connection *conn)
+{
+  pthread_t thr_update_stat;
+  Thr_update_args *thr_args;
+  
+  thr_args = thr_args_init(conn);
+  /* if(mpd_status_get_state(thr_arg.status) == MPD_STATE_STOP) */
+  /* 	{ */
+  /* 	  thr_args_release(&thr_arg); */
+  /* 	  DIE("not currently playing\n"); */
+  /* 	} */
+  if(pthread_create(&thr_update_stat, NULL, song_update_stat, (void*)thr_args))
+  	{
+  	  thr_args_release(thr_args);
+  	  DIE("thread init failed,\nexit...\n");
+  	}
+
+
+  for(;;)
+	switch(getchar())
+	  {
+	  case 'f': /* cmd_playback() */; break;
+	  case 'b': /* cmd_playback() */; break;
+	  case 'e': ;
+	  case 'q':
+		*thr_args->quit_signal = 1;
+		goto out_for_loop;
+	  default: ;
+	  }
+  
+ out_for_loop:
+  pthread_join(thr_update_stat, NULL);
+
+  thr_args_release(thr_args);
+
+  return 0;
 }
