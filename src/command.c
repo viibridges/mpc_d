@@ -1455,9 +1455,7 @@ print_song_basic_info(struct mpd_connection *conn)
 		       mpd_status_get_total_time(status) % 60			   
 			   );
 	}
-	else
-	  is_stop = 1;
-
+	
 	if (mpd_status_get_update_id(status) > 0)
 		printf("Updating DB (#%u) ...\n",
 		       mpd_status_get_update_id(status));
@@ -1495,6 +1493,9 @@ print_song_basic_info(struct mpd_connection *conn)
 	mpd_status_free(status);
 	my_finishCommand(conn);
 
+	if(mpd_status_get_state(status) != MPD_STATE_PLAY)
+	  is_stop = 1;
+
 	return is_stop;
 }
 
@@ -1513,7 +1514,7 @@ static void
 	  is_stop = print_song_basic_info(conn);
 
 	  if(is_stop)
-		sleep(1);
+		exit(0);//pthread_exit(NULL);
 	  else
 		for(;;last_time = crt_time)
 		  {
