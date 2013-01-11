@@ -1385,16 +1385,16 @@ cmd_replaygain(int argc, char **argv, struct mpd_connection *connection)
 	return 0;
 }
 
-static unsigned
-update_time(struct mpd_status *status, struct mpd_connection *conn)
+static void
+update_time(int *crt_time, int *total_time,
+			struct mpd_status *status, struct mpd_connection *conn)
 {
-  unsigned crt_time;
+  const int compensation = 2;
   
   status = getStatus(conn);
-  crt_time = mpd_status_get_elapsed_time(status);
+  *crt_time = mpd_status_get_elapsed_time(status) + compensation;
+  *total_time = mpd_status_get_total_time(status);
   mpd_status_free(status);
-
-  return crt_time;
 }
 
 static void
@@ -1412,10 +1412,11 @@ print_time_axis(unsigned crt_time_perc)
   printf("]");
 }
 
-static void
+static int
 print_song_basic_info(struct mpd_connection *conn)
 {
 	struct mpd_status *status;
+	int is_stop = 0;
 
 	if (!mpd_command_list_begin(conn, true) ||
 	    !mpd_send_status(conn) ||
@@ -1454,6 +1455,8 @@ print_song_basic_info(struct mpd_connection *conn)
 		       mpd_status_get_total_time(status) % 60			   
 			   );
 	}
+	else
+	  is_stop = 1;
 
 	if (mpd_status_get_update_id(status) > 0)
 		printf("Updating DB (#%u) ...\n",
@@ -1491,6 +1494,8 @@ print_song_basic_info(struct mpd_connection *conn)
 
 	mpd_status_free(status);
 	my_finishCommand(conn);
+
+	return is_stop;
 }
 
 static void
@@ -1498,42 +1503,42 @@ static void
 {
   struct mpd_connection *conn = void_conn;
   struct mpd_status *status;
-  int crt_time, total_time, crt_time_perc, last_time;
-  const int compens = 3;
+  int crt_time, total_time, crt_time_perc, last_time, is_stop;
 
   for(;;)
 	{
 	  crt_time = 0, last_time = -1;
-	  status = getStatus(conn);
-	  total_time = mpd_status_get_total_time(status);
-	  mpd_status_free(status);
 
 	  // print initial song info
-	  print_song_basic_info(conn);
-	  
-	  for(;;last_time = crt_time)
-		{
-		  // print song time axis
-		  crt_time = update_time(status, conn) + compens;
-		  if(last_time >= crt_time) break;
-		  crt_time_perc = 100 * crt_time / total_time;
-		  printf("\r");
-		  fflush(stdout);
+	  is_stop = print_song_basic_info(conn);
 
-		  if(crt_time <= total_time)
-			{
-			  print_time_axis(crt_time_perc);
-			  printf("%3i%% %3i:%02i/%i:%02i%*s",
-					 crt_time_perc,
-					 crt_time / 60,
-					 crt_time % 60,
-					 total_time / 60,
-					 total_time % 60,
-					 8, " ");
-			  fflush(stdout);
-			}
-		  sleep(1);
-		}
+	  if(is_stop)
+		sleep(1);
+	  else
+		for(;;last_time = crt_time)
+		  {
+			// print song time axis
+			update_time(&crt_time, &total_time, status, conn);
+			if(last_time >= crt_time) break;
+			crt_time_perc = 100 * crt_time / total_time;
+			printf("\r");
+			fflush(stdout);
+
+			if(crt_time <= total_time)
+			  {
+				print_time_axis(crt_time_perc);
+				printf("%3i%% %3i:%02i/%i:%02i%*s",
+					   crt_time_perc,
+					   crt_time / 60,
+					   crt_time % 60,
+					   total_time / 60,
+					   total_time % 60,
+					   8, " ");
+				fflush(stdout);
+			  }
+			sleep(1);
+		  }
+	  
 	  printf("\n\n");
 	}
 
