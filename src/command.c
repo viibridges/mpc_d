@@ -1385,12 +1385,6 @@ cmd_replaygain(int argc, char **argv, struct mpd_connection *connection)
 	return 0;
 }
 
-typedef struct
-{
-  int *quit_signal;
-  struct mpd_connection *conn;
-}Thr_update_args;
-
 static unsigned
 update_time(struct mpd_status *status, struct mpd_connection *conn)
 {
@@ -1406,73 +1400,144 @@ update_time(struct mpd_status *status, struct mpd_connection *conn)
 static void
 print_time_axis(unsigned crt_time_perc)
 {
-  int fill_len, empty_len;
+  int fill_len, empty_len, i;
   const int axis_len = 50;
   fill_len = crt_time_perc * axis_len / 100;
   empty_len = axis_len - fill_len;
   
-  printf("|");
-  for(int i = 0; i < fill_len-1; printf("="), i++);
+  printf("[");
+  for(i = 0; i < fill_len-1; printf("+"), i++);
   printf(">");
-  for(int i = 0; i < empty_len; printf(" "), i++);
-  printf("|");
+  for(i = 0; i < empty_len; printf(" "), i++);
+  printf("]");
 }
 
 static void
-*song_update_stat(void *void_thr_arg)
+print_song_basic_info(struct mpd_connection *conn)
 {
-  Thr_update_args *thr_arg = void_thr_arg;
-  struct mpd_status *status;
-  unsigned crt_time, total_length, crt_time_perc;
+	struct mpd_status *status;
 
-  status = getStatus(thr_arg->conn);
-  total_length = mpd_status_get_total_time(status);
-  mpd_status_free(status);
+	if (!mpd_command_list_begin(conn, true) ||
+	    !mpd_send_status(conn) ||
+	    !mpd_send_current_song(conn) ||
+	    !mpd_command_list_end(conn))
+		printErrorAndExit(conn);
 
-  // PRINT INITIAL SONG INFO
-  for(;;)
-	{
-	  // PRINT SONG time axis
-	  crt_time = update_time(status, thr_arg->conn);
-	  crt_time_perc = 100 * crt_time / total_length;
-	  printf("\r");
-	  fflush(stdout);
-	  print_time_axis(crt_time_perc);
-	  printf(" %3i:%02i/%i:%02i (%u%%)",
-			 crt_time / 60,
-			 crt_time % 60,
-			 total_length / 60,
-			 total_length % 60,
-			 crt_time_perc);
-	  fflush(stdout);
-	  usleep(300);
-	  if(*thr_arg->quit_signal)
-		break;
+	status = mpd_recv_status(conn);
+	if (status == NULL)
+		printErrorAndExit(conn);
+
+	if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
+	    mpd_status_get_state(status) == MPD_STATE_PAUSE) {
+		struct mpd_song *song;
+
+		if (!mpd_response_next(conn))
+			printErrorAndExit(conn);
+
+		song = mpd_recv_song(conn);
+		if (song != NULL) {
+			pretty_print_song(song);
+			printf("\n");
+
+			mpd_song_free(song);
+		}
+
+		if (mpd_status_get_state(status) == MPD_STATE_PLAY)
+			printf("[playing]");
+		else
+			printf("[paused] ");
+
+		printf(" #%i/%u %i:%02i\n",
+		       mpd_status_get_song_pos(status) + 1,
+		       mpd_status_get_queue_length(status),
+		       mpd_status_get_total_time(status) / 60,
+		       mpd_status_get_total_time(status) % 60			   
+			   );
 	}
 
-  printf("\n");
+	if (mpd_status_get_update_id(status) > 0)
+		printf("Updating DB (#%u) ...\n",
+		       mpd_status_get_update_id(status));
 
-  return NULL;
-}
+	if (mpd_status_get_volume(status) >= 0)
+		printf("volume:%3i%c   ", mpd_status_get_volume(status), '%');
+	else {
+		printf("volume: n/a   ");
+	}
 
-static Thr_update_args *
-thr_args_init(struct mpd_connection *conn)
-{
-  Thr_update_args *ret;
-  
-  ret = (Thr_update_args*)malloc(sizeof(Thr_update_args));
-  ret->quit_signal = (int*)malloc(sizeof(int));
-  *ret->quit_signal = 0;
-  ret->conn = conn;
+	printf("repeat: ");
+	if (mpd_status_get_repeat(status))
+		printf("on    ");
+	else printf("off   ");
 
-  return ret;
+	printf("random: ");
+	if (mpd_status_get_random(status))
+		printf("on    ");
+	else printf("off   ");
+
+	printf("single: ");
+	if (mpd_status_get_single(status))
+		printf("on    ");
+	else printf("off   ");
+
+	printf("consume: ");
+	if (mpd_status_get_consume(status))
+		printf("on \n");
+	else printf("off\n");
+
+	if (mpd_status_get_error(status) != NULL)
+		printf("ERROR: %s\n",
+		       charset_from_utf8(mpd_status_get_error(status)));
+
+	mpd_status_free(status);
+	my_finishCommand(conn);
 }
 
 static void
-thr_args_release(Thr_update_args *thr_args)
+*song_update_stat(void *void_conn)
 {
-  free(thr_args->quit_signal);
-  free(thr_args);
+  struct mpd_connection *conn = void_conn;
+  struct mpd_status *status;
+  int crt_time, total_time, crt_time_perc, last_time;
+  const int compens = 3;
+
+  for(;;)
+	{
+	  crt_time = 0, last_time = -1;
+	  status = getStatus(conn);
+	  total_time = mpd_status_get_total_time(status);
+	  mpd_status_free(status);
+
+	  // print initial song info
+	  print_song_basic_info(conn);
+	  
+	  for(;;last_time = crt_time)
+		{
+		  // print song time axis
+		  crt_time = update_time(status, conn) + compens;
+		  if(last_time >= crt_time) break;
+		  crt_time_perc = 100 * crt_time / total_time;
+		  printf("\r");
+		  fflush(stdout);
+
+		  if(crt_time <= total_time)
+			{
+			  print_time_axis(crt_time_perc);
+			  printf("%3i%% %3i:%02i/%i:%02i%*s",
+					 crt_time_perc,
+					 crt_time / 60,
+					 crt_time % 60,
+					 total_time / 60,
+					 total_time % 60,
+					 8, " ");
+			  fflush(stdout);
+			}
+		  sleep(1);
+		}
+	  printf("\n\n");
+	}
+
+  return NULL;
 }
 
 int
@@ -1480,20 +1545,11 @@ cmd_control(mpd_unused int argc, mpd_unused char **argv,
 			struct mpd_connection *conn)
 {
   pthread_t thr_update_stat;
-  Thr_update_args *thr_args;
+  int rc;
   
-  thr_args = thr_args_init(conn);
-  /* if(mpd_status_get_state(thr_arg.status) == MPD_STATE_STOP) */
-  /* 	{ */
-  /* 	  thr_args_release(&thr_arg); */
-  /* 	  DIE("not currently playing\n"); */
-  /* 	} */
-  if(pthread_create(&thr_update_stat, NULL, song_update_stat, (void*)thr_args))
-  	{
-  	  thr_args_release(thr_args);
-  	  DIE("thread init failed,\nexit...\n");
-  	}
-
+  rc = pthread_create(&thr_update_stat, NULL, song_update_stat, (void*)conn);
+  if(rc)
+	DIE("thread init failed,\nexit...\n");
 
   for(;;)
 	switch(getchar())
@@ -1502,15 +1558,13 @@ cmd_control(mpd_unused int argc, mpd_unused char **argv,
 	  case 'b': /* cmd_playback() */; break;
 	  case 'e': ;
 	  case 'q':
-		*thr_args->quit_signal = 1;
-		goto out_for_loop;
+		if(!pthread_cancel(thr_update_stat))
+		  goto out_for_loop;
 	  default: ;
 	  }
   
  out_for_loop:
   pthread_join(thr_update_stat, NULL);
-
-  thr_args_release(thr_args);
 
   return 0;
 }
