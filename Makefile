@@ -278,7 +278,7 @@ src_mpc_SOURCES = src/main.c src/list.c src/password.c src/status.c \
 	src/message.h src/message.c src/search.c src/options.c \
 	$(src_mpc_headers) $(am__append_1)
 src_mpc_CPPFLAGS = $(AM_CPPFLAGS) $(ICONV_CFLAGS) $(LIBMPDCLIENT_CFLAGS)
-src_mpc_LDADD = $(MPC_LIBS) $(ICONV_LIBS) $(LIBMPDCLIENT_LIBS) -lpthread
+src_mpc_LDADD = $(MPC_LIBS) $(ICONV_LIBS) $(LIBMPDCLIENT_LIBS) -lpthread -lncursesw
 
 # sparse is a semantic parser
 # URL: git://www.kernel.org/pub/scm/devel/sparse/sparse.git

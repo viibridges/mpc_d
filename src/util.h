@@ -48,6 +48,8 @@ int parse_float(const char *, float *);
 int parse_songnum(const char *, int *);
 int parse_int_value_change(const char *, struct int_value_change *);
 
+char * songToFormatedString(const struct mpd_song *song,
+					 const char *format, const char ** last);
 void
 pretty_print_song(const struct mpd_song *song);
 

@@ -281,7 +281,7 @@ song_value(const struct mpd_song *song, const char *name)
 }
 
 /* this is a little ugly... */
-static char *
+char *
 songToFormatedString(const struct mpd_song *song,
 		     const char *format, const char ** last)
 {

@@ -36,6 +36,8 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <curses.h>
+#include <locale.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
@@ -1474,8 +1476,7 @@ print_basic_song_info(struct mpd_connection* conn)
   if (status == NULL)
 	printErrorAndExit(conn);
 
-  for(int i = 0; i < 40; i++)
-	printf("\n");
+  clear();
 	  
   if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
 	  mpd_status_get_state(status) == MPD_STATE_PAUSE) {
@@ -1486,18 +1487,19 @@ print_basic_song_info(struct mpd_connection* conn)
 
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
-	  pretty_print_song(song);
-	  printf("\n");
+	  // pretty_print_song with ncurses portability
+	  printw("%s\n",
+			 songToFormatedString(song, options.format, NULL));
 
 	  mpd_song_free(song);
 	}
 
 	if (mpd_status_get_state(status) == MPD_STATE_PLAY)
-	  printf("[playing]");
+	  printw("[playing]");
 	else
-	  printf("[paused] ");
+	  printw("[paused] ");
 
-	printf(" #%i/%u %i:%02i\n",
+	printw("     #%3i/%3u      %i:%02i\n",
 		   mpd_status_get_song_pos(status) + 1,
 		   mpd_status_get_queue_length(status),
 		   mpd_status_get_total_time(status) / 60,
@@ -1506,38 +1508,35 @@ print_basic_song_info(struct mpd_connection* conn)
   }
 	
   if (mpd_status_get_update_id(status) > 0)
-	printf("Updating DB (#%u) ...\n",
+	printw("Updating DB (#%u) ...\n",
 		   mpd_status_get_update_id(status));
 
   if (mpd_status_get_volume(status) >= 0)
-	printf("volume:%3i%c   ", mpd_status_get_volume(status), '%');
+	printw("volume:%3i%c   ", mpd_status_get_volume(status), '%');
   else {
-	printf("volume: n/a   ");
+	printw("volume: n/a   ");
   }
 
-  printf("repeat: ");
+  printw("repeat: ");
   if (mpd_status_get_repeat(status))
-	printf("on    ");
-  else printf("off   ");
+	printw("on    ");
+  else printw("off   ");
 
-  printf("random: ");
+  printw("random: ");
   if (mpd_status_get_random(status))
-	printf("on    ");
-  else printf("off   ");
+	printw("on    ");
+  else printw("off   ");
 
-  printf("single: ");
+  printw("single: ");
   if (mpd_status_get_single(status))
-	printf("on    ");
-  else printf("off   ");
-
-  printf("consume: ");
-  if (mpd_status_get_consume(status))
-	printf("on \n");
-  else printf("off\n");
+	printw("on\n");
+  else printw("off\n");
 
   if (mpd_status_get_error(status) != NULL)
-	printf("ERROR: %s\n",
+	printw("ERROR: %s\n",
 		   charset_from_utf8(mpd_status_get_error(status)));
+
+  refresh();
 
   mpd_status_free(status);
   my_finishCommand(conn);
@@ -1560,23 +1559,24 @@ print_basic_bar(struct mpd_connection *conn)
   fill_len = crt_time_perc * axis_len / 100;
   empty_len = axis_len - fill_len;
   
-  printf("[");
-  for(i = 0; i < fill_len; printf("+"), i++);
-  printf(">");
-  for(i = 0; i < empty_len; printf(" "), i++);
-  printf("]");
+  printw("[");
+  for(i = 0; i < fill_len; printw("+"), i++);
+  printw(">");
+  for(i = 0; i < empty_len; printw(" "), i++);
+  printw("]");
   
-  printf("%3i%% %3i:%02i/%i:%02i%*s",
+  printw("%3i%% %3i:%02i/%i:%02i%*s",
 		 crt_time_perc,
 		 crt_time / 60,
 		 crt_time % 60,
 		 total_time / 60,
 		 total_time % 60,
 		 8, " ");
-  fflush(stdout);
+
+  refresh();
 }
 
-#define _LITTLE_INTERVAL 15000
+#define _LITTLE_INTERVAL 20000
 
 static void
 wait_for_play(struct mpd_connection *conn)
@@ -1630,7 +1630,7 @@ thr_update_info(void *void_conn)
 			UNLOCK_CONNECTION
 			  }
 
-	  printf("\r");
+	  printw("\r"); refresh();
 	  LOCK_CONNECTION
 		print_basic_bar(conn);
 	  UNLOCK_CONNECTION
@@ -1648,6 +1648,14 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   pthread_t thr_update_stat;
   int rc;
 
+  // ncurses basic setting
+  initscr();
+  timeout(-1); // no time out for keyboard stroke
+  curs_set(0); // cursor invisible
+
+  // ncurses for unicode support
+  setlocale(LC_ALL, "");
+
   pthread_mutex_init(&conn_mutex, NULL);
   
   rc = pthread_create(&thr_update_stat, NULL, thr_update_info, (void*)conn);
@@ -1655,7 +1663,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	DIE("thread init failed,\nexit...\n");
 
   for(;;)
-	switch(getchar())
+	switch(getch())
 	  {
 	  case 'f': /* cmd_playback() */; break;
 	  case 'b': /* cmd_playback() */; break;
@@ -1674,6 +1682,16 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 		  cmd_toggle(0, NULL, conn);
 		UNLOCK_CONNECTION
 		  break;
+	  case 'r':
+	  	LOCK_CONNECTION
+	  	  cmd_random(0, NULL, conn);
+	  	UNLOCK_CONNECTION
+		  break;
+	  case 's':
+	  	LOCK_CONNECTION
+	  	  cmd_single(0, NULL, conn);
+	  	UNLOCK_CONNECTION
+		  break;
 	  case 'e': ;
 	  case 'q':
 		if(!pthread_cancel(thr_update_stat))
@@ -1682,6 +1700,9 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	  }
   
  out_for_loop:
+
+  endwin();
+  
   pthread_join(thr_update_stat, NULL);
   pthread_mutex_destroy(&conn_mutex);
 
