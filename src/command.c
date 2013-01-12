@@ -1385,177 +1385,249 @@ cmd_replaygain(int argc, char **argv, struct mpd_connection *connection)
 	return 0;
 }
 
-static void
-update_time(int *crt_time, int *total_time,
-			struct mpd_status *status, struct mpd_connection *conn)
+struct SongIdentity
 {
-  const int compensation = 2;
+  int id;
+  int queue_length;
+  int total_time;
+};
+
+static void
+set_song_identity(struct SongIdentity *si, struct mpd_status *status)
+{
+  si->id = mpd_status_get_song_id(status);
+  si->queue_length = mpd_status_get_queue_length(status);
+  si->total_time = mpd_status_get_total_time(status);
+}
+
+/** if they are different, return 1 */
+static int
+compare_song_and_update(struct SongIdentity *si, struct mpd_status *status)
+{
+  struct SongIdentity si_;
+  set_song_identity(&si_, status);
+
+  // for insurance
+  if(si_.queue_length != si->queue_length ||
+	 si_.id != si->id || si_.total_time != si->total_time)
+	return 1;
+
+  // update and return true
+  memcpy(si, &si_, sizeof(struct SongIdentity)/sizeof(char));
+  return 0;
+}
+
+static int
+is_new_song(struct mpd_connection *conn)
+{
+  static struct SongIdentity old_record = {-1, -1, -1};
+  struct mpd_status *status;
+  int ret;
+
+  status = getStatus(conn);
+  
+  if(old_record.total_time == -1) // first time boot is_new_song()
+	{
+	  if(mpd_status_get_state(status) != MPD_STATE_PLAY &&
+		 mpd_status_get_state(status) != MPD_STATE_PAUSE)
+		return 0;
+	  else
+		  set_song_identity(&old_record, status);
+
+	  return 1;
+	}
+  
+  ret = compare_song_and_update(&old_record, status);
+  mpd_status_free(status);
+
+  return ret;
+}
+
+static int
+is_song_playing(struct mpd_connection *conn)
+{
+  struct mpd_status *status;
+  int ret;
   
   status = getStatus(conn);
-  *crt_time = mpd_status_get_elapsed_time(status) + compensation;
-  *total_time = mpd_status_get_total_time(status);
+  ret = (int)(mpd_status_get_state(status) == MPD_STATE_PLAY);
   mpd_status_free(status);
+
+  return ret;
 }
 
 static void
-print_time_axis(unsigned crt_time_perc)
+print_basic_song_info(struct mpd_connection* conn)
 {
-  int fill_len, empty_len, i;
+  struct mpd_status *status;
+
+  if (!mpd_command_list_begin(conn, true) ||
+	  !mpd_send_status(conn) ||
+	  !mpd_send_current_song(conn) ||
+	  !mpd_command_list_end(conn))
+	printErrorAndExit(conn);
+
+  status = mpd_recv_status(conn);
+  if (status == NULL)
+	printErrorAndExit(conn);
+
+  for(int i = 0; i < 40; i++)
+	printf("\n");
+	  
+  if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
+	  mpd_status_get_state(status) == MPD_STATE_PAUSE) {
+	struct mpd_song *song;
+
+	if (!mpd_response_next(conn))
+	  printErrorAndExit(conn);
+
+	song = mpd_recv_song(conn);
+	if (song != NULL) {
+	  pretty_print_song(song);
+	  printf("\n");
+
+	  mpd_song_free(song);
+	}
+
+	if (mpd_status_get_state(status) == MPD_STATE_PLAY)
+	  printf("[playing]");
+	else
+	  printf("[paused] ");
+
+	printf(" #%i/%u %i:%02i\n",
+		   mpd_status_get_song_pos(status) + 1,
+		   mpd_status_get_queue_length(status),
+		   mpd_status_get_total_time(status) / 60,
+		   mpd_status_get_total_time(status) % 60			   
+		   );
+  }
+	
+  if (mpd_status_get_update_id(status) > 0)
+	printf("Updating DB (#%u) ...\n",
+		   mpd_status_get_update_id(status));
+
+  if (mpd_status_get_volume(status) >= 0)
+	printf("volume:%3i%c   ", mpd_status_get_volume(status), '%');
+  else {
+	printf("volume: n/a   ");
+  }
+
+  printf("repeat: ");
+  if (mpd_status_get_repeat(status))
+	printf("on    ");
+  else printf("off   ");
+
+  printf("random: ");
+  if (mpd_status_get_random(status))
+	printf("on    ");
+  else printf("off   ");
+
+  printf("single: ");
+  if (mpd_status_get_single(status))
+	printf("on    ");
+  else printf("off   ");
+
+  printf("consume: ");
+  if (mpd_status_get_consume(status))
+	printf("on \n");
+  else printf("off\n");
+
+  if (mpd_status_get_error(status) != NULL)
+	printf("ERROR: %s\n",
+		   charset_from_utf8(mpd_status_get_error(status)));
+
+  mpd_status_free(status);
+  my_finishCommand(conn);
+}
+
+static void
+print_basic_bar(struct mpd_connection *conn)
+{
+  int crt_time, crt_time_perc, total_time,
+	fill_len, empty_len, i;
   const int axis_len = 50;
+  struct mpd_status *status;
+
+  status = getStatus(conn);
+  crt_time = mpd_status_get_elapsed_time(status);
+  total_time = mpd_status_get_total_time(status);
+  mpd_status_free(status);
+
+  crt_time_perc = (total_time == 0 ? 0 : 100 * crt_time / total_time);  
   fill_len = crt_time_perc * axis_len / 100;
   empty_len = axis_len - fill_len;
   
   printf("[");
   for(i = 0; i < fill_len; printf("+"), i++);
-  //crt_time_perc ? printf(">") : printf(" ");
   printf(">");
   for(i = 0; i < empty_len; printf(" "), i++);
   printf("]");
+  
+  printf("%3i%% %3i:%02i/%i:%02i%*s",
+		 crt_time_perc,
+		 crt_time / 60,
+		 crt_time % 60,
+		 total_time / 60,
+		 total_time % 60,
+		 8, " ");
+  fflush(stdout);
 }
 
 static void
-print_song_basic_info(struct mpd_connection *conn)
+wait_for_play(struct mpd_connection *conn)
 {
-	struct mpd_status *status;
-
-	if (!mpd_command_list_begin(conn, true) ||
-	    !mpd_send_status(conn) ||
-	    !mpd_send_current_song(conn) ||
-	    !mpd_command_list_end(conn))
-		printErrorAndExit(conn);
-
-	status = mpd_recv_status(conn);
-	if (status == NULL)
-		printErrorAndExit(conn);
-
-	if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
-	    mpd_status_get_state(status) == MPD_STATE_PAUSE) {
-		struct mpd_song *song;
-
-		if (!mpd_response_next(conn))
-			printErrorAndExit(conn);
-
-		song = mpd_recv_song(conn);
-		if (song != NULL) {
-			pretty_print_song(song);
-			printf("\n");
-
-			mpd_song_free(song);
-		}
-
-		if (mpd_status_get_state(status) == MPD_STATE_PLAY)
-			printf("[playing]");
-		else
-			printf("[paused] ");
-
-		printf(" #%i/%u %i:%02i\n",
-		       mpd_status_get_song_pos(status) + 1,
-		       mpd_status_get_queue_length(status),
-		       mpd_status_get_total_time(status) / 60,
-		       mpd_status_get_total_time(status) % 60			   
-			   );
-	}
-	
-	if (mpd_status_get_update_id(status) > 0)
-		printf("Updating DB (#%u) ...\n",
-		       mpd_status_get_update_id(status));
-
-	if (mpd_status_get_volume(status) >= 0)
-		printf("volume:%3i%c   ", mpd_status_get_volume(status), '%');
-	else {
-		printf("volume: n/a   ");
-	}
-
-	printf("repeat: ");
-	if (mpd_status_get_repeat(status))
-		printf("on    ");
-	else printf("off   ");
-
-	printf("random: ");
-	if (mpd_status_get_random(status))
-		printf("on    ");
-	else printf("off   ");
-
-	printf("single: ");
-	if (mpd_status_get_single(status))
-		printf("on    ");
-	else printf("off   ");
-
-	printf("consume: ");
-	if (mpd_status_get_consume(status))
-		printf("on \n");
-	else printf("off\n");
-
-	if (mpd_status_get_error(status) != NULL)
-		printf("ERROR: %s\n",
-		       charset_from_utf8(mpd_status_get_error(status)));
-
-	mpd_status_free(status);
-	my_finishCommand(conn);
-}
-
-static void
-*song_update_stat(void *void_conn)
-{
-  struct mpd_connection *conn = void_conn;
   struct mpd_status *status;
-  int crt_time, total_time, crt_time_perc,
-	last_time, playing_state;
+  int playing_state;
+  
+  for(;;sleep(1))
+	{
+	  status = getStatus(conn);
+	  playing_state = mpd_status_get_state(status);
+	  mpd_status_free(status);
+	  if(playing_state == MPD_STATE_PLAY)
+		break;
+	}
+}
 
+static void*
+thr_update_info(void *void_conn)
+{
+  struct mpd_connection *conn = (struct mpd_connection*)void_conn;
+  
   for(;;)
 	{
-	  crt_time = 0, last_time = -1;
-
-	  // print initial song info
-	  print_song_basic_info(conn);
-
-	  for(;;last_time = crt_time)
+	  if(is_new_song(conn))
 		{
-		  for(;;)
-			{
-			  status = getStatus(conn);
-			  playing_state = mpd_status_get_state(status);
-			  mpd_status_free(status);
-			  if(playing_state == MPD_STATE_PLAY) break;
-			  sleep(1);
-			}
-
-		  // print song time axis
-		  update_time(&crt_time, &total_time, status, conn);
-		  if(last_time >= crt_time) break;
-		  crt_time_perc = 100 * crt_time / total_time;
-		  printf("\r");
-		  fflush(stdout);
-
-		  if(crt_time <= total_time)
-			{
-			  print_time_axis(crt_time_perc);
-			  printf("%3i%% %3i:%02i/%i:%02i%*s",
-					 crt_time_perc,
-					 crt_time / 60,
-					 crt_time % 60,
-					 total_time / 60,
-					 total_time % 60,
-					 8, " ");
-			  fflush(stdout);
-			}
-		  sleep(1);
+		  print_basic_song_info(conn);
+		  print_basic_bar(conn);
 		}
 	  
-	  printf("\n\n");
-	}
+	  if(!is_song_playing(conn))
+		{
+		  print_basic_song_info(conn);
+		  print_basic_bar(conn);		  
+		  wait_for_play(conn);
+		  print_basic_song_info(conn);
+		  print_basic_bar(conn);		  
+		}
 
+	  printf("\r");
+	  print_basic_bar(conn);
+
+	  sleep(1);
+	}
+  
   return NULL;
 }
 
 int
-cmd_control(mpd_unused int argc, mpd_unused char **argv,
+cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 			struct mpd_connection *conn)
 {
   pthread_t thr_update_stat;
   int rc;
   
-  rc = pthread_create(&thr_update_stat, NULL, song_update_stat, (void*)conn);
+  rc = pthread_create(&thr_update_stat, NULL, thr_update_info, (void*)conn);
   if(rc)
 	DIE("thread init failed,\nexit...\n");
 
