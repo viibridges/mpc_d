@@ -1594,6 +1594,37 @@ thr_update_info(void *void_conn)
   return NULL;
 }
 
+#define SEEK_UNIT 3
+
+static void
+cmd_forward(mpd_unused int argc, mpd_unused char **argv,
+			struct mpd_connection  *conn)
+{
+  char **args = (char**)malloc(sizeof(char*));
+  *args = (char*)malloc(8 * sizeof(char));
+  sprintf(*args, "+%d%%", SEEK_UNIT);
+  cmd_seek(1, args, conn);
+  free(*args); free(args);  
+}
+
+static void
+cmd_backward(mpd_unused int argc, mpd_unused char **argv,
+			 struct mpd_connection  *conn)
+{
+  char **args = (char**)malloc(sizeof(char*));
+  *args = (char*)malloc(8 * sizeof(char));
+  sprintf(*args, "-%d%%", SEEK_UNIT);
+  cmd_seek(1, args, conn);
+  free(*args); free(args);
+}
+
+#define CASE_EXCUTE(command_name) \
+  LOCK_CONNECTION				  \
+  command_name(0, NULL, conn);	  \
+  new_command_signal = 1;		  \
+  UNLOCK_CONNECTION				  \
+  break;
+
 int
 cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 			struct mpd_connection *conn)
@@ -1622,44 +1653,25 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   for(;;)
 	switch(getch())
 	  {
-	  case 'f': /* cmd_playback() */; break;
-	  case 'b': /* cmd_playback() */; break;
+	  case '+': ;
+	  case '=':
+		CASE_EXCUTE(cmd_forward)
+	  case '-':
+		CASE_EXCUTE(cmd_backward)
+	  case 'b':
+		CASE_EXCUTE(cmd_playback)
 	  case 'n':
-		LOCK_CONNECTION
-		  cmd_next(0, NULL, conn);
-		  new_command_signal = 1;
-		UNLOCK_CONNECTION
-		  break;
+		CASE_EXCUTE(cmd_next)
 	  case 'p':
-		LOCK_CONNECTION
-		  cmd_prev(0, NULL, conn);
-		  new_command_signal = 1;
-		UNLOCK_CONNECTION
-		  break;
+		CASE_EXCUTE(cmd_prev)
 	  case 't':
-		LOCK_CONNECTION
-		  cmd_toggle(0, NULL, conn);
-		  new_command_signal = 1;
-		UNLOCK_CONNECTION
-		  break;
+		CASE_EXCUTE(cmd_toggle)
 	  case 'r':
-	  	LOCK_CONNECTION
-	  	  cmd_random(0, NULL, conn);
-		  new_command_signal = 1;
-	  	UNLOCK_CONNECTION
-		  break;
+		CASE_EXCUTE(cmd_random)
 	  case 's':
-	  	LOCK_CONNECTION
-	  	  cmd_single(0, NULL, conn);
-		  new_command_signal = 1;
-	  	UNLOCK_CONNECTION
-		  break;
+		CASE_EXCUTE(cmd_single)
 	  case 'R':
-	  	LOCK_CONNECTION
-	  	  cmd_repeat(0, NULL, conn);
-		  new_command_signal = 1;
-	  	UNLOCK_CONNECTION
-		  break;
+		CASE_EXCUTE(cmd_repeat)
 	  case 'e': ;
 	  case 'q':
 		if(!pthread_cancel(thr_update_stat))
