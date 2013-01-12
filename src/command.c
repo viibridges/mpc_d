@@ -1444,6 +1444,16 @@ is_new_command(struct mpd_connection *conn)
 }
 
 static void
+print_basic_help(void)
+{
+  move(5, 0);
+  printw("  [n] :\tNext song\t\t  [R] :\tToggle repeat\n");
+  printw("  [p] :\tPrevious song\t\t  [r] :\tToggle random\n");
+  printw("  [-] :\tSeek backward\t\t  [s] :\tToggle single\n");
+  printw("[+/=] :\tSeek forward\t\t  [b] :\tPlayback\n");
+}
+
+static void
 print_basic_song_info(struct mpd_connection* conn)
 {
   struct mpd_status *status;
@@ -1512,6 +1522,7 @@ print_basic_song_info(struct mpd_connection* conn)
 	printw("ERROR: %s\n",
 		   charset_from_utf8(mpd_status_get_error(status)));
 
+  print_basic_help();
   refresh();
 
   mpd_status_free(status);
@@ -1534,7 +1545,9 @@ print_basic_bar(struct mpd_connection *conn)
   crt_time_perc = (total_time == 0 ? 0 : 100 * crt_time / total_time);  
   fill_len = crt_time_perc * axis_len / 100;
   empty_len = axis_len - fill_len;
-  
+
+  move(3, 0);
+  printw("\r");
   printw("[");
   for(i = 0; i < fill_len; printw("+"), i++);
   printw(">");
@@ -1607,7 +1620,6 @@ thr_update_info(void *void_conn)
 			UNLOCK_CONNECTION
 			  }
 
-	  printw("\r"); refresh();
 	  LOCK_CONNECTION
 		print_basic_bar(conn);
 	  UNLOCK_CONNECTION
