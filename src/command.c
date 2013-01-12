@@ -1410,12 +1410,36 @@ static int new_command_signal;
 /** new_command_signal has been protected by
 	the mutex which is outside of the in_new_command() */
 static int
-is_new_command(int *signal)
+is_new_command(struct mpd_connection *conn)
 {
-  if(*signal == 0)
-	return 0;
+  static int repeat, randomm, single, queue_len, id,
+	rep, ran, sin, que, idd;
+  struct mpd_status *status;
+  
+  if(new_command_signal == 0)
+	{
+	  status = getStatus(conn);
+	  rep = mpd_status_get_repeat(status);
+	  ran = mpd_status_get_random(status);
+	  sin = mpd_status_get_single(status);
+	  que = mpd_status_get_queue_length(status);
+	  idd = mpd_status_get_song_id(status);
+	  mpd_status_free(status);
+	  if(rep != repeat || ran != randomm || sin != single
+		 || que != queue_len || idd != id)
+		{
+		  repeat = rep;
+		  randomm = ran;
+		  single = sin;
+		  queue_len = que;
+		  id = idd;
+		  return 1;
+		}
+		
+	  return 0;
+	}
   else
-	*signal = 0;
+	new_command_signal = 0;
   return 1;
 }
 
@@ -1559,7 +1583,7 @@ thr_update_info(void *void_conn)
   for(;;)
 	{
 	  LOCK_CONNECTION
-		if(is_new_command(&new_command_signal))
+		if(is_new_command(conn))
 		  {
 			// refresh the status display
 			print_basic_song_info(conn);
