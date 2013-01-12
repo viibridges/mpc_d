@@ -1392,6 +1392,10 @@ struct SongIdentity
   int total_time;
 };
 
+static pthread_mutex_t conn_mutex;
+#define LOCK_CONNECTION pthread_mutex_lock(&conn_mutex);
+#define UNLOCK_CONNECTION pthread_mutex_unlock(&conn_mutex);
+
 static void
 set_song_identity(struct SongIdentity *si, struct mpd_status *status)
 {
@@ -1572,7 +1576,7 @@ print_basic_bar(struct mpd_connection *conn)
   fflush(stdout);
 }
 
-#define _LITTLE_INTERVAL 30000
+#define _LITTLE_INTERVAL 15000
 
 static void
 wait_for_play(struct mpd_connection *conn)
@@ -1582,40 +1586,56 @@ wait_for_play(struct mpd_connection *conn)
   
   for(;;usleep(_LITTLE_INTERVAL))
 	{
-	  status = getStatus(conn);
+	  LOCK_CONNECTION
+		status = getStatus(conn);
 	  playing_state = mpd_status_get_state(status);
 	  mpd_status_free(status);
-	  if(playing_state == MPD_STATE_PLAY)
-		break;
+	  UNLOCK_CONNECTION
+		if(playing_state == MPD_STATE_PLAY)
+		  break;
 	}
 }
 
 static void*
 thr_update_info(void *void_conn)
 {
-  struct mpd_connection *conn = (struct mpd_connection*)void_conn;
+  struct mpd_connection *conn;
+  int rs;
+  
+  conn = (struct mpd_connection*)void_conn;
   
   for(;;)
 	{
-	  if(is_new_song(conn))
-		{
-		  print_basic_song_info(conn);
-		  print_basic_bar(conn);
-		}
-	  
-	  if(!is_song_playing(conn))
-		{
-		  print_basic_song_info(conn);
-		  print_basic_bar(conn);		  
-		  wait_for_play(conn);
-		  print_basic_song_info(conn);
-		  print_basic_bar(conn);		  
-		}
+	  LOCK_CONNECTION
+		if(is_new_song(conn))
+		  {
+			print_basic_song_info(conn);
+			print_basic_bar(conn);
+		  }
+
+	  rs = is_song_playing(conn);
+
+	  UNLOCK_CONNECTION
+
+  		if(!rs)
+		  {
+			LOCK_CONNECTION			
+			  print_basic_song_info(conn);
+			print_basic_bar(conn);
+			UNLOCK_CONNECTION
+			  wait_for_play(conn);
+			LOCK_CONNECTION
+			  print_basic_song_info(conn);
+			print_basic_bar(conn);
+			UNLOCK_CONNECTION
+			  }
 
 	  printf("\r");
-	  print_basic_bar(conn);
+	  LOCK_CONNECTION
+		print_basic_bar(conn);
+	  UNLOCK_CONNECTION
 
-	  usleep(_LITTLE_INTERVAL);
+		usleep(_LITTLE_INTERVAL);
 	}
   
   return NULL;
@@ -1627,6 +1647,8 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 {
   pthread_t thr_update_stat;
   int rc;
+
+  pthread_mutex_init(&conn_mutex, NULL);
   
   rc = pthread_create(&thr_update_stat, NULL, thr_update_info, (void*)conn);
   if(rc)
@@ -1637,9 +1659,21 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	  {
 	  case 'f': /* cmd_playback() */; break;
 	  case 'b': /* cmd_playback() */; break;
-	  case 'n': cmd_next(0, NULL, conn); break;
-	  case 'p': cmd_prev(0, NULL, conn); break;
-	  case 't': cmd_toggle(0, NULL, conn); break;
+	  case 'n':
+		LOCK_CONNECTION
+		  cmd_next(0, NULL, conn);
+		UNLOCK_CONNECTION
+		  break;
+	  case 'p':
+		LOCK_CONNECTION
+		  cmd_prev(0, NULL, conn);
+		UNLOCK_CONNECTION
+		  break;
+	  case 't':
+		LOCK_CONNECTION
+		  cmd_toggle(0, NULL, conn);
+		UNLOCK_CONNECTION
+		  break;
 	  case 'e': ;
 	  case 'q':
 		if(!pthread_cancel(thr_update_stat))
@@ -1649,6 +1683,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   
  out_for_loop:
   pthread_join(thr_update_stat, NULL);
+  pthread_mutex_destroy(&conn_mutex);
 
   return 0;
 }
