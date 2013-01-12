@@ -1407,14 +1407,13 @@ compare_song_and_update(struct SongIdentity *si, struct mpd_status *status)
   struct SongIdentity si_;
   set_song_identity(&si_, status);
 
-  // for insurance
-  if(si_.queue_length != si->queue_length ||
-	 si_.id != si->id || si_.total_time != si->total_time)
-	return 1;
+  if(si_.queue_length == si->queue_length &&
+	 si_.id == si->id && si_.total_time == si->total_time)
+	return 0;
 
   // update and return true
   memcpy(si, &si_, sizeof(struct SongIdentity)/sizeof(char));
-  return 0;
+  return 1;
 }
 
 static int
@@ -1573,13 +1572,15 @@ print_basic_bar(struct mpd_connection *conn)
   fflush(stdout);
 }
 
+#define _LITTLE_INTERVAL 30000
+
 static void
 wait_for_play(struct mpd_connection *conn)
 {
   struct mpd_status *status;
   int playing_state;
   
-  for(;;sleep(1))
+  for(;;usleep(_LITTLE_INTERVAL))
 	{
 	  status = getStatus(conn);
 	  playing_state = mpd_status_get_state(status);
@@ -1614,7 +1615,7 @@ thr_update_info(void *void_conn)
 	  printf("\r");
 	  print_basic_bar(conn);
 
-	  sleep(1);
+	  usleep(_LITTLE_INTERVAL);
 	}
   
   return NULL;

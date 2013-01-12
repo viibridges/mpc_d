@@ -22,60 +22,75 @@ void charset_deinit(207,4474
 charset_to_utf8(215,4560
 charset_from_utf8(234,4856
 
-command.c,1411
-#define DIE(38,1234
-#define SIMPLE_CMD(40,1309
-#define SIMPLE_ONEARG_CMD(48,1565
-static void my_finishCommand(55,1829
-SIMPLE_CMD(60,1952
-int cmd_add 82,2516
-cmd_crop(124,3508
-get_active_song(167,4505
-wait_current(179,4799
-int cmd_current(206,5439
-int cmd_list_around(248,6386
-int cmd_illustrate(312,7774
-int cmd_del 358,8615
-cmd_toggle(436,10468
-cmd_outputs(450,10752
-cmd_enable(474,11338
-cmd_disable(487,11605
-int cmd_play 499,11870
-cmd_seek(533,12552
-cmd_move(665,15946
-cmd_playlist(686,16353
-int is_substring_ignorecase(709,16757
-cmd_search_general(729,17254
-int cmd_search_title 761,17899
-int cmd_search_artist 766,18043
-int cmd_search_album 771,18189
-int cmd_listall 776,18333
-int cmd_update 804,18894
-int cmd_ls 862,20139
-int cmd_lsplaylists 884,20544
-int cmd_load 902,20934
-int cmd_insert 919,21264
-int cmd_list 938,21717
-int cmd_volume 968,22284
-cmd_pause(1013,23166
-int cmd_repeat 1021,23321
-int cmd_random 1043,23698
-int cmd_single 1065,24075
-int cmd_consume 1087,24452
-int cmd_crossfade 1109,24832
-int cmd_mixrampdb 1132,25343
-int cmd_mixrampdelay 1154,25787
-cmd_version(1179,26264
-int cmd_loadtab 1192,26582
-int cmd_lstab 1215,27052
-int cmd_tab 1239,27530
-static char * DHMS(1274,28257
-#define SECSPERDAY 1280,28377
-#define SECSPERHOUR 1283,28429
-#define SECSPERMIN 1286,28480
-cmd_stats(1303,28759
-cmd_status(1327,29525
-cmd_replaygain(1335,29690
+command.c,1845
+#define DIE(40,1275
+#define SIMPLE_CMD(42,1350
+#define SIMPLE_ONEARG_CMD(50,1606
+static void my_finishCommand(57,1870
+SIMPLE_CMD(62,1993
+int cmd_add 84,2557
+cmd_crop(126,3549
+get_active_song(169,4546
+wait_current(181,4840
+int cmd_current(208,5480
+int cmd_list_around(250,6427
+int cmd_playback(312,7719
+int cmd_illustrate(330,8101
+int cmd_del 381,9090
+cmd_toggle(459,10943
+cmd_outputs(473,11227
+cmd_enable(497,11813
+cmd_disable(510,12080
+int cmd_play 522,12345
+cmd_seek(556,13027
+cmd_move(688,16422
+cmd_playlist(709,16829
+int is_substring_ignorecase(732,17233
+cmd_search_general(753,17754
+int cmd_search_title 787,18419
+int cmd_search_artist 792,18563
+int cmd_search_album 797,18709
+int cmd_listall 802,18853
+int cmd_update 830,19414
+int cmd_ls 888,20659
+int cmd_lsplaylists 910,21064
+int cmd_load 928,21454
+int cmd_insert 945,21784
+int cmd_list 964,22237
+int cmd_volume 994,22804
+cmd_pause(1039,23686
+int cmd_repeat 1047,23841
+int cmd_random 1069,24218
+int cmd_single 1091,24595
+int cmd_consume 1113,24972
+int cmd_crossfade 1135,25352
+int cmd_mixrampdb 1158,25863
+int cmd_mixrampdelay 1180,26307
+cmd_version(1205,26784
+int cmd_loadtab 1218,27102
+int cmd_lstab 1241,27572
+int cmd_tab 1265,28050
+static char * DHMS(1300,28777
+#define SECSPERDAY 1306,28897
+#define SECSPERHOUR 1309,28949
+#define SECSPERMIN 1312,29000
+cmd_stats(1329,29279
+cmd_status(1353,30045
+cmd_replaygain(1361,30210
+struct SongIdentity1388,30947
+  int id;1390,30969
+  int queue_length;1391,30979
+  int total_time;1392,30999
+set_song_identity(1396,31033
+compare_song_and_update(1405,31313
+is_new_song(1420,31683
+is_song_playing(1446,32226
+print_basic_song_info(1459,32464
+print_basic_bar(1543,34370
+#define _LITTLE_INTERVAL 1575,35160
+wait_for_play(1578,35204
+thr_update_info(1594,35512
+cmd_dynamic(1625,36020
 
 idle.c,43
 int cmd_idle(28,916
@@ -103,14 +118,14 @@ static struct command 45,1378
 	const char *usage;usage56,1873
 	const char *help;help59,1941
 } mpc_table 60,1960
-print_usage(147,8193
-static int print_help(153,8344
-setup_connection(202,9551
-find_command(226,10141
-check_args(276,11260
-run(304,11967
-is_self_define_option(321,12308
-int main(334,12563
+print_usage(150,8578
+static int print_help(156,8735
+setup_connection(205,9954
+find_command(229,10544
+check_args(279,11669
+run(307,12376
+is_self_define_option(324,12717
+int main(338,12985
 
 message.c,95
 cmd_channels(34,1050
@@ -764,203 +779,3 @@ mpd_tag_name_parse(70,2299
 ignore_case_char_equals(86,2673
 ignore_case_string_equals(92,2778
 mpd_tag_name_iparse(109,3010
-
-charset.c,697
-static bool charset_enable_input;34,1156
-static bool charset_enable_output;35,1190
-static char *locale_charset;locale_charset36,1225
-static iconv_t char_conv_iconv;38,1255
-static char * char_conv_to;39,1287
-static char * char_conv_from;40,1315
-static int ignore_invalid;41,1345
-#define BUFFER_SIZE	43,1373
-static inline char * mpc_strchrnul(49,1489
-static char * skip_invalid(57,1627
-charset_set2(85,2173
-charset_set(102,2517
-static inline size_t deconst_iconv(120,2771
-		const char **a;a125,2921
-		char **b;b126,2939
-charset_conv_strdup(135,3067
-charset_close(170,3753
-charset_init(182,3932
-void charset_deinit(207,4474
-charset_to_utf8(215,4560
-charset_from_utf8(234,4856
-
-command.c,1808
-#define DIE(40,1275
-#define SIMPLE_CMD(42,1350
-#define SIMPLE_ONEARG_CMD(50,1606
-static void my_finishCommand(57,1870
-SIMPLE_CMD(62,1993
-int cmd_add 84,2557
-cmd_crop(126,3549
-get_active_song(169,4546
-wait_current(181,4840
-int cmd_current(208,5480
-int cmd_list_around(250,6427
-int cmd_playback(312,7719
-int cmd_illustrate(330,8101
-int cmd_del 381,9090
-cmd_toggle(459,10943
-cmd_outputs(473,11227
-cmd_enable(497,11813
-cmd_disable(510,12080
-int cmd_play 522,12345
-cmd_seek(556,13027
-cmd_move(688,16422
-cmd_playlist(709,16829
-int is_substring_ignorecase(732,17233
-cmd_search_general(753,17754
-int cmd_search_title 787,18419
-int cmd_search_artist 792,18563
-int cmd_search_album 797,18709
-int cmd_listall 802,18853
-int cmd_update 830,19414
-int cmd_ls 888,20659
-int cmd_lsplaylists 910,21064
-int cmd_load 928,21454
-int cmd_insert 945,21784
-int cmd_list 964,22237
-int cmd_volume 994,22804
-cmd_pause(1039,23686
-int cmd_repeat 1047,23841
-int cmd_random 1069,24218
-int cmd_single 1091,24595
-int cmd_consume 1113,24972
-int cmd_crossfade 1135,25352
-int cmd_mixrampdb 1158,25863
-int cmd_mixrampdelay 1180,26307
-cmd_version(1205,26784
-int cmd_loadtab 1218,27102
-int cmd_lstab 1241,27572
-int cmd_tab 1265,28050
-static char * DHMS(1300,28777
-#define SECSPERDAY 1306,28897
-#define SECSPERHOUR 1309,28949
-#define SECSPERMIN 1312,29000
-cmd_stats(1329,29279
-cmd_status(1353,30045
-cmd_replaygain(1361,30210
-struct SongIdentity1388,30947
-  int id;1390,30969
-  int queue_length;1391,30979
-  int total_time;1392,30999
-set_song_identity(1396,31033
-compare_song_and_update(1405,31312
-is_new_song(1421,31701
-is_song_playing(1447,32244
-print_basic_song_info(1460,32482
-print_basic_bar(1544,34388
-wait_for_play(1577,35168
-thr_update_info(1593,35460
-cmd_control(1623,35901
-
-idle.c,43
-int cmd_idle(28,916
-cmd_idleloop(68,1766
-
-list.c,304
-static void makeListNodesArray(31,1109
-static void freeListNodesArray(43,1369
-List * makeList(48,1469
-int insertInList(62,1735
-int insertInListWithoutKey(98,2434
-int findInList(131,3031
-int deleteFromList(185,3932
-void deleteNodeFromList(204,4228
-void freeList(234,4780
-void clearList(257,5207
-
-main.c,452
-static struct command 45,1378
-	const char *command;command46,1402
-	const int min,47,1424
-	const int min, max;47,1424
-	int pipe;48,1495
-	cmdhandler handler;55,1852
-	const char *usage;usage56,1873
-	const char *help;help59,1941
-} mpc_table 60,1960
-print_usage(150,8578
-static int print_help(156,8735
-setup_connection(205,9954
-find_command(229,10544
-check_args(279,11669
-run(307,12376
-is_self_define_option(324,12717
-int main(338,12985
-
-message.c,95
-cmd_channels(34,1050
-cmd_sendmessage(53,1471
-cmd_waitmessage(63,1670
-cmd_subscribe(84,2203
-
-options.c,641
-#define MAX_LONGOPT_LENGTH 27,915
-#define ERROR_UNKNOWN_OPTION 29,946
-#define ERROR_BAD_ARGUMENT 30,983
-#define ERROR_GOT_ARGUMENT 31,1020
-#define ERROR_MISSING_ARGUMENT 32,1057
-	int shortopt;35,1112
-	const char *longopt;longopt36,1127
-	const char *argument;argument37,1149
-	const char *description;description38,1172
-} arg_opt_t;39,1198
-options_t options 42,1213
-static const arg_opt_t option_table[option_table49,1383
-static const unsigned option_table_size 60,1934
-option_error(63,2037
-lookup_long_option(87,2652
-lookup_short_option(100,2884
-handle_option(113,3068
-print_option_help(148,3635
-parse_options(166,4050
-
-password.c,23
-send_password(29,1063
-
-search.c,251
-#define DIE(30,974
-get_search_type(33,1070
-get_constraints(64,1621
-static void my_finishCommand(89,2113
-add_constraint(95,2248
-add_constraints(111,2833
-static int do_search 132,3277
-cmd_search(149,3585
-cmd_find(155,3697
-cmd_findadd(161,3807
-
-status.c,47
-elapsed_percent(35,1169
-print_status(50,1440
-
-sticker.c,117
-static void my_finishCommand(30,957
-recv_print_stickers(36,1092
-recv_print_stickers2(47,1335
-cmd_sticker(70,1793
-
-util.c,573
-printErrorAndExit(39,1244
-int stdinToArgArray(56,1718
-void free_pipe_array 85,2238
-int get_boolean 91,2337
-	static const struct _bool_table 94,2382
-		const char * on;95,2417
-		const char * off;96,2436
-int parse_int(124,3029
-int parse_float(140,3350
-int parse_songnum(156,3672
-int parse_int_value_change(176,4043
-static char * appendToString(201,4534
-static const char * skipFormatting(220,4863
-song_value(244,5224
-songToFormatedString(285,6230
-print_formatted_song(423,8682
-pretty_print_song(434,8868
-print_entity_list(440,8970
-print_filenames(482,10050
