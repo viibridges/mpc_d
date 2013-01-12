@@ -1387,66 +1387,9 @@ cmd_replaygain(int argc, char **argv, struct mpd_connection *connection)
 	return 0;
 }
 
-struct SongIdentity
-{
-  int id;
-  int queue_length;
-  int total_time;
-};
-
 static pthread_mutex_t conn_mutex;
 #define LOCK_CONNECTION pthread_mutex_lock(&conn_mutex);
 #define UNLOCK_CONNECTION pthread_mutex_unlock(&conn_mutex);
-
-static void
-set_song_identity(struct SongIdentity *si, struct mpd_status *status)
-{
-  si->id = mpd_status_get_song_id(status);
-  si->queue_length = mpd_status_get_queue_length(status);
-  si->total_time = mpd_status_get_total_time(status);
-}
-
-/** if they are different, return 1 */
-static int
-compare_song_and_update(struct SongIdentity *si, struct mpd_status *status)
-{
-  struct SongIdentity si_;
-  set_song_identity(&si_, status);
-
-  if(si_.queue_length == si->queue_length &&
-	 si_.id == si->id && si_.total_time == si->total_time)
-	return 0;
-
-  // update and return true
-  memcpy(si, &si_, sizeof(struct SongIdentity)/sizeof(char));
-  return 1;
-}
-
-static int
-is_new_song(struct mpd_connection *conn)
-{
-  static struct SongIdentity old_record = {-1, -1, -1};
-  struct mpd_status *status;
-  int ret;
-
-  status = getStatus(conn);
-  
-  if(old_record.total_time == -1) // first time boot is_new_song()
-	{
-	  if(mpd_status_get_state(status) != MPD_STATE_PLAY &&
-		 mpd_status_get_state(status) != MPD_STATE_PAUSE)
-		return 0;
-	  else
-		  set_song_identity(&old_record, status);
-
-	  return 1;
-	}
-  
-  ret = compare_song_and_update(&old_record, status);
-  mpd_status_free(status);
-
-  return ret;
-}
 
 static int
 is_song_playing(struct mpd_connection *conn)
@@ -1459,6 +1402,21 @@ is_song_playing(struct mpd_connection *conn)
   mpd_status_free(status);
 
   return ret;
+}
+
+/** set to 1 once commands have been triggered */
+static int new_command_signal;
+
+/** new_command_signal has been protected by
+	the mutex which is outside of the in_new_command() */
+static int
+is_new_command(int *signal)
+{
+  if(*signal == 0)
+	return 0;
+  else
+	*signal = 0;
+  return 1;
 }
 
 static void
@@ -1511,13 +1469,7 @@ print_basic_song_info(struct mpd_connection* conn)
 	printw("Updating DB (#%u) ...\n",
 		   mpd_status_get_update_id(status));
 
-  if (mpd_status_get_volume(status) >= 0)
-	printw("volume:%3i%c   ", mpd_status_get_volume(status), '%');
-  else {
-	printw("volume: n/a   ");
-  }
-
-  printw("repeat: ");
+  printw("Repeat: ");
   if (mpd_status_get_repeat(status))
 	printw("on    ");
   else printw("off   ");
@@ -1607,8 +1559,9 @@ thr_update_info(void *void_conn)
   for(;;)
 	{
 	  LOCK_CONNECTION
-		if(is_new_song(conn))
+		if(is_new_command(&new_command_signal))
 		  {
+			// refresh the status display
 			print_basic_song_info(conn);
 			print_basic_bar(conn);
 		  }
@@ -1652,9 +1605,13 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   initscr();
   timeout(-1); // no time out for keyboard stroke
   curs_set(0); // cursor invisible
+  noecho();
 
   // ncurses for unicode support
   setlocale(LC_ALL, "");
+
+  // initialization is a command too
+  new_command_signal = 1;
 
   pthread_mutex_init(&conn_mutex, NULL);
   
@@ -1670,26 +1627,37 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	  case 'n':
 		LOCK_CONNECTION
 		  cmd_next(0, NULL, conn);
+		  new_command_signal = 1;
 		UNLOCK_CONNECTION
 		  break;
 	  case 'p':
 		LOCK_CONNECTION
 		  cmd_prev(0, NULL, conn);
+		  new_command_signal = 1;
 		UNLOCK_CONNECTION
 		  break;
 	  case 't':
 		LOCK_CONNECTION
 		  cmd_toggle(0, NULL, conn);
+		  new_command_signal = 1;
 		UNLOCK_CONNECTION
 		  break;
 	  case 'r':
 	  	LOCK_CONNECTION
 	  	  cmd_random(0, NULL, conn);
+		  new_command_signal = 1;
 	  	UNLOCK_CONNECTION
 		  break;
 	  case 's':
 	  	LOCK_CONNECTION
 	  	  cmd_single(0, NULL, conn);
+		  new_command_signal = 1;
+	  	UNLOCK_CONNECTION
+		  break;
+	  case 'R':
+	  	LOCK_CONNECTION
+	  	  cmd_repeat(0, NULL, conn);
+		  new_command_signal = 1;
 	  	UNLOCK_CONNECTION
 		  break;
 	  case 'e': ;
