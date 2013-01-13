@@ -1449,9 +1449,10 @@ print_basic_help(void)
   move(5, 0);
   printw("  [n] :\tNext song\t\t  [R] :\tToggle repeat\n");
   printw("  [p] :\tPrevious song\t\t  [r] :\tToggle random\n");
-  printw("  [-] :\tSeek backward\t\t  [s] :\tToggle single\n");
-  printw("  [=] :\tSeek forward\t\t  [b] :\tPlayback\n");
+  printw("  [-] :\tVolume down\t\t  [s] :\tToggle single\n");
+  printw("  [=] :\tVolume Up\t\t  [b] :\tPlayback\n");
   printw("  [t] :\tPlay / Pause\t\t  [l] :\tRedraw screen\n");
+  printw(" LEFT :\tSeek backward\t\tRIGHT :\tSeek forward\n");
 }
 
 static void
@@ -1505,6 +1506,12 @@ print_basic_song_info(struct mpd_connection* conn)
 	printw("Updating DB (#%u) ...\n",
 		   mpd_status_get_update_id(status));
 
+  if (mpd_status_get_volume(status) >= 0)
+	printw("volume:%3i%c   ", mpd_status_get_volume(status), '%');
+  else {
+	printw("volume: n/a   ");
+  }
+
   printw("Repeat: ");
   if (mpd_status_get_repeat(status))
 	printw("on    ");
@@ -1551,7 +1558,7 @@ print_basic_bar(struct mpd_connection *conn)
   move(3, 0);
   printw("\r");
   printw("[");
-  for(i = 0; i < fill_len; printw("+"), i++);
+  for(i = 0; i < fill_len; printw("="), i++);
   printw(">");
   for(i = 0; i < empty_len; printw(" "), i++);
   printw("]");
@@ -1633,6 +1640,7 @@ thr_update_info(void *void_conn)
 }
 
 #define SEEK_UNIT 3
+#define VOLUME_UNIT 3
 
 static void
 cmd_forward(mpd_unused int argc, mpd_unused char **argv,
@@ -1654,6 +1662,44 @@ cmd_backward(mpd_unused int argc, mpd_unused char **argv,
   sprintf(*args, "-%d%%", SEEK_UNIT);
   cmd_seek(1, args, conn);
   free(*args); free(args);
+}
+
+static int
+cmd_volup(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *conn)
+{
+  struct mpd_status *status;
+  int volume;
+
+  status = getStatus(conn);
+  volume = mpd_status_get_volume(status);
+  mpd_status_free(status);
+
+  volume += VOLUME_UNIT;
+  if(volume > 100)
+	volume = 100;
+
+  if (!mpd_run_set_volume(conn, volume))
+	printErrorAndExit(conn);
+  return 1;
+}
+  
+static int
+cmd_voldown(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *conn)
+{
+  struct mpd_status *status;
+  int volume;
+
+  status = getStatus(conn);
+  volume = mpd_status_get_volume(status);
+  mpd_status_free(status);
+
+  volume -= VOLUME_UNIT;
+  if(volume < 0)
+	volume = 0;
+
+  if (!mpd_run_set_volume(conn, volume))
+	printErrorAndExit(conn);
+  return 1;
 }
 
 #define CASE_EXCUTE(command_name) \
@@ -1694,9 +1740,11 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	  {
 	  case '+': ;
 	  case '=': ;
+		CASE_EXCUTE(cmd_volup)
 	  case KEY_RIGHT:
 		CASE_EXCUTE(cmd_forward)
 	  case '-':
+		CASE_EXCUTE(cmd_voldown)
 	  case KEY_LEFT:
 		CASE_EXCUTE(cmd_backward)
 	  case 'b':
