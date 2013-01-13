@@ -1491,11 +1491,12 @@ print_basic_song_info(struct mpd_connection* conn)
 	else
 	  printw("[paused] ");
 
-	printw("     #%3i/%3u      %i:%02i\n",
+	printw("     #%3i/%3u      %i:%02i      (%ik)\n",
 		   mpd_status_get_song_pos(status) + 1,
 		   mpd_status_get_queue_length(status),
 		   mpd_status_get_total_time(status) / 60,
-		   mpd_status_get_total_time(status) % 60			   
+		   mpd_status_get_total_time(status) % 60,
+		   mpd_status_get_kbit_rate(status)
 		   );
   }
 	
