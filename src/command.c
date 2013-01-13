@@ -1408,12 +1408,13 @@ is_song_playing(struct mpd_connection *conn)
 static int new_command_signal;
 
 /** new_command_signal has been protected by
-	the mutex which is outside of the in_new_command() */
+	the mutex which is outside of the in_new_command()
+	Ret: 0: no change, 1: new command, 2: new state */
 static int
-is_new_command(struct mpd_connection *conn)
+check_new_state(struct mpd_connection *conn)
 {
-  static int repeat, randomm, single, queue_len, id,
-	rep, ran, sin, que, idd;
+  static int repeat, randomm, single, queue_len, id, volume,
+	rep, ran, sin, que, idd, vol;
   struct mpd_status *status;
   
   if(new_command_signal == 0)
@@ -1424,21 +1425,23 @@ is_new_command(struct mpd_connection *conn)
 	  sin = mpd_status_get_single(status);
 	  que = mpd_status_get_queue_length(status);
 	  idd = mpd_status_get_song_id(status);
+	  vol = mpd_status_get_volume(status);
 	  mpd_status_free(status);
 	  if(rep != repeat || ran != randomm || sin != single
-		 || que != queue_len || idd != id)
+		 || que != queue_len || idd != id || vol != volume)
 		{
 		  repeat = rep;
 		  randomm = ran;
 		  single = sin;
 		  queue_len = que;
 		  id = idd;
-		  return 1;
+		  volume = vol;
+		  return 2;
 		}
 		
 	  return 0;
 	}
-  else
+  else // new local command triggered by key strike
 	new_command_signal = 0;
   return 1;
 }
@@ -1575,6 +1578,13 @@ print_basic_bar(struct mpd_connection *conn)
   refresh();
 }
 
+static void
+redraw_screen(struct mpd_connection *conn)
+{
+  print_basic_song_info(conn);
+  print_basic_bar(conn);
+}
+
 #define _LITTLE_INTERVAL 30000
 
 static void
@@ -1586,10 +1596,16 @@ wait_for_play(struct mpd_connection *conn)
   for(;;usleep(_LITTLE_INTERVAL))
 	{
 	  LOCK_CONNECTION
+		
 		status = getStatus(conn);
 	  playing_state = mpd_status_get_state(status);
 	  mpd_status_free(status);
+
+	  if(check_new_state(conn) == 2)
+		redraw_screen(conn);
+	  
 	  UNLOCK_CONNECTION
+
 		if(playing_state == MPD_STATE_PLAY)
 		  break;
 	}
@@ -1606,11 +1622,10 @@ thr_update_info(void *void_conn)
   for(;;)
 	{
 	  LOCK_CONNECTION
-		if(is_new_command(conn))
+		if(check_new_state(conn))
 		  {
 			// refresh the status display
-			print_basic_song_info(conn);
-			print_basic_bar(conn);
+			redraw_screen(conn);
 		  }
 
 	  rs = is_song_playing(conn);
@@ -1620,13 +1635,11 @@ thr_update_info(void *void_conn)
   		if(!rs)
 		  {
 			LOCK_CONNECTION			
-			  print_basic_song_info(conn);
-			print_basic_bar(conn);
+			  redraw_screen(conn);
 			UNLOCK_CONNECTION
 			  wait_for_play(conn);
 			LOCK_CONNECTION
-			  print_basic_song_info(conn);
-			print_basic_bar(conn);
+			  redraw_screen(conn);
 			UNLOCK_CONNECTION
 			  }
 
