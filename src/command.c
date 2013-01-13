@@ -1452,7 +1452,8 @@ print_basic_help(void)
   printw("  [-] :\tVolume down\t\t  [s] :\tToggle single\n");
   printw("  [=] :\tVolume Up\t\t  [b] :\tPlayback\n");
   printw("  [t] :\tPlay / Pause\t\t  [l] :\tRedraw screen\n");
-  printw(" LEFT :\tSeek backward\t\tRIGHT :\tSeek forward\n");
+  printw("  <L> :\tSeek backward\t\t  <R> :\tSeek forward\n");
+  printw("\n  [e/q] : Quit\n");
 }
 
 static void
