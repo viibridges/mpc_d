@@ -1575,7 +1575,7 @@ print_basic_bar(struct mpd_connection *conn)
   refresh();
 }
 
-#define _LITTLE_INTERVAL 20000
+#define _LITTLE_INTERVAL 30000
 
 static void
 wait_for_play(struct mpd_connection *conn)
@@ -1754,7 +1754,8 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 		CASE_EXCUTE(cmd_next)
 	  case 'p':
 		CASE_EXCUTE(cmd_prev)
-	  case 't':
+	  case 't': ;
+	  case ' ':
 		CASE_EXCUTE(cmd_toggle)
 	  case 'r':
 		CASE_EXCUTE(cmd_random)
