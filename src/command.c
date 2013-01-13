@@ -1450,7 +1450,8 @@ print_basic_help(void)
   printw("  [n] :\tNext song\t\t  [R] :\tToggle repeat\n");
   printw("  [p] :\tPrevious song\t\t  [r] :\tToggle random\n");
   printw("  [-] :\tSeek backward\t\t  [s] :\tToggle single\n");
-  printw("[+/=] :\tSeek forward\t\t  [b] :\tPlayback\n");
+  printw("  [=] :\tSeek forward\t\t  [b] :\tPlayback\n");
+  printw("  [t] :\tPlay / Pause\t\t  [l] :\tRedraw screen\n");
 }
 
 static void
@@ -1674,6 +1675,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   timeout(-1); // no time out for keyboard stroke
   curs_set(0); // cursor invisible
   noecho();
+  keypad(stdscr, TRUE); // enable getch() get KEY_UP/DOWN
 
   // ncurses for unicode support
   setlocale(LC_ALL, "");
@@ -1691,9 +1693,11 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	switch(getch())
 	  {
 	  case '+': ;
-	  case '=':
+	  case '=': ;
+	  case KEY_RIGHT:
 		CASE_EXCUTE(cmd_forward)
 	  case '-':
+	  case KEY_LEFT:
 		CASE_EXCUTE(cmd_backward)
 	  case 'b':
 		CASE_EXCUTE(cmd_playback)
@@ -1709,6 +1713,11 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 		CASE_EXCUTE(cmd_single)
 	  case 'R':
 		CASE_EXCUTE(cmd_repeat)
+	  case 'l':
+		  LOCK_CONNECTION		
+		  new_command_signal = 1;		
+		UNLOCK_CONNECTION				
+		  break;
 	  case 'e': ;
 	  case 'q':
 		if(!pthread_cancel(thr_update_stat))
