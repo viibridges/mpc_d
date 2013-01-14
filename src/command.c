@@ -1497,12 +1497,11 @@ print_basic_song_info(struct mpd_connection* conn)
 	else
 	  printw("[paused] ");
 
-	printw("     #%3i/%3u      %i:%02i      (%ik)\n",
+	printw("     #%3i/%3u      %i:%02i\n",
 		   mpd_status_get_song_pos(status) + 1,
 		   mpd_status_get_queue_length(status),
 		   mpd_status_get_total_time(status) / 60,
-		   mpd_status_get_total_time(status) % 60,
-		   mpd_status_get_kbit_rate(status)
+		   mpd_status_get_total_time(status) % 60
 		   );
   }
 	
@@ -1546,14 +1545,24 @@ static void
 print_basic_bar(struct mpd_connection *conn)
 {
   int crt_time, crt_time_perc, total_time,
-	fill_len, empty_len, i;
-  const int axis_len = 50;
+	fill_len, empty_len, i, bit_rate;
+  static int last_bit_rate = 0;
+  const int axis_len = 40;
   struct mpd_status *status;
 
   status = getStatus(conn);
   crt_time = mpd_status_get_elapsed_time(status);
   total_time = mpd_status_get_total_time(status);
+  bit_rate = mpd_status_get_kbit_rate(status);
   mpd_status_free(status);
+
+  /* as many songs's bit rate varies while playing
+	 we refresh the bit rate display only when the 
+	 relevant change greater than 0.2 */
+  if(abs(bit_rate - last_bit_rate) / (float)(last_bit_rate + 1) > 0.2)
+	last_bit_rate = bit_rate;
+  else
+	bit_rate = last_bit_rate;
 
   crt_time_perc = (total_time == 0 ? 0 : 100 * crt_time / total_time);  
   fill_len = crt_time_perc * axis_len / 100;
@@ -1567,8 +1576,9 @@ print_basic_bar(struct mpd_connection *conn)
   for(i = 0; i < empty_len; printw(" "), i++);
   printw("]");
   
-  printw("%3i%% %3i:%02i/%i:%02i%*s",
+  printw("%3i%% %5ik/s %3i:%02i/%i:%02i%*s",
 		 crt_time_perc,
+		 bit_rate,
 		 crt_time / 60,
 		 crt_time % 60,
 		 total_time / 60,
