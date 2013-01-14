@@ -1670,22 +1670,20 @@ static void
 cmd_forward(mpd_unused int argc, mpd_unused char **argv,
 			struct mpd_connection  *conn)
 {
-  char **args = (char**)malloc(sizeof(char*));
-  *args = (char*)malloc(8 * sizeof(char));
-  sprintf(*args, "+%d%%", SEEK_UNIT);
-  cmd_seek(1, args, conn);
-  free(*args); free(args);  
+  char *args = malloc(8 * sizeof(char));
+  sprintf(args, "+%i%%", SEEK_UNIT);
+  cmd_seek(1, &args, conn);
+  free(args);
 }
 
 static void
 cmd_backward(mpd_unused int argc, mpd_unused char **argv,
 			 struct mpd_connection  *conn)
 {
-  char **args = (char**)malloc(sizeof(char*));
-  *args = (char*)malloc(8 * sizeof(char));
-  sprintf(*args, "-%d%%", SEEK_UNIT);
-  cmd_seek(1, args, conn);
-  free(*args); free(args);
+  char *args = malloc(8 * sizeof(char));
+  sprintf(args, "-%i%%", SEEK_UNIT);
+  cmd_seek(1, &args, conn);
+  free(args);
 }
 
 static int
