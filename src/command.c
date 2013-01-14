@@ -1387,48 +1387,51 @@ cmd_replaygain(int argc, char **argv, struct mpd_connection *connection)
 	return 0;
 }
 
+
+/** My Part **/
+
+enum my_menu_id
+{
+  MENU_MAIN,
+  //	MENU_WAIT,
+  //	MENU_PLAYLIST,
+  //	MENU_QUEUE,
+  MENU_NUMBER
+};
+
+struct VerboseArgs
+{
+  struct mpd_connection *conn;
+  /** set to 1 once commands have been triggered by keyboad*/
+  int new_command_signal;
+  int menu_id;
+};
+
 static pthread_mutex_t conn_mutex;
-#define LOCK_CONNECTION pthread_mutex_lock(&conn_mutex);
-#define UNLOCK_CONNECTION pthread_mutex_unlock(&conn_mutex);
+#define LOCK_FRAGILE pthread_mutex_lock(&conn_mutex);
+#define UNLOCK_FRAGILE pthread_mutex_unlock(&conn_mutex);
 
 static int
-is_song_playing(struct mpd_connection *conn)
+check_new_state(struct VerboseArgs *vargs)
 {
-  struct mpd_status *status;
-  int ret;
-  
-  status = getStatus(conn);
-  ret = (int)(mpd_status_get_state(status) == MPD_STATE_PLAY);
-  mpd_status_free(status);
-
-  return ret;
-}
-
-/** set to 1 once commands have been triggered */
-static int new_command_signal;
-
-/** new_command_signal has been protected by
-	the mutex which is outside of the in_new_command()
-	Ret: 0: no change, 1: new command, 2: new state */
-static int
-check_new_state(struct mpd_connection *conn)
-{
-  static int repeat, randomm, single, queue_len, id, volume,
-	rep, ran, sin, que, idd, vol;
+  static int repeat, randomm, single, queue_len, id, volume, play,
+	rep, ran, sin, que, idd, vol, ply;
   struct mpd_status *status;
   
-  if(new_command_signal == 0)
+  if(vargs->new_command_signal == 0)
 	{
-	  status = getStatus(conn);
+	  status = getStatus(vargs->conn);
 	  rep = mpd_status_get_repeat(status);
 	  ran = mpd_status_get_random(status);
 	  sin = mpd_status_get_single(status);
 	  que = mpd_status_get_queue_length(status);
 	  idd = mpd_status_get_song_id(status);
 	  vol = mpd_status_get_volume(status);
+	  ply = mpd_status_get_state(status);
 	  mpd_status_free(status);
 	  if(rep != repeat || ran != randomm || sin != single
-		 || que != queue_len || idd != id || vol != volume)
+		 || que != queue_len || idd != id || vol != volume
+		 || ply != play)
 		{
 		  repeat = rep;
 		  randomm = ran;
@@ -1436,13 +1439,15 @@ check_new_state(struct mpd_connection *conn)
 		  queue_len = que;
 		  id = idd;
 		  volume = vol;
+		  play = ply;
 		  return 2;
 		}
 		
 	  return 0;
 	}
   else // new local command triggered by key strike
-	new_command_signal = 0;
+	vargs->new_command_signal = 0;
+  
   return 1;
 }
 
@@ -1595,72 +1600,18 @@ redraw_screen(struct mpd_connection *conn)
   print_basic_bar(conn);
 }
 
-#define _LITTLE_INTERVAL 30000
+#define INTERVAL_UNIT 30000
 
 static void
-wait_for_play(struct mpd_connection *conn)
+menu_main_print_routine(struct VerboseArgs *vargs)
 {
-  struct mpd_status *status;
-  int playing_state;
-  
-  for(;;usleep(_LITTLE_INTERVAL))
+  if(check_new_state(vargs))
 	{
-	  LOCK_CONNECTION
-		
-		status = getStatus(conn);
-	  playing_state = mpd_status_get_state(status);
-	  mpd_status_free(status);
-
-	  if(check_new_state(conn) == 2)
-		redraw_screen(conn);
-	  
-	  UNLOCK_CONNECTION
-
-		if(playing_state == MPD_STATE_PLAY)
-		  break;
+	  // refresh the status display
+	  redraw_screen(vargs->conn);
 	}
-}
 
-static void*
-thr_update_info(void *void_conn)
-{
-  struct mpd_connection *conn;
-  int rs;
-  
-  conn = (struct mpd_connection*)void_conn;
-  
-  for(;;)
-	{
-	  LOCK_CONNECTION
-		if(check_new_state(conn))
-		  {
-			// refresh the status display
-			redraw_screen(conn);
-		  }
-
-	  rs = is_song_playing(conn);
-
-	  UNLOCK_CONNECTION
-
-  		if(!rs)
-		  {
-			LOCK_CONNECTION			
-			  redraw_screen(conn);
-			UNLOCK_CONNECTION
-			  wait_for_play(conn);
-			LOCK_CONNECTION
-			  redraw_screen(conn);
-			UNLOCK_CONNECTION
-			  }
-
-	  LOCK_CONNECTION
-		print_basic_bar(conn);
-	  UNLOCK_CONNECTION
-
-		usleep(_LITTLE_INTERVAL);
-	}
-  
-  return NULL;
+  print_basic_bar(vargs->conn);
 }
 
 #define SEEK_UNIT 3
@@ -1724,19 +1675,99 @@ cmd_voldown(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *
   return 1;
 }
 
-#define CASE_EXCUTE(command_name) \
-  LOCK_CONNECTION				  \
-  command_name(0, NULL, conn);	  \
-  new_command_signal = 1;		  \
-  UNLOCK_CONNECTION				  \
+#define CASE_EXCUTE(command_name)				\
+  LOCK_FRAGILE								\
+  command_name(0, NULL, vargs->conn);			\
+  vargs->new_command_signal = 1;				\
+  UNLOCK_FRAGILE								\
   break;
+
+static int
+menu_main_keyboard(struct VerboseArgs *vargs)
+{
+  switch(getch())
+	{
+	case '+': ;
+	case '=': ;
+	  CASE_EXCUTE(cmd_volup)
+	case KEY_RIGHT:
+		CASE_EXCUTE(cmd_forward)
+	case '-':
+		CASE_EXCUTE(cmd_voldown)
+	case KEY_LEFT:
+		CASE_EXCUTE(cmd_backward)
+	case 'b':
+		CASE_EXCUTE(cmd_playback)
+	case 'n':
+		CASE_EXCUTE(cmd_next)
+	case 'p':
+		CASE_EXCUTE(cmd_prev)
+	case 't': ;
+	case ' ':
+	  CASE_EXCUTE(cmd_toggle)
+	case 'r':
+	  CASE_EXCUTE(cmd_random)
+	case 's':
+	  CASE_EXCUTE(cmd_single)
+	case 'R':
+	  CASE_EXCUTE(cmd_repeat)
+	case 'l':
+	  LOCK_FRAGILE
+		vargs->new_command_signal = 1;
+	  UNLOCK_FRAGILE
+		break;
+	case 'e': ;
+	case 'q':
+	  return 1;
+	default: ;
+	}
+  
+  return 0;
+}
+
+static void*
+menu_rendering(void *args)
+{
+  struct VerboseArgs *vargs;
+
+  vargs = (struct VerboseArgs*)args;
+  for(;;)
+	{
+	  LOCK_FRAGILE
+
+	  if(vargs->menu_id == MENU_MAIN)
+		menu_main_print_routine(vargs);
+
+	  UNLOCK_FRAGILE
+
+	  usleep(INTERVAL_UNIT);
+	}
+
+  return NULL;
+}
+
+static void
+verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
+{
+  vargs->conn = conn;
+  vargs->menu_id = MENU_MAIN;
+  /* initialization require redraw too */
+  vargs->new_command_signal = 1;
+}
+
+static void
+verbose_args_destroy(mpd_unused struct VerboseArgs *vargs)
+{
+  return;
+}
 
 int
 cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 			struct mpd_connection *conn)
 {
-  pthread_t thr_update_stat;
-  int rc;
+  pthread_t thread_menu_rendering;
+  int rc, is_quit;
+  struct VerboseArgs vargs;
 
   // ncurses basic setting
   initscr();
@@ -1748,60 +1779,41 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   // ncurses for unicode support
   setlocale(LC_ALL, "");
 
-  // initialization is a command too
-  new_command_signal = 1;
-
   pthread_mutex_init(&conn_mutex, NULL);
-  
-  rc = pthread_create(&thr_update_stat, NULL, thr_update_info, (void*)conn);
-  if(rc)
-	DIE("thread init failed,\nexit...\n");
 
-  for(;;)
-	switch(getch())
-	  {
-	  case '+': ;
-	  case '=': ;
-		CASE_EXCUTE(cmd_volup)
-	  case KEY_RIGHT:
-		CASE_EXCUTE(cmd_forward)
-	  case '-':
-		CASE_EXCUTE(cmd_voldown)
-	  case KEY_LEFT:
-		CASE_EXCUTE(cmd_backward)
-	  case 'b':
-		CASE_EXCUTE(cmd_playback)
-	  case 'n':
-		CASE_EXCUTE(cmd_next)
-	  case 'p':
-		CASE_EXCUTE(cmd_prev)
-	  case 't': ;
-	  case ' ':
-		CASE_EXCUTE(cmd_toggle)
-	  case 'r':
-		CASE_EXCUTE(cmd_random)
-	  case 's':
-		CASE_EXCUTE(cmd_single)
-	  case 'R':
-		CASE_EXCUTE(cmd_repeat)
-	  case 'l':
-		  LOCK_CONNECTION		
-		  new_command_signal = 1;		
-		UNLOCK_CONNECTION				
-		  break;
-	  case 'e': ;
-	  case 'q':
-		if(!pthread_cancel(thr_update_stat))
-		  goto out_for_loop;
-	  default: ;
-	  }
+  verbose_args_init(&vargs, conn);
   
- out_for_loop:
+  rc = pthread_create(&thread_menu_rendering, NULL,
+					  menu_rendering, (void*)&vargs);
+  if(rc)
+	{
+	  endwin();
+	  DIE("thread init failed,\nexit...\n");
+	}
+
+  /** main loop for keyboard hit daemon */
+  for(;;)
+	{
+	  if(vargs.menu_id == MENU_MAIN)
+		is_quit = menu_main_keyboard(&vargs);
+	  /* else if(menu_id == MENU_PLAYLIST) */
+	  /* 	is_quit = menu_playlist_keyboard(vargs); */
+
+	  if(is_quit)
+		{
+		  pthread_cancel(thread_menu_rendering);
+		  break;
+		}
+
+	  usleep(INTERVAL_UNIT);	  
+	}
 
   endwin();
   
-  pthread_join(thr_update_stat, NULL);
+  pthread_join(thread_menu_rendering, NULL);
   pthread_mutex_destroy(&conn_mutex);
+
+  verbose_args_destroy(&vargs);
 
   return 0;
 }
