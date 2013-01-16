@@ -112,6 +112,7 @@ static void
 print_basic_song_info(struct mpd_connection* conn)
 {
   struct mpd_status *status;
+  static char buff[55];
 
   if (!mpd_command_list_begin(conn, true) ||
 	  !mpd_send_status(conn) ||
@@ -123,8 +124,6 @@ print_basic_song_info(struct mpd_connection* conn)
   if (status == NULL)
 	printErrorAndExit(conn);
 
-  clear();
-	  
   if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
 	  mpd_status_get_state(status) == MPD_STATE_PAUSE) {
 	struct mpd_song *song;
@@ -135,8 +134,9 @@ print_basic_song_info(struct mpd_connection* conn)
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
 	  // pretty_print_song with ncurses portability
-	  printw("%s\n",
+	  snprintf(buff, sizeof(buff), "%s\n",
 			 songToFormatedString(song, options.format, NULL));
+	  color_xyprint(1, -1, -1, buff);
 
 	  mpd_song_free(song);
 	}
@@ -183,7 +183,6 @@ print_basic_song_info(struct mpd_connection* conn)
 	printw("ERROR: %s\n",
 		   charset_from_utf8(mpd_status_get_error(status)));
 
-  print_basic_help();
   refresh();
 
   mpd_status_free(status);
@@ -196,7 +195,6 @@ print_basic_bar(struct mpd_connection *conn)
   int crt_time, crt_time_perc, total_time,
 	fill_len, empty_len, i, bit_rate;
   static int last_bit_rate = 0;
-  const int axis_len = 40;
   struct mpd_status *status;
 
   status = getStatus(conn);
@@ -214,8 +212,8 @@ print_basic_bar(struct mpd_connection *conn)
 	bit_rate = last_bit_rate;
 
   crt_time_perc = (total_time == 0 ? 0 : 100 * crt_time / total_time);  
-  fill_len = crt_time_perc * axis_len / 100;
-  empty_len = axis_len - fill_len;
+  fill_len = crt_time_perc * AXIS_LENGTH / 100;
+  empty_len = AXIS_LENGTH - fill_len;
 
   move(3, 0);
   printw("\r");
@@ -240,8 +238,10 @@ print_basic_bar(struct mpd_connection *conn)
 static void
 redraw_main_screen(struct mpd_connection *conn)
 {
+  clear();
   print_basic_song_info(conn);
   print_basic_bar(conn);
+  print_basic_help();
 }
 
 static void
@@ -259,31 +259,18 @@ menu_main_print_routine(struct VerboseArgs *vargs)
 static void
 redraw_playlist_screen(struct VerboseArgs *vargs)
 {
-  static const int init_line = 1;
-  static char buff[55], *current;
-  static const char *bar =
-	"===============================================\
-=====================";	
+  static const int init_line = 4;
+  static char buff[55];
+  static const char *bar = "****************************";
+  int i, j;
 
   clear();
-  if(vargs->playlist->length > 0)
-	{
-	  if(vargs->playlist->current <= 0)
-		color_xyprint(0, 0, 0, "No song is now playing");	  
-	  else
-		{
-		  current = vargs->playlist->items[vargs->playlist->current - 1];
-		  color_xyprint(0, 0, 0, "Current Playing:  ");
-		  color_xyprint(1, init_line, 35 - strlen(current) / 2, current);
-		}
-	}
-  else
-	color_xyprint(0, 0, 0, "No songs in playlist");	  
+  print_basic_song_info(vargs->conn);
+
+  mvprintw(init_line, AXIS_LENGTH + 2, bar);
   
-  color_xyprint(0, init_line + 1, 0, bar);
-  
-  int j = init_line + 2;
-  for(int i = vargs->playlist->begin - 1; i < vargs->playlist->begin
+  j = init_line + 1;
+  for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
 		+ PLAYLIST_HEIGHT - 1 && i < vargs->playlist->length; i++)
 	{
 	  snprintf(buff, sizeof(buff), "%3i.  %s",
@@ -300,7 +287,14 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 		color_xyprint(0, j++, 0, buff);
 	}
 
-  color_xyprint(0, j, 0, bar);
+  if(i >= vargs->playlist->length)
+	mvprintw(j + 1, 0, "%*s   %s", 3, " ", bar);
+  else
+	mvprintw(j, 0, "%*s   %s", 3, " ", "... ...");
+
+  if(vargs->playlist->begin > 1)
+	mvprintw(init_line, 0, "%*s   %s", 3, " ", "^^^ ^^^");
+  
   refresh();
 }
 
@@ -330,7 +324,7 @@ playlist_items_update(struct VerboseArgs *vargs)
 }
 
 static
-int check_playlist_state(struct VerboseArgs *vargs)
+int update_playlist_state(struct VerboseArgs *vargs)
 {
   struct mpd_status *status;
   int queue_len, song_id, ret = 0;
@@ -356,8 +350,14 @@ int check_playlist_state(struct VerboseArgs *vargs)
 	{
 	  vargs->playlist->length = queue_len;
 	  playlist_items_update(vargs);
-	  ret = 2;
+	  ret = 1;
 	}
+
+  /** for some unexcepted cases vargs->playlist->begin
+	  may be greater than vargs->playlist->length;
+	  if this happens, we reset the begin's value */
+  if(vargs->playlist->begin > vargs->playlist->length)
+	vargs->playlist->begin = 1;
 
   return ret;
 }
@@ -367,19 +367,11 @@ menu_playlist_print_routine(struct VerboseArgs *vargs)
 {
   static int rc;
   
-  rc = check_playlist_state(vargs);
+  rc = update_playlist_state(vargs);
   if(rc)
-	{
-	  if(rc == 2)
-		playlist_items_update(vargs);
-	  redraw_playlist_screen(vargs);
-	}
+	redraw_playlist_screen(vargs);
 
-  /* if(check_new_state(vargs)) */
-  /* 	{ */
-  /* 	playlist_items_update(vargs); */
-  /* 	redraw_playlist_screen(vargs); */
-  /* 	} */
+  //print_basic_bar(vargs->conn);
 }
 
 static void
@@ -459,13 +451,6 @@ menu_rendering(void *args)
 
   return NULL;
 }
-
-/* #define MAIN_CASE_EXECUTE(command_name)			\ */
-/*   LOCK_FRAGILE									\ */
-/*   command_name(0, NULL, vargs->conn);			\ */
-/*   vargs->new_command_signal = 1;				\ */
-/*   UNLOCK_FRAGILE								\ */
-/*   break; */
 
 int
 menu_main_keymap(struct VerboseArgs *vargs)
@@ -582,20 +567,15 @@ playlist_play_current(struct VerboseArgs *vargs)
   free(args);
 }
 
-/* #define PLAYLIST_CASE_EXECUTE(command_name)		\ */
-/*   LOCK_FRAGILE									\ */
-/*   command_name(vargs);							\ */
-/*   vargs->new_command_signal = 1;				\ */
-/*   UNLOCK_FRAGILE								\ */
-/*   break; */
-
 int
 menu_playlist_keymap(struct VerboseArgs* vargs)
 {
   switch(getch())
 	{
+	case KEY_DOWN:;
 	case 'j':
 	  playlist_scroll_down_line(vargs);break;
+	case KEY_UP:;
 	case 'k':
 	  playlist_scroll_up_line(vargs);break;
 	case 'b':
@@ -604,6 +584,31 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	  playlist_scroll_down_page(vargs);break;
 	case '\n':
 	  playlist_play_current(vargs);break;
+
+	case '+': ;
+	case '=': ;
+	  cmd_volup(0, NULL, vargs->conn); break;
+	case KEY_RIGHT:
+	  cmd_forward(0, NULL, vargs->conn); break;
+	case '-':
+	  cmd_voldown(0, NULL, vargs->conn); break;
+	case KEY_LEFT:
+	  cmd_backward(0, NULL, vargs->conn); break;
+	case 'n':
+	  cmd_next(0, NULL, vargs->conn); break;
+	case 'p':
+	  cmd_prev(0, NULL, vargs->conn); break;
+	case 't':
+	  cmd_toggle(0, NULL, vargs->conn); break;
+	case 'r':
+	  cmd_random(0, NULL, vargs->conn); break;
+	case 's':
+	  cmd_single(0, NULL, vargs->conn); break;
+	case 'R':
+	  cmd_repeat(0, NULL, vargs->conn); break;
+	case 'l':
+	  break;
+
 	case '\t':
 	  vargs->menu_id = MENU_MAIN;
 	  vargs->menu_print_routine = &menu_main_print_routine;
@@ -681,7 +686,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 
   // ncurses basic setting
   initscr();
-  timeout(1); // no time out for keyboard stroke
+  timeout(1); // enable the non block getch()
   curs_set(0); // cursor invisible
   noecho();
   keypad(stdscr, TRUE); // enable getch() get KEY_UP/DOWN
@@ -705,12 +710,6 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   /** main loop for keyboard hit daemon */
   for(;;)
 	{
-	  /* if(vargs.menu_id == MENU_MAIN) */
-	  /* 	is_quit = menu_main_keymap(&vargs); */
-	  /* else if(vargs.menu_id == MENU_PLAYLIST) */
-	  /* 	is_quit = menu_playlist_keymap(&vargs); */
-	  /* else */
-	  /* 	is_quit = 1; */
 	  LOCK_FRAGILE
 	  is_quit = vargs.menu_keymap(&vargs);
 	  UNLOCK_FRAGILE
