@@ -19,8 +19,7 @@
 #include <locale.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
-#define MAX_PLAYLIST_STORE_LENGTH 1000
-int my_color_pairs[2];
+static int my_color_pairs[2];
 
 static void my_finishCommand(struct mpd_connection *conn) {
 	if (!mpd_response_finish(conn))
@@ -36,33 +35,6 @@ getStatus(struct mpd_connection *conn) {
 	return ret;
 }
 
-enum my_menu_id
-{
-  MENU_MAIN,
-  MENU_PLAYLIST,
-  //	MENU_QUEUE,
-  MENU_NUMBER
-};
-
-struct PlaylistMenuArgs
-{
-  char **items;
-  int length;
-  int begin;
-  int current; // current playing song id
-  int cursor;  // marked as song id
-};
-
-struct VerboseArgs
-{
-  struct mpd_connection *conn;
-  /** set to 1 once commands have been triggered by keyboad*/
-  void (*menu_print_routine)(struct VerboseArgs*);
-  int new_command_signal;
-  int menu_id;
-  struct PlaylistMenuArgs *playlist;
-};
-
 static pthread_mutex_t conn_mutex;
 #define LOCK_FRAGILE pthread_mutex_lock(&conn_mutex);
 #define UNLOCK_FRAGILE pthread_mutex_unlock(&conn_mutex);
@@ -70,23 +42,17 @@ static pthread_mutex_t conn_mutex;
 static void 
 color_xyprint(int color_scheme, int x, int y, const char *str)
 {
-  static char space[100];
-
-  snprintf(space, sizeof(space), "%*s", 100, " ");
-
   if(color_scheme > 0)
 	{
 	  attron(my_color_pairs[color_scheme - 1]);
 	  if(x >= 0 && y >= 0)
-		mvaddstr(x, y, str);
+		mvprintw(x, y, "%s", str);
 	  else
-		addstr(str);
+		printw("%s", str);
 	  attroff(my_color_pairs[color_scheme - 1]);	  
 	}
   else
-	mvaddstr(x, y, str);
-
-  addstr(space);
+	mvprintw(x, y, "%s", str);
 }
 
 static int
@@ -278,8 +244,6 @@ redraw_main_screen(struct mpd_connection *conn)
   print_basic_bar(conn);
 }
 
-#define INTERVAL_UNIT 30000
-
 static void
 menu_main_print_routine(struct VerboseArgs *vargs)
 {
@@ -292,19 +256,29 @@ menu_main_print_routine(struct VerboseArgs *vargs)
   print_basic_bar(vargs->conn);
 }
 
-#define PLAYLIST_HEIGHT 18
-
 static void
 redraw_playlist_screen(struct VerboseArgs *vargs)
 {
   static const int init_line = 1;
-  static char buff[55];
+  static char buff[55], *current;
   static const char *bar =
-	"===============================================";	
+	"===============================================\
+=====================";	
 
-  mvaddstr(0, 0, "Current:  ");
-  color_xyprint(1, -1, -1, vargs->playlist->items
-		   [vargs->playlist->current - 1]);
+  clear();
+  if(vargs->playlist->length > 0)
+	{
+	  if(vargs->playlist->current <= 0)
+		color_xyprint(0, 0, 0, "No song is now playing");	  
+	  else
+		{
+		  current = vargs->playlist->items[vargs->playlist->current - 1];
+		  color_xyprint(0, 0, 0, "Current Playing:  ");
+		  color_xyprint(1, init_line, 35 - strlen(current) / 2, current);
+		}
+	}
+  else
+	color_xyprint(0, 0, 0, "No songs in playlist");	  
   
   color_xyprint(0, init_line + 1, 0, bar);
   
@@ -327,6 +301,7 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 	}
 
   color_xyprint(0, j, 0, bar);
+  refresh();
 }
 
 static void
@@ -407,9 +382,6 @@ menu_playlist_print_routine(struct VerboseArgs *vargs)
   /* 	} */
 }
 
-#define SEEK_UNIT 3
-#define VOLUME_UNIT 3
-
 static void
 cmd_forward(mpd_unused int argc, mpd_unused char **argv,
 			struct mpd_connection  *conn)
@@ -488,60 +460,58 @@ menu_rendering(void *args)
   return NULL;
 }
 
-#define MAIN_CASE_EXECUTE(command_name)			\
-  LOCK_FRAGILE									\
-  command_name(0, NULL, vargs->conn);			\
-  vargs->new_command_signal = 1;				\
-  UNLOCK_FRAGILE								\
-  break;
+/* #define MAIN_CASE_EXECUTE(command_name)			\ */
+/*   LOCK_FRAGILE									\ */
+/*   command_name(0, NULL, vargs->conn);			\ */
+/*   vargs->new_command_signal = 1;				\ */
+/*   UNLOCK_FRAGILE								\ */
+/*   break; */
 
-static int
-menu_main_keyboard(struct VerboseArgs *vargs)
+int
+menu_main_keymap(struct VerboseArgs *vargs)
 {
   switch(getch())
 	{
 	case '+': ;
 	case '=': ;
-	  MAIN_CASE_EXECUTE(cmd_volup)
+	  cmd_volup(0, NULL, vargs->conn); break;
 	case KEY_RIGHT:
-		MAIN_CASE_EXECUTE(cmd_forward)
+	  cmd_forward(0, NULL, vargs->conn); break;
 	case '-':
-		MAIN_CASE_EXECUTE(cmd_voldown)
+	  cmd_voldown(0, NULL, vargs->conn); break;
 	case KEY_LEFT:
-		MAIN_CASE_EXECUTE(cmd_backward)
+	  cmd_backward(0, NULL, vargs->conn); break;
 	case 'b':
-		MAIN_CASE_EXECUTE(cmd_playback)
+	  cmd_playback(0, NULL, vargs->conn); break;
 	case 'n':
-		MAIN_CASE_EXECUTE(cmd_next)
+	  cmd_next(0, NULL, vargs->conn); break;
 	case 'p':
-		MAIN_CASE_EXECUTE(cmd_prev)
+	  cmd_prev(0, NULL, vargs->conn); break;
 	case 't': ;
 	case ' ':
-	  MAIN_CASE_EXECUTE(cmd_toggle)
+	  cmd_toggle(0, NULL, vargs->conn); break;
 	case 'r':
-	  MAIN_CASE_EXECUTE(cmd_random)
+	  cmd_random(0, NULL, vargs->conn); break;
 	case 's':
-	  MAIN_CASE_EXECUTE(cmd_single)
+	  cmd_single(0, NULL, vargs->conn); break;
 	case 'R':
-	  MAIN_CASE_EXECUTE(cmd_repeat)
+	  cmd_repeat(0, NULL, vargs->conn); break;
 	case 'l':
-	  LOCK_FRAGILE
-	  vargs->new_command_signal = 1;
-	  UNLOCK_FRAGILE
 	  break;
-	case 'c':
-	  LOCK_FRAGILE
+	case '\t':
 	  vargs->menu_id = MENU_PLAYLIST;
 	  vargs->menu_print_routine = &menu_playlist_print_routine;
-	  vargs->new_command_signal = 1;	  	  
-	  UNLOCK_FRAGILE
+	  vargs->menu_keymap = &menu_playlist_keymap;	  
 	  break;
 	case 'e': ;
 	case 'q':
 	  return 1;
-	default: ;
+	default:
+	  return 0;
 	}
-  
+
+  vargs->new_command_signal = 1;
+
   return 0;
 }
 
@@ -612,41 +582,41 @@ playlist_play_current(struct VerboseArgs *vargs)
   free(args);
 }
 
-#define PLAYLIST_CASE_EXECUTE(command_name)		\
-  LOCK_FRAGILE									\
-  command_name(vargs);							\
-  vargs->new_command_signal = 1;				\
-  UNLOCK_FRAGILE								\
-  break;
+/* #define PLAYLIST_CASE_EXECUTE(command_name)		\ */
+/*   LOCK_FRAGILE									\ */
+/*   command_name(vargs);							\ */
+/*   vargs->new_command_signal = 1;				\ */
+/*   UNLOCK_FRAGILE								\ */
+/*   break; */
 
-static int
-menu_playlist_keyboard(struct VerboseArgs* vargs)
+int
+menu_playlist_keymap(struct VerboseArgs* vargs)
 {
   switch(getch())
 	{
 	case 'j':
-	  PLAYLIST_CASE_EXECUTE(playlist_scroll_down_line)
+	  playlist_scroll_down_line(vargs);break;
 	case 'k':
-	  PLAYLIST_CASE_EXECUTE(playlist_scroll_up_line)
+	  playlist_scroll_up_line(vargs);break;
 	case 'b':
-	  PLAYLIST_CASE_EXECUTE(playlist_scroll_up_page)
+	  playlist_scroll_up_page(vargs);break;
 	case ' ':
-	  PLAYLIST_CASE_EXECUTE(playlist_scroll_down_page)
-	case 'p':
-	  PLAYLIST_CASE_EXECUTE(playlist_play_current)
-	case 'c':
-	  LOCK_FRAGILE
+	  playlist_scroll_down_page(vargs);break;
+	case '\n':
+	  playlist_play_current(vargs);break;
+	case '\t':
 	  vargs->menu_id = MENU_MAIN;
 	  vargs->menu_print_routine = &menu_main_print_routine;
-	  vargs->new_command_signal = 1;	  
-	  UNLOCK_FRAGILE
+	  vargs->menu_keymap = &menu_main_keymap;
 	  break;
 	case 'e': ;
 	case 'q':
 	  return 1;
-	default: ;
+	default:
+	  return 0;
 	}
 
+  vargs->new_command_signal = 1;	  
   return 0;
 }
 
@@ -656,6 +626,7 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->conn = conn;
   vargs->menu_id = MENU_MAIN;
   vargs->menu_print_routine = &menu_main_print_routine;
+  vargs->menu_keymap = &menu_main_keymap;
   /* initialization require redraw too */
   vargs->new_command_signal = 1;
 
@@ -710,7 +681,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 
   // ncurses basic setting
   initscr();
-  timeout(-1); // no time out for keyboard stroke
+  timeout(1); // no time out for keyboard stroke
   curs_set(0); // cursor invisible
   noecho();
   keypad(stdscr, TRUE); // enable getch() get KEY_UP/DOWN
@@ -734,13 +705,16 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   /** main loop for keyboard hit daemon */
   for(;;)
 	{
-	  if(vargs.menu_id == MENU_MAIN)
-		is_quit = menu_main_keyboard(&vargs);
-	  else if(vargs.menu_id == MENU_PLAYLIST)
-	  	is_quit = menu_playlist_keyboard(&vargs);
-	  else
-		is_quit = 1;
-
+	  /* if(vargs.menu_id == MENU_MAIN) */
+	  /* 	is_quit = menu_main_keymap(&vargs); */
+	  /* else if(vargs.menu_id == MENU_PLAYLIST) */
+	  /* 	is_quit = menu_playlist_keymap(&vargs); */
+	  /* else */
+	  /* 	is_quit = 1; */
+	  LOCK_FRAGILE
+	  is_quit = vargs.menu_keymap(&vargs);
+	  UNLOCK_FRAGILE
+	  
 	  if(is_quit)
 		{
 		  pthread_cancel(thread_menu_rendering);
