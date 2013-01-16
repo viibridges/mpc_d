@@ -32,6 +32,7 @@
 #include "search.h"
 #include "mpc.h"
 #include "options.h"
+#include "dynamic.h"
 
 #include <mpd/client.h>
 

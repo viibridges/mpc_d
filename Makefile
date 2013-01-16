@@ -78,7 +78,8 @@ am__src_mpc_SOURCES_DIST = src/main.c src/list.c src/password.c \
 	src/message.h src/message.c src/search.c src/options.c \
 	src/list.h src/password.h src/charset.h src/status.h \
 	src/util.h src/command.h src/idle.h src/search.h src/sticker.h \
-	src/mpc.h src/options.h src/gcc.h src/charset.c
+	src/mpc.h src/options.h src/gcc.h src/charset.c src/dynamic.h \
+	src/dynamic.c
 am__objects_1 =
 am__objects_2 = src_mpc-charset.$(OBJEXT)
 am_src_mpc_OBJECTS = src_mpc-main.$(OBJEXT) src_mpc-list.$(OBJEXT) \
@@ -86,7 +87,8 @@ am_src_mpc_OBJECTS = src_mpc-main.$(OBJEXT) src_mpc-list.$(OBJEXT) \
 	src_mpc-util.$(OBJEXT) src_mpc-command.$(OBJEXT) \
 	src_mpc-sticker.$(OBJEXT) src_mpc-idle.$(OBJEXT) \
 	src_mpc-message.$(OBJEXT) src_mpc-search.$(OBJEXT) \
-	src_mpc-options.$(OBJEXT) $(am__objects_1) $(am__objects_2)
+	src_mpc-options.$(OBJEXT) src_mpc-dynamic.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2)
 src_mpc_OBJECTS = $(am_src_mpc_OBJECTS)
 am__DEPENDENCIES_1 =
 src_mpc_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -274,7 +276,7 @@ src_mpc_headers = \
 	src/gcc.h
 
 src_mpc_SOURCES = src/main.c src/list.c src/password.c src/status.c \
-	src/util.c src/command.c src/sticker.c src/idle.c \
+	src/util.c src/command.c src/sticker.c src/idle.c src/dynamic.c \
 	src/message.h src/message.c src/search.c src/options.c \
 	$(src_mpc_headers) $(am__append_1)
 src_mpc_CPPFLAGS = $(AM_CPPFLAGS) $(ICONV_CFLAGS) $(LIBMPDCLIENT_CFLAGS)
@@ -403,6 +405,7 @@ include ./$(DEPDIR)/src_mpc-main.Po
 include ./$(DEPDIR)/src_mpc-message.Po
 include ./$(DEPDIR)/src_mpc-options.Po
 include ./$(DEPDIR)/src_mpc-password.Po
+include ./$(DEPDIR)/src_mpc-dynamic.Po
 include ./$(DEPDIR)/src_mpc-search.Po
 include ./$(DEPDIR)/src_mpc-status.Po
 include ./$(DEPDIR)/src_mpc-sticker.Po
@@ -575,6 +578,10 @@ src_mpc-options.obj: src/options.c
 #	source='src/options.c' object='src_mpc-options.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_mpc_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o src_mpc-options.obj `if test -f 'src/options.c'; then $(CYGPATH_W) 'src/options.c'; else $(CYGPATH_W) '$(srcdir)/src/options.c'; fi`
+
+src_mpc-dynamic.o: src/dynamic.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_mpc_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT src_mpc-dynamic.o -MD -MP -MF $(DEPDIR)/src_mpc-dynamic.Tpo -c -o src_mpc-dynamic.o `test -f 'src/dynamic.c' || echo '$(srcdir)/'`src/dynamic.c
+	$(am__mv) $(DEPDIR)/src_mpc-dynamic.Tpo $(DEPDIR)/src_mpc-dynamic.Po
 
 src_mpc-charset.o: src/charset.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_mpc_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT src_mpc-charset.o -MD -MP -MF $(DEPDIR)/src_mpc-charset.Tpo -c -o src_mpc-charset.o `test -f 'src/charset.c' || echo '$(srcdir)/'`src/charset.c
