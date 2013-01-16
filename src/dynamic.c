@@ -57,6 +57,7 @@ struct VerboseArgs
 {
   struct mpd_connection *conn;
   /** set to 1 once commands have been triggered by keyboad*/
+  void (*menu_print_routine)(struct VerboseArgs*);
   int new_command_signal;
   int menu_id;
   struct PlaylistMenuArgs *playlist;
@@ -69,6 +70,10 @@ static pthread_mutex_t conn_mutex;
 static void 
 color_xyprint(int color_scheme, int x, int y, const char *str)
 {
+  static char space[100];
+
+  snprintf(space, sizeof(space), "%*s", 100, " ");
+
   if(color_scheme > 0)
 	{
 	  attron(my_color_pairs[color_scheme - 1]);
@@ -79,7 +84,9 @@ color_xyprint(int color_scheme, int x, int y, const char *str)
 	  attroff(my_color_pairs[color_scheme - 1]);	  
 	}
   else
-	mvaddstr(x, y, str);	
+	mvaddstr(x, y, str);
+
+  addstr(space);
 }
 
 static int
@@ -291,16 +298,16 @@ static void
 redraw_playlist_screen(struct VerboseArgs *vargs)
 {
   static const int init_line = 1;
-  static char buff[40];
-  clear();
+  static char buff[55];
+  static const char *bar =
+	"===============================================";	
 
-  color_xyprint(0, init_line, 0, "Current:  ");
+  mvaddstr(0, 0, "Current:  ");
   color_xyprint(1, -1, -1, vargs->playlist->items
 		   [vargs->playlist->current - 1]);
   
-  mvaddstr(init_line + 1, 0,
-		   "===================================================");
-
+  color_xyprint(0, init_line + 1, 0, bar);
+  
   int j = init_line + 2;
   for(int i = vargs->playlist->begin - 1; i < vargs->playlist->begin
 		+ PLAYLIST_HEIGHT - 1 && i < vargs->playlist->length; i++)
@@ -316,10 +323,10 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 	  if(i + 1 == vargs->playlist->current)
 		color_xyprint(1, j++, 0, buff);	  
 	  else
-		color_xyprint(0, j++, 0, buff);		
+		color_xyprint(0, j++, 0, buff);
 	}
 
-  mvaddstr(j, 0, "===================================================");
+  color_xyprint(0, j, 0, bar);
 }
 
 static void
@@ -471,11 +478,8 @@ menu_rendering(void *args)
 	{
 	  LOCK_FRAGILE
 
-	  if(vargs->menu_id == MENU_MAIN)
-		menu_main_print_routine(vargs);
-	  else if(vargs->menu_id == MENU_PLAYLIST)
-		menu_playlist_print_routine(vargs);
-
+	  vargs->menu_print_routine(vargs);
+	  
 	  UNLOCK_FRAGILE
 
 	  usleep(INTERVAL_UNIT);
@@ -528,6 +532,7 @@ menu_main_keyboard(struct VerboseArgs *vargs)
 	case 'c':
 	  LOCK_FRAGILE
 	  vargs->menu_id = MENU_PLAYLIST;
+	  vargs->menu_print_routine = &menu_playlist_print_routine;
 	  vargs->new_command_signal = 1;	  	  
 	  UNLOCK_FRAGILE
 	  break;
@@ -632,6 +637,7 @@ menu_playlist_keyboard(struct VerboseArgs* vargs)
 	case 'c':
 	  LOCK_FRAGILE
 	  vargs->menu_id = MENU_MAIN;
+	  vargs->menu_print_routine = &menu_main_print_routine;
 	  vargs->new_command_signal = 1;	  
 	  UNLOCK_FRAGILE
 	  break;
@@ -649,6 +655,7 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
 {
   vargs->conn = conn;
   vargs->menu_id = MENU_MAIN;
+  vargs->menu_print_routine = &menu_main_print_routine;
   /* initialization require redraw too */
   vargs->new_command_signal = 1;
 
