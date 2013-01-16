@@ -1393,10 +1393,20 @@ cmd_replaygain(int argc, char **argv, struct mpd_connection *connection)
 enum my_menu_id
 {
   MENU_MAIN,
-  //	MENU_WAIT,
-  //	MENU_PLAYLIST,
+  MENU_PLAYLIST,
   //	MENU_QUEUE,
   MENU_NUMBER
+};
+
+#define MAX_PLAYLIST_STORE_LENGTH 1000
+
+struct PlaylistMenuArgs
+{
+  char **items;
+  int length;
+  int begin;
+  int current; // current playing song id
+  int cursor;  // marked as song id
 };
 
 struct VerboseArgs
@@ -1405,11 +1415,25 @@ struct VerboseArgs
   /** set to 1 once commands have been triggered by keyboad*/
   int new_command_signal;
   int menu_id;
+  struct PlaylistMenuArgs *playlist;
 };
 
 static pthread_mutex_t conn_mutex;
 #define LOCK_FRAGILE pthread_mutex_lock(&conn_mutex);
 #define UNLOCK_FRAGILE pthread_mutex_unlock(&conn_mutex);
+
+static void 
+color_xyprint(int color_scheme, int x, int y, const char *str)
+{
+  if(color_scheme != 0)
+	{
+	  attron(COLOR_PAIR(1));
+	  mvaddstr(x, y, str);
+	  attroff(COLOR_PAIR(1));
+	}
+  else
+	mvaddstr(x, y, str);	
+}
 
 static int
 check_new_state(struct VerboseArgs *vargs)
@@ -1594,7 +1618,7 @@ print_basic_bar(struct mpd_connection *conn)
 }
 
 static void
-redraw_screen(struct mpd_connection *conn)
+redraw_main_screen(struct mpd_connection *conn)
 {
   print_basic_song_info(conn);
   print_basic_bar(conn);
@@ -1608,10 +1632,94 @@ menu_main_print_routine(struct VerboseArgs *vargs)
   if(check_new_state(vargs))
 	{
 	  // refresh the status display
-	  redraw_screen(vargs->conn);
+	  redraw_main_screen(vargs->conn);
 	}
 
   print_basic_bar(vargs->conn);
+}
+
+#define PLAYLIST_HEIGHT 18
+
+static void
+redraw_playlist_screen(struct VerboseArgs *vargs)
+{
+  clear();
+
+  int j = 4;
+  for(int i = vargs->playlist->begin - 1; i < vargs->playlist->begin
+		+ PLAYLIST_HEIGHT - 1 && i < vargs->playlist->length; i++)
+	{
+	  if(i + 1 == vargs->playlist->cursor)
+		{
+		  color_xyprint(2, j++, 0, vargs->playlist->items[i]);
+		  continue;
+		}
+	  
+	  if(i + 1 == vargs->playlist->current)
+		color_xyprint(1, j++, 0, vargs->playlist->items[i]);
+	  else
+		color_xyprint(0, j++, 0, vargs->playlist->items[i]);
+	}
+}
+
+static void
+playlist_items_update(struct VerboseArgs *vargs)
+{
+  struct mpd_song *song;
+  
+  if (!mpd_send_list_queue_meta(vargs->conn))
+	printErrorAndExit(vargs->conn);
+
+  int i = 0;
+  while ((song = mpd_recv_song(vargs->conn)) != NULL)
+	{
+	  snprintf(vargs->playlist->items[i], 127, "%s",
+			   songToFormatedString(song, options.format, NULL));
+	  ++i;
+	  mpd_song_free(song);
+	}
+
+  if(i < MAX_PLAYLIST_STORE_LENGTH)
+	vargs->playlist->length = i;
+  else
+	vargs->playlist->length = MAX_PLAYLIST_STORE_LENGTH;
+
+  struct mpd_status *status = getStatus(vargs->conn);
+  vargs->playlist->current = mpd_status_get_song_pos(status) + 1;
+  mpd_status_free(status);
+ 
+  my_finishCommand(vargs->conn);
+}
+
+static
+int check_playlist_state(struct VerboseArgs *vargs)
+{
+  struct mpd_status *status;
+  int queue_len, song_id;
+
+  status = getStatus(vargs->conn);
+  queue_len = mpd_status_get_queue_length(status);
+  song_id = mpd_status_get_song_pos(status) + 1;
+  mpd_status_free(status);
+
+  if(vargs->playlist->length != queue_len
+	 || vargs->playlist->current != song_id)
+	return 1;
+
+  return 0;
+}
+
+static void
+menu_playlist_print_routine(struct VerboseArgs *vargs)
+{
+  if(check_playlist_state(vargs))
+	{
+	  playlist_items_update(vargs);
+	  redraw_playlist_screen(vargs);
+	}
+
+  if(check_new_state(vargs))
+	redraw_playlist_screen(vargs);
 }
 
 #define SEEK_UNIT 3
@@ -1675,56 +1783,6 @@ cmd_voldown(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *
   return 1;
 }
 
-#define CASE_EXCUTE(command_name)				\
-  LOCK_FRAGILE								\
-  command_name(0, NULL, vargs->conn);			\
-  vargs->new_command_signal = 1;				\
-  UNLOCK_FRAGILE								\
-  break;
-
-static int
-menu_main_keyboard(struct VerboseArgs *vargs)
-{
-  switch(getch())
-	{
-	case '+': ;
-	case '=': ;
-	  CASE_EXCUTE(cmd_volup)
-	case KEY_RIGHT:
-		CASE_EXCUTE(cmd_forward)
-	case '-':
-		CASE_EXCUTE(cmd_voldown)
-	case KEY_LEFT:
-		CASE_EXCUTE(cmd_backward)
-	case 'b':
-		CASE_EXCUTE(cmd_playback)
-	case 'n':
-		CASE_EXCUTE(cmd_next)
-	case 'p':
-		CASE_EXCUTE(cmd_prev)
-	case 't': ;
-	case ' ':
-	  CASE_EXCUTE(cmd_toggle)
-	case 'r':
-	  CASE_EXCUTE(cmd_random)
-	case 's':
-	  CASE_EXCUTE(cmd_single)
-	case 'R':
-	  CASE_EXCUTE(cmd_repeat)
-	case 'l':
-	  LOCK_FRAGILE
-		vargs->new_command_signal = 1;
-	  UNLOCK_FRAGILE
-		break;
-	case 'e': ;
-	case 'q':
-	  return 1;
-	default: ;
-	}
-  
-  return 0;
-}
-
 static void*
 menu_rendering(void *args)
 {
@@ -1737,6 +1795,8 @@ menu_rendering(void *args)
 
 	  if(vargs->menu_id == MENU_MAIN)
 		menu_main_print_routine(vargs);
+	  else if(vargs->menu_id == MENU_PLAYLIST)
+		menu_playlist_print_routine(vargs);
 
 	  UNLOCK_FRAGILE
 
@@ -1746,6 +1806,155 @@ menu_rendering(void *args)
   return NULL;
 }
 
+#define MAIN_CASE_EXECUTE(command_name)			\
+  LOCK_FRAGILE									\
+  command_name(0, NULL, vargs->conn);			\
+  vargs->new_command_signal = 1;				\
+  UNLOCK_FRAGILE								\
+  break;
+
+static int
+menu_main_keyboard(struct VerboseArgs *vargs)
+{
+  switch(getch())
+	{
+	case '+': ;
+	case '=': ;
+	  MAIN_CASE_EXECUTE(cmd_volup)
+	case KEY_RIGHT:
+		MAIN_CASE_EXECUTE(cmd_forward)
+	case '-':
+		MAIN_CASE_EXECUTE(cmd_voldown)
+	case KEY_LEFT:
+		MAIN_CASE_EXECUTE(cmd_backward)
+	case 'b':
+		MAIN_CASE_EXECUTE(cmd_playback)
+	case 'n':
+		MAIN_CASE_EXECUTE(cmd_next)
+	case 'p':
+		MAIN_CASE_EXECUTE(cmd_prev)
+	case 't': ;
+	case ' ':
+	  MAIN_CASE_EXECUTE(cmd_toggle)
+	case 'r':
+	  MAIN_CASE_EXECUTE(cmd_random)
+	case 's':
+	  MAIN_CASE_EXECUTE(cmd_single)
+	case 'R':
+	  MAIN_CASE_EXECUTE(cmd_repeat)
+	case 'l':
+	  LOCK_FRAGILE
+	  vargs->new_command_signal = 1;
+	  UNLOCK_FRAGILE
+	  break;
+	case 'c':
+	  LOCK_FRAGILE
+	  vargs->menu_id = MENU_PLAYLIST;
+	  vargs->new_command_signal = 1;	  	  
+	  UNLOCK_FRAGILE
+	  break;
+	case 'e': ;
+	case 'q':
+	  return 1;
+	default: ;
+	}
+  
+  return 0;
+}
+
+static void
+playlist_scroll_single(struct VerboseArgs *vargs, int sign)
+{  
+  vargs->playlist->cursor += sign;
+	
+  if(vargs->playlist->cursor > vargs->playlist->length)
+	vargs->playlist->cursor = vargs->playlist->length;
+  else if(vargs->playlist->cursor < 1)
+	vargs->playlist->cursor = 1;
+
+  if(vargs->playlist->cursor > PLAYLIST_HEIGHT / 2 &&
+	 vargs->playlist->length - vargs->playlist->cursor + 1 >= PLAYLIST_HEIGHT / 2)
+	{
+	  vargs->playlist->begin += sign;
+
+	  if(vargs->playlist->begin > vargs->playlist->length - PLAYLIST_HEIGHT + 1)
+		vargs->playlist->begin = vargs->playlist->length - PLAYLIST_HEIGHT + 1;
+
+	  if(vargs->playlist->begin < 1)
+		vargs->playlist->begin = 1;
+
+	  vargs->playlist->cursor = vargs->playlist->begin + PLAYLIST_HEIGHT / 2;
+	}
+}
+
+static void
+playlist_scroll(struct VerboseArgs *vargs, int lines)
+{
+  int s = lines > 0 ? 1 : -1, l = abs(lines);
+
+  for(int i = 0; i < l; i++)
+	playlist_scroll_single(vargs, s);
+}
+
+static void
+playlist_scroll_down_line(struct VerboseArgs *vargs)
+{
+  playlist_scroll(vargs, +1);
+}
+
+static void
+playlist_scroll_up_line(struct VerboseArgs *vargs)
+{
+  playlist_scroll(vargs, -1);
+}
+
+static void
+playlist_scroll_up_page(struct VerboseArgs *vargs)
+{
+  playlist_scroll(vargs, -15);
+}
+
+static void
+playlist_scroll_down_page(struct VerboseArgs *vargs)
+{
+  playlist_scroll(vargs, +15);
+}
+
+#define PLAYLIST_CASE_EXECUTE(command_name)		\
+  LOCK_FRAGILE									\
+  command_name(vargs);							\
+  vargs->new_command_signal = 1;				\
+  UNLOCK_FRAGILE								\
+  break;
+
+static int
+menu_playlist_keyboard(struct VerboseArgs* vargs)
+{
+  switch(getch())
+	{
+	case 'j':
+	  PLAYLIST_CASE_EXECUTE(playlist_scroll_down_line)
+	case 'k':
+	  PLAYLIST_CASE_EXECUTE(playlist_scroll_up_line)
+	case 'b':
+	  PLAYLIST_CASE_EXECUTE(playlist_scroll_up_page)
+	case ' ':
+	  PLAYLIST_CASE_EXECUTE(playlist_scroll_down_page)
+	case 'c':
+	  LOCK_FRAGILE
+	  vargs->menu_id = MENU_MAIN;
+	  vargs->new_command_signal = 1;	  
+	  UNLOCK_FRAGILE
+	  break;
+	case 'e': ;
+	case 'q':
+	  return 1;
+	default: ;
+	}
+
+  return 0;
+}
+
 static void
 verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
 {
@@ -1753,12 +1962,44 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->menu_id = MENU_MAIN;
   /* initialization require redraw too */
   vargs->new_command_signal = 1;
+
+  /** playlist arguments */
+  vargs->playlist =
+	(struct PlaylistMenuArgs*) malloc(sizeof(struct PlaylistMenuArgs));
+  vargs->playlist->items =
+	(char**) malloc(MAX_PLAYLIST_STORE_LENGTH * sizeof(char*));
+  for(int i = 0; i < MAX_PLAYLIST_STORE_LENGTH; i++)
+	vargs->playlist->items[i] =
+	  (char*)malloc(128 * sizeof(char));
+  vargs->playlist->begin = 1;
+  vargs->playlist->length = 0;
+  vargs->playlist->current = 0;
+  vargs->playlist->cursor = 1;
 }
 
 static void
 verbose_args_destroy(mpd_unused struct VerboseArgs *vargs)
 {
-  return;
+  for(int i = 0; i < MAX_PLAYLIST_STORE_LENGTH; i++)
+	  free(vargs->playlist->items[i]);
+  free(vargs->playlist->items);
+
+  free(vargs->playlist);
+}
+
+static void
+color_init(void)
+{
+  if(has_colors() == FALSE)
+	{
+	  endwin();
+	  fprintf(stderr, "your terminal does not support color\n");
+	  exit(1);
+	}
+  start_color();
+  init_pair(1, COLOR_YELLOW, COLOR_BLACK);
+  init_pair(2, COLOR_WHITE, COLOR_BLUE);  
+  use_default_colors();
 }
 
 int
@@ -1775,6 +2016,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   curs_set(0); // cursor invisible
   noecho();
   keypad(stdscr, TRUE); // enable getch() get KEY_UP/DOWN
+  color_init();
 
   // ncurses for unicode support
   setlocale(LC_ALL, "");
@@ -1796,8 +2038,10 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	{
 	  if(vargs.menu_id == MENU_MAIN)
 		is_quit = menu_main_keyboard(&vargs);
-	  /* else if(menu_id == MENU_PLAYLIST) */
-	  /* 	is_quit = menu_playlist_keyboard(vargs); */
+	  else if(vargs.menu_id == MENU_PLAYLIST)
+	  	is_quit = menu_playlist_keyboard(&vargs);
+	  else
+		is_quit = 1;
 
 	  if(is_quit)
 		{
