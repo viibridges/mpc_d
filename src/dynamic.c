@@ -19,6 +19,8 @@
 #include <locale.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
+#define MAX_PLAYLIST_STORE_LENGTH 1000
+int my_color_pairs[2];
 
 static void my_finishCommand(struct mpd_connection *conn) {
 	if (!mpd_response_finish(conn))
@@ -41,8 +43,6 @@ enum my_menu_id
   //	MENU_QUEUE,
   MENU_NUMBER
 };
-
-#define MAX_PLAYLIST_STORE_LENGTH 1000
 
 struct PlaylistMenuArgs
 {
@@ -69,11 +69,14 @@ static pthread_mutex_t conn_mutex;
 static void 
 color_xyprint(int color_scheme, int x, int y, const char *str)
 {
-  if(color_scheme != 0)
+  if(color_scheme > 0)
 	{
-	  attron(COLOR_PAIR(1));
-	  mvaddstr(x, y, str);
-	  attroff(COLOR_PAIR(1));
+	  attron(my_color_pairs[color_scheme - 1]);
+	  if(x >= 0 && y >= 0)
+		mvaddstr(x, y, str);
+	  else
+		addstr(str);
+	  attroff(my_color_pairs[color_scheme - 1]);	  
 	}
   else
 	mvaddstr(x, y, str);	
@@ -287,23 +290,36 @@ menu_main_print_routine(struct VerboseArgs *vargs)
 static void
 redraw_playlist_screen(struct VerboseArgs *vargs)
 {
+  static const int init_line = 1;
+  static char buff[40];
   clear();
 
-  int j = 4;
+  color_xyprint(0, init_line, 0, "Current:  ");
+  color_xyprint(1, -1, -1, vargs->playlist->items
+		   [vargs->playlist->current - 1]);
+  
+  mvaddstr(init_line + 1, 0,
+		   "===================================================");
+
+  int j = init_line + 2;
   for(int i = vargs->playlist->begin - 1; i < vargs->playlist->begin
 		+ PLAYLIST_HEIGHT - 1 && i < vargs->playlist->length; i++)
 	{
+	  snprintf(buff, sizeof(buff), "%3i.  %s",
+			   i + 1, vargs->playlist->items[i]);
 	  if(i + 1 == vargs->playlist->cursor)
 		{
-		  color_xyprint(2, j++, 0, vargs->playlist->items[i]);
+		  color_xyprint(2, j++, 0, buff);
 		  continue;
 		}
 	  
 	  if(i + 1 == vargs->playlist->current)
-		color_xyprint(1, j++, 0, vargs->playlist->items[i]);
+		color_xyprint(1, j++, 0, buff);	  
 	  else
-		color_xyprint(0, j++, 0, vargs->playlist->items[i]);
+		color_xyprint(0, j++, 0, buff);		
 	}
+
+  mvaddstr(j, 0, "===================================================");
 }
 
 static void
@@ -323,15 +339,11 @@ playlist_items_update(struct VerboseArgs *vargs)
 	  mpd_song_free(song);
 	}
 
-  if(i < MAX_PLAYLIST_STORE_LENGTH)
-	vargs->playlist->length = i;
-  else
-	vargs->playlist->length = MAX_PLAYLIST_STORE_LENGTH;
+  /* if(i < MAX_PLAYLIST_STORE_LENGTH) */
+  /* 	vargs->playlist->length = i; */
+  /* else */
+  /* 	vargs->playlist->length = MAX_PLAYLIST_STORE_LENGTH; */
 
-  struct mpd_status *status = getStatus(vargs->conn);
-  vargs->playlist->current = mpd_status_get_song_pos(status) + 1;
-  mpd_status_free(status);
- 
   my_finishCommand(vargs->conn);
 }
 
@@ -339,31 +351,53 @@ static
 int check_playlist_state(struct VerboseArgs *vargs)
 {
   struct mpd_status *status;
-  int queue_len, song_id;
+  int queue_len, song_id, ret = 0;
 
   status = getStatus(vargs->conn);
   queue_len = mpd_status_get_queue_length(status);
   song_id = mpd_status_get_song_pos(status) + 1;
   mpd_status_free(status);
 
-  if(vargs->playlist->length != queue_len
-	 || vargs->playlist->current != song_id)
-	return 1;
+  if(vargs->playlist->current != song_id)
+	{
+	  vargs->playlist->current = song_id;
+	  ret = 1;
+	}
 
-  return 0;
+  if(vargs->new_command_signal)
+	{
+	  vargs->new_command_signal = 0;
+	  ret = 1;
+	}
+  
+  if(vargs->playlist->length != queue_len)
+	{
+	  vargs->playlist->length = queue_len;
+	  playlist_items_update(vargs);
+	  ret = 2;
+	}
+
+  return ret;
 }
 
 static void
 menu_playlist_print_routine(struct VerboseArgs *vargs)
 {
-  if(check_playlist_state(vargs))
+  static int rc;
+  
+  rc = check_playlist_state(vargs);
+  if(rc)
 	{
-	  playlist_items_update(vargs);
+	  if(rc == 2)
+		playlist_items_update(vargs);
 	  redraw_playlist_screen(vargs);
 	}
 
-  if(check_new_state(vargs))
-	redraw_playlist_screen(vargs);
+  /* if(check_new_state(vargs)) */
+  /* 	{ */
+  /* 	playlist_items_update(vargs); */
+  /* 	redraw_playlist_screen(vargs); */
+  /* 	} */
 }
 
 #define SEEK_UNIT 3
@@ -564,6 +598,15 @@ playlist_scroll_down_page(struct VerboseArgs *vargs)
   playlist_scroll(vargs, +15);
 }
 
+static void
+playlist_play_current(struct VerboseArgs *vargs)
+{
+  char *args = (char*)malloc(8 * sizeof(char));
+  snprintf(args, sizeof(args), "%i", vargs->playlist->cursor);
+  cmd_play(1, &args, vargs->conn);
+  free(args);
+}
+
 #define PLAYLIST_CASE_EXECUTE(command_name)		\
   LOCK_FRAGILE									\
   command_name(vargs);							\
@@ -584,6 +627,8 @@ menu_playlist_keyboard(struct VerboseArgs* vargs)
 	  PLAYLIST_CASE_EXECUTE(playlist_scroll_up_page)
 	case ' ':
 	  PLAYLIST_CASE_EXECUTE(playlist_scroll_down_page)
+	case 'p':
+	  PLAYLIST_CASE_EXECUTE(playlist_play_current)
 	case 'c':
 	  LOCK_FRAGILE
 	  vargs->menu_id = MENU_MAIN;
@@ -642,7 +687,9 @@ color_init(void)
 	}
   start_color();
   init_pair(1, COLOR_YELLOW, COLOR_BLACK);
-  init_pair(2, COLOR_WHITE, COLOR_BLUE);  
+  my_color_pairs[0] = COLOR_PAIR(1) | A_BOLD;
+  init_pair(2, COLOR_WHITE, COLOR_BLUE);
+  my_color_pairs[1] = COLOR_PAIR(2) | A_BOLD;
   use_default_colors();
 }
 
