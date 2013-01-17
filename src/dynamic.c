@@ -134,9 +134,9 @@ print_basic_song_info(struct mpd_connection* conn)
 
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
-	  // pretty_print_song with ncurses portability
-	  snprintf(buff, sizeof(buff), "%s\n",
-			 songToFormatedString(song, options.format, NULL));
+	  snprintf(buff, sizeof(buff), "《%s》 - %s\n",
+			   mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
+			   mpd_song_get_tag(song, MPD_TAG_ARTIST, 0));
 	  color_xyprint(1, -1, -1, buff);
 
 	  mpd_song_free(song);
@@ -241,7 +241,7 @@ playlist_simple_bar(struct VerboseArgs *vargs)
 	fill_len, rest_len, i;
   static struct mpd_status *status;
   static const char *rot[4] = {"|", "\\", "—", "/"};
-  static const int bar_length = 26;
+  static const int bar_length = 27, bar_begin = 40;
 
   status = getStatus(vargs->conn);
   crt_time = mpd_status_get_elapsed_time(status);
@@ -252,7 +252,7 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   fill_len = crt_time_perc * bar_length / 100;
   rest_len = bar_length - fill_len;
 
-  move(4, AXIS_LENGTH + 2);
+  move(4, bar_begin);
 
   attron(my_color_pairs[2]);  
   for(i = 0; i < fill_len; printw("*"), i++);
@@ -260,7 +260,7 @@ playlist_simple_bar(struct VerboseArgs *vargs)
 
   for(i = 0; i < rest_len; printw("*"), i++);
 
-  move(5 + PLAYLIST_HEIGHT, AXIS_LENGTH + bar_length + 1);
+  move(5 + PLAYLIST_HEIGHT, bar_begin + bar_length - 1);
   attron(my_color_pairs[3]);    
   printw(rot[crt_time % 4]);
   attroff(my_color_pairs[3]);  
@@ -293,7 +293,7 @@ static void
 redraw_playlist_screen(struct VerboseArgs *vargs)
 {
   static const int init_line = 4;
-  static char buff[55];
+  static char buff[80];
   static const char *bar = "__________________________/ THE END";
   int i, j;
 
@@ -304,8 +304,9 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
   for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
 		+ PLAYLIST_HEIGHT - 1 && i < vargs->playlist->length; i++)
 	{
-	  snprintf(buff, sizeof(buff), "%3i.  %s",
-			   i + 1, vargs->playlist->items[i]);
+	  snprintf(buff, sizeof(buff), "%3i.  %s        %s",
+			   i + 1, vargs->playlist->pretty_title[i],
+			   vargs->playlist->artist[i]);
 	  if(i + 1 == vargs->playlist->cursor)
 		{
 		  color_xyprint(2, j++, 0, buff);
@@ -330,6 +331,39 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 }
 
 static void
+copy_song_tag(char *string, const char * tag, int size, int width)
+{
+  static int i, unic, asci;
+
+  for(i = unic = asci = 0; tag[i] != '\0' && i < size - 1; i++)
+	{
+	  if(isascii((int)tag[i]))
+		asci ++;
+	  else
+		unic ++;
+	  string[i] = tag[i];
+	}
+
+  unic /= 3;
+
+  if(width > 0)
+	{
+	  /* if the string too long, we interupt it
+		 and profix ... to it */
+	  if(width < 2*unic + asci)
+		{
+		  strncpy(string + width - 3, "...", 4);
+		  return;
+		}
+	  else
+		for(int j = 0; i < size - 1 && j < width - 2*unic - asci; i++, j++)
+		  string[i] = ' ';
+	}
+
+  string[i] = '\0';
+}
+
+static void
 playlist_items_update(struct VerboseArgs *vargs)
 {
   struct mpd_song *song;
@@ -338,10 +372,21 @@ playlist_items_update(struct VerboseArgs *vargs)
 	printErrorAndExit(vargs->conn);
 
   int i = 0;
-  while ((song = mpd_recv_song(vargs->conn)) != NULL)
+  while ((song = mpd_recv_song(vargs->conn)) != NULL
+		 && i < MAX_PLAYLIST_STORE_LENGTH)
 	{
-	  snprintf(vargs->playlist->items[i], 127, "%s",
-			   songToFormatedString(song, options.format, NULL));
+	  copy_song_tag(vargs->playlist->title[i],
+					mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
+					sizeof(vargs->playlist->title[0]), -1);
+	  copy_song_tag(vargs->playlist->pretty_title[i],
+					mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
+					sizeof(vargs->playlist->pretty_title[0]), 26);
+	  copy_song_tag(vargs->playlist->artist[i],
+					mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
+					sizeof(vargs->playlist->title[0]), -1);	  
+	  copy_song_tag(vargs->playlist->album[i],
+					mpd_song_get_tag(song, MPD_TAG_ALBUM, 0),
+					sizeof(vargs->playlist->title[0]), -1);	  
 	  ++i;
 	  mpd_song_free(song);
 	}
@@ -665,8 +710,19 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 
 	case 'i':;
 	case 'l':  // cursor goto current playing place
-	  playlist_scroll(vargs,
-					  vargs->playlist->current - vargs->playlist->cursor);
+	  playlist_scroll(vargs, vargs->playlist->current
+					  - vargs->playlist->cursor);
+	  break;
+	case 'g':  // cursor goto the beginning
+	  playlist_scroll(vargs, 1 - vargs->playlist->cursor);
+	  break;
+	case 'G':  // cursor goto the end
+	  playlist_scroll(vargs, vargs->playlist->length
+					  - vargs->playlist->cursor);
+	  break;
+	case 'c':  // cursor goto the center
+	  playlist_scroll(vargs, vargs->playlist->length / 2
+					  - vargs->playlist->cursor);
 	  break;
 	case '\t':
 	  vargs->menu_id = MENU_MAIN;

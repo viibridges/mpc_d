@@ -20,6 +20,10 @@ enum my_menu_id
 struct PlaylistMenuArgs
 {
   char **items;
+  char album[MAX_PLAYLIST_STORE_LENGTH][128],
+	artist[MAX_PLAYLIST_STORE_LENGTH][128],
+	title[MAX_PLAYLIST_STORE_LENGTH][128],
+	pretty_title[MAX_PLAYLIST_STORE_LENGTH][128];  
   int length;
   int begin;
   int current; // current playing song id
