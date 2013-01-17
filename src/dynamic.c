@@ -501,37 +501,30 @@ menu_main_keymap(struct VerboseArgs *vargs)
 }
 
 static void
-playlist_scroll_single(struct VerboseArgs *vargs, int sign)
-{  
-  vargs->playlist->cursor += sign;
-	
-  if(vargs->playlist->cursor > vargs->playlist->length)
-	vargs->playlist->cursor = vargs->playlist->length;
-  else if(vargs->playlist->cursor < 1)
-	vargs->playlist->cursor = 1;
-
-  if(vargs->playlist->cursor > PLAYLIST_HEIGHT / 2 &&
-	 vargs->playlist->length - vargs->playlist->cursor + 1 >= PLAYLIST_HEIGHT / 2)
-	{
-	  vargs->playlist->begin += sign;
-
-	  if(vargs->playlist->begin > vargs->playlist->length - PLAYLIST_HEIGHT + 1)
-		vargs->playlist->begin = vargs->playlist->length - PLAYLIST_HEIGHT + 1;
-
-	  if(vargs->playlist->begin < 1)
-		vargs->playlist->begin = 1;
-
-	  vargs->playlist->cursor = vargs->playlist->begin + PLAYLIST_HEIGHT / 2;
-	}
-}
-
-static void
 playlist_scroll(struct VerboseArgs *vargs, int lines)
 {
-  int s = lines > 0 ? 1 : -1, l = abs(lines);
+  static struct PlaylistMenuArgs *pl;
 
-  for(int i = 0; i < l; i++)
-	playlist_scroll_single(vargs, s);
+  pl = vargs->playlist;
+  
+  pl->cursor += lines;
+	
+  if(pl->cursor > pl->length)
+	pl->cursor = pl->length;
+  else if(pl->cursor < 1)
+	pl->cursor = 1;
+
+  pl->begin = pl->cursor - PLAYLIST_HEIGHT / 2;
+
+  if(pl->length - pl->cursor < PLAYLIST_HEIGHT / 2)
+	pl->begin = pl->length - PLAYLIST_HEIGHT + 1;
+
+  if(pl->cursor < PLAYLIST_HEIGHT / 2)
+	pl->begin = 1;
+
+  // this expression should always be false
+  if(pl->begin < 1)
+	pl->begin = 1;
 }
 
 static void
