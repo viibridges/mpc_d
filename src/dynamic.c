@@ -19,7 +19,6 @@
 #include <locale.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
-static int my_color_pairs[3];
 
 static void my_finishCommand(struct mpd_connection *conn) {
 	if (!mpd_response_finish(conn))
@@ -36,6 +35,8 @@ getStatus(struct mpd_connection *conn) {
 }
 
 static pthread_mutex_t conn_mutex;
+static int my_color_pairs[4];
+
 #define LOCK_FRAGILE pthread_mutex_lock(&conn_mutex);
 #define UNLOCK_FRAGILE pthread_mutex_unlock(&conn_mutex);
 
@@ -239,8 +240,8 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   static int crt_time, crt_time_perc, total_time,
 	fill_len, rest_len, i;
   static struct mpd_status *status;
-  static const char *rot[4] =
-	{"| | | |", "\\ \\ \\ \\", "— — — —", "/ / / /"};
+  static const char *rot[4] = {"|", "\\", "—", "/"};
+  static const int bar_length = 26;
 
   status = getStatus(vargs->conn);
   crt_time = mpd_status_get_elapsed_time(status);
@@ -248,12 +249,9 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   mpd_status_free(status);
 
   crt_time_perc = (total_time == 0 ? 0 : 100 * crt_time / total_time);    
-  fill_len = crt_time_perc * 30 / 100;
-  rest_len = 30 - fill_len;
+  fill_len = crt_time_perc * bar_length / 100;
+  rest_len = bar_length - fill_len;
 
-  move(3, AXIS_LENGTH - 5);
-  printw(rot[crt_time % 4]);
-  
   move(4, AXIS_LENGTH + 2);
 
   attron(my_color_pairs[2]);  
@@ -262,6 +260,11 @@ playlist_simple_bar(struct VerboseArgs *vargs)
 
   for(i = 0; i < rest_len; printw("*"), i++);
 
+  move(5 + PLAYLIST_HEIGHT, AXIS_LENGTH + bar_length + 1);
+  attron(my_color_pairs[3]);    
+  printw(rot[crt_time % 4]);
+  attroff(my_color_pairs[3]);  
+  
   refresh();
 }
 
@@ -588,6 +591,36 @@ playlist_play_current(struct VerboseArgs *vargs)
   free(args);
 }
 
+static void
+cmd_nextsong(struct VerboseArgs* vargs)
+{
+  struct mpd_status *status;
+  int song_id;
+  
+  cmd_next(0, NULL, vargs->conn);
+
+  status = getStatus(vargs->conn);
+  song_id = mpd_status_get_song_pos(status) + 1;
+  mpd_status_free(status);
+
+  playlist_scroll(vargs, song_id - vargs->playlist->cursor);
+}
+
+static void
+cmd_prevsong(struct VerboseArgs* vargs)
+{
+  struct mpd_status *status;
+  int song_id;
+  
+  cmd_prev(0, NULL, vargs->conn);
+
+  status = getStatus(vargs->conn);
+  song_id = mpd_status_get_song_pos(status) + 1;
+  mpd_status_free(status);
+
+  playlist_scroll(vargs, song_id - vargs->playlist->cursor);
+}
+
 int
 menu_playlist_keymap(struct VerboseArgs* vargs)
 {
@@ -603,6 +636,10 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	  playlist_scroll_up_page(vargs);break;
 	case ' ':
 	  playlist_scroll_down_page(vargs);break;
+	case 'n':
+	  cmd_nextsong(vargs); break;
+	case 'p':
+	  cmd_prevsong(vargs); break;
 	case '\n':
 	  playlist_play_current(vargs);break;
 
@@ -615,10 +652,6 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	  cmd_voldown(0, NULL, vargs->conn); break;
 	case KEY_LEFT:
 	  cmd_backward(0, NULL, vargs->conn); break;
-	case 'n':
-	  cmd_next(0, NULL, vargs->conn); break;
-	case 'p':
-	  cmd_prev(0, NULL, vargs->conn); break;
 	case 't':
 	  cmd_toggle(0, NULL, vargs->conn); break;
 	case 'r':
@@ -701,6 +734,8 @@ color_init(void)
   my_color_pairs[1] = COLOR_PAIR(2) | A_BOLD;
   init_pair(3, COLOR_MAGENTA, COLOR_BLACK);  
   my_color_pairs[2] = COLOR_PAIR(3) | A_BOLD;
+  init_pair(4, COLOR_GREEN, COLOR_BLACK);  
+  my_color_pairs[3] = COLOR_PAIR(4) | A_BOLD;
   use_default_colors();
 }
 
