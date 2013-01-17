@@ -19,7 +19,7 @@
 #include <locale.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
-static int my_color_pairs[2];
+static int my_color_pairs[3];
 
 static void my_finishCommand(struct mpd_connection *conn) {
 	if (!mpd_response_finish(conn))
@@ -195,7 +195,7 @@ print_basic_bar(struct mpd_connection *conn)
   int crt_time, crt_time_perc, total_time,
 	fill_len, empty_len, i, bit_rate;
   static int last_bit_rate = 0;
-  struct mpd_status *status;
+  static struct mpd_status *status;
 
   status = getStatus(conn);
   crt_time = mpd_status_get_elapsed_time(status);
@@ -216,7 +216,6 @@ print_basic_bar(struct mpd_connection *conn)
   empty_len = AXIS_LENGTH - fill_len;
 
   move(3, 0);
-  printw("\r");
   printw("[");
   for(i = 0; i < fill_len; printw("="), i++);
   printw(">");
@@ -231,6 +230,33 @@ print_basic_bar(struct mpd_connection *conn)
 		 total_time / 60,
 		 total_time % 60,
 		 8, " ");
+
+  refresh();
+}
+
+static void
+playlist_simple_bar(struct VerboseArgs *vargs)
+{
+  static int crt_time, crt_time_perc, total_time,
+	fill_len, rest_len, i;
+  static struct mpd_status *status;
+
+  status = getStatus(vargs->conn);
+  crt_time = mpd_status_get_elapsed_time(status);
+  total_time = mpd_status_get_total_time(status);
+  mpd_status_free(status);
+
+  crt_time_perc = (total_time == 0 ? 0 : 100 * crt_time / total_time);    
+  fill_len = crt_time_perc * 30 / 100;
+  rest_len = 30 - fill_len;
+
+  move(4, AXIS_LENGTH + 2);
+
+  attron(my_color_pairs[2]);  
+  for(i = 0; i < fill_len; printw("*"), i++);
+  attroff(my_color_pairs[2]);  
+
+  for(i = 0; i < rest_len; printw("*"), i++);
 
   refresh();
 }
@@ -267,7 +293,7 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
   clear();
   print_basic_song_info(vargs->conn);
 
-  mvprintw(init_line, AXIS_LENGTH + 2, bar);
+  //mvprintw(init_line, AXIS_LENGTH + 2, bar);
   
   j = init_line + 1;
   for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
@@ -371,7 +397,7 @@ menu_playlist_print_routine(struct VerboseArgs *vargs)
   if(rc)
 	redraw_playlist_screen(vargs);
 
-  //print_basic_bar(vargs->conn);
+  playlist_simple_bar(vargs);
 }
 
 static void
@@ -481,7 +507,7 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	  cmd_single(0, NULL, vargs->conn); break;
 	case 'R':
 	  cmd_repeat(0, NULL, vargs->conn); break;
-	case 'l':
+	case 'L': // redraw screen
 	  break;
 	case '\t':
 	  vargs->menu_id = MENU_PLAYLIST;
@@ -599,9 +625,14 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	  cmd_single(0, NULL, vargs->conn); break;
 	case 'R':
 	  cmd_repeat(0, NULL, vargs->conn); break;
-	case 'l':
+	case 'L':
 	  break;
 
+	case 'i':;
+	case 'l':  // cursor goto current playing place
+	  playlist_scroll(vargs,
+					  vargs->playlist->current - vargs->playlist->cursor);
+	  break;
 	case '\t':
 	  vargs->menu_id = MENU_MAIN;
 	  vargs->menu_print_routine = &menu_main_print_routine;
@@ -666,6 +697,8 @@ color_init(void)
   my_color_pairs[0] = COLOR_PAIR(1) | A_BOLD;
   init_pair(2, COLOR_WHITE, COLOR_BLUE);
   my_color_pairs[1] = COLOR_PAIR(2) | A_BOLD;
+  init_pair(3, COLOR_MAGENTA, COLOR_BLACK);  
+  my_color_pairs[2] = COLOR_PAIR(3) | A_BOLD;
   use_default_colors();
 }
 
