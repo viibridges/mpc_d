@@ -192,9 +192,8 @@ print_basic_song_info(struct mpd_connection* conn)
 static void
 print_basic_bar(struct mpd_connection *conn)
 {
-  int crt_time, crt_time_perc, total_time,
-	fill_len, empty_len, i, bit_rate;
-  static int last_bit_rate = 0;
+  static int crt_time, crt_time_perc, total_time,
+	fill_len, empty_len, i, bit_rate, last_bit_rate = 0;
   static struct mpd_status *status;
 
   status = getStatus(conn);
@@ -240,6 +239,8 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   static int crt_time, crt_time_perc, total_time,
 	fill_len, rest_len, i;
   static struct mpd_status *status;
+  static const char *rot[4] =
+	{"| | | |", "\\ \\ \\ \\", "— — — —", "/ / / /"};
 
   status = getStatus(vargs->conn);
   crt_time = mpd_status_get_elapsed_time(status);
@@ -250,6 +251,9 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   fill_len = crt_time_perc * 30 / 100;
   rest_len = 30 - fill_len;
 
+  move(3, AXIS_LENGTH - 5);
+  printw(rot[crt_time % 4]);
+  
   move(4, AXIS_LENGTH + 2);
 
   attron(my_color_pairs[2]);  
@@ -287,14 +291,12 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 {
   static const int init_line = 4;
   static char buff[55];
-  static const char *bar = "****************************";
+  static const char *bar = "__________________________/ THE END";
   int i, j;
 
   clear();
   print_basic_song_info(vargs->conn);
 
-  //mvprintw(init_line, AXIS_LENGTH + 2, bar);
-  
   j = init_line + 1;
   for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
 		+ PLAYLIST_HEIGHT - 1 && i < vargs->playlist->length; i++)
@@ -314,7 +316,7 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 	}
 
   if(i >= vargs->playlist->length)
-	mvprintw(j + 1, 0, "%*s   %s", 3, " ", bar);
+	mvprintw(j, 0, "%*s   %s", 3, " ", bar);
   else
 	mvprintw(j, 0, "%*s   %s", 3, " ", "... ...");
 
