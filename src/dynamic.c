@@ -294,7 +294,8 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 {
   static const int init_line = 4;
   static char buff[80];
-  static const char *bar = "__________________________/ THE END";
+  static const char *bar =
+	"______________________________________________/̅END LINE";
   int i, j;
 
   clear();
@@ -319,10 +320,11 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 		color_xyprint(0, j++, 0, buff);
 	}
 
-  if(i >= vargs->playlist->length)
-	mvprintw(j, 0, "%*s   %s", 3, " ", bar);
-  else
-	mvprintw(j, 0, "%*s   %s", 3, " ", "... ...");
+
+  mvprintw(j, 0, "%*s %s", 5, " ", bar);
+
+  if(i < vargs->playlist->length)
+  	mvprintw(j, 0, "%*s   %s", 3, " ", "... ...  ");
 
   if(vargs->playlist->begin > 1)
 	mvprintw(init_line, 0, "%*s   %s", 3, " ", "^^^ ^^^");

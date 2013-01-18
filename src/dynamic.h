@@ -4,7 +4,7 @@
 #define VOLUME_UNIT 3
 #define INTERVAL_UNIT 30000
 #define MAX_PLAYLIST_STORE_LENGTH 1000
-#define PLAYLIST_HEIGHT 16
+#define PLAYLIST_HEIGHT 15
 #define AXIS_LENGTH 40
 
 struct mpd_connection;
