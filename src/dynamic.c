@@ -34,9 +34,6 @@ getStatus(struct mpd_connection *conn) {
 	return ret;
 }
 
-static pthread_mutex_t conn_mutex;
-static int my_color_pairs[4];
-
 #define LOCK_FRAGILE pthread_mutex_lock(&conn_mutex);
 #define UNLOCK_FRAGILE pthread_mutex_unlock(&conn_mutex);
 
@@ -52,8 +49,10 @@ color_xyprint(int color_scheme, int x, int y, const char *str)
 		printw("%s", str);
 	  attroff(my_color_pairs[color_scheme - 1]);	  
 	}
-  else
+  else if(x >= 0 && y >= 0)
 	mvprintw(x, y, "%s", str);
+  else
+	printw("%s", str);
 }
 
 static int
@@ -63,7 +62,7 @@ check_new_state(struct VerboseArgs *vargs)
 	rep, ran, sin, que, idd, vol, ply;
   struct mpd_status *status;
   
-  if(vargs->new_command_signal == 0)
+  if(vargs->redraw_signal == 0)
 	{
 	  status = getStatus(vargs->conn);
 	  rep = mpd_status_get_repeat(status);
@@ -91,7 +90,7 @@ check_new_state(struct VerboseArgs *vargs)
 	  return 0;
 	}
   else // new local command triggered by key strike
-	vargs->new_command_signal = 0;
+	vargs->redraw_signal = 0;
   
   return 1;
 }
@@ -306,7 +305,7 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 		+ PLAYLIST_HEIGHT - 1 && i < vargs->playlist->length; i++)
 	{
 	  snprintf(buff, sizeof(buff), "%3i.  %s        %s",
-			   i + 1, vargs->playlist->pretty_title[i],
+			   vargs->playlist->id[i], vargs->playlist->pretty_title[i],
 			   vargs->playlist->artist[i]);
 	  if(i + 1 == vargs->playlist->cursor)
 		{
@@ -314,7 +313,7 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 		  continue;
 		}
 	  
-	  if(i + 1 == vargs->playlist->current)
+	  if(vargs->playlist->id[i] == vargs->playlist->current)
 		color_xyprint(1, j++, 0, buff);	  
 	  else
 		color_xyprint(0, j++, 0, buff);
@@ -366,7 +365,7 @@ copy_song_tag(char *string, const char * tag, int size, int width)
 }
 
 static void
-playlist_items_update(struct VerboseArgs *vargs)
+playlist_list_update(struct VerboseArgs *vargs)
 {
   struct mpd_song *song;
   
@@ -388,15 +387,16 @@ playlist_items_update(struct VerboseArgs *vargs)
 					sizeof(vargs->playlist->title[0]), -1);	  
 	  copy_song_tag(vargs->playlist->album[i],
 					mpd_song_get_tag(song, MPD_TAG_ALBUM, 0),
-					sizeof(vargs->playlist->title[0]), -1);	  
+					sizeof(vargs->playlist->title[0]), -1);
+	  vargs->playlist->id[i] = i + 1;
 	  ++i;
 	  mpd_song_free(song);
 	}
 
-  /* if(i < MAX_PLAYLIST_STORE_LENGTH) */
-  /* 	vargs->playlist->length = i; */
-  /* else */
-  /* 	vargs->playlist->length = MAX_PLAYLIST_STORE_LENGTH; */
+  if(i < MAX_PLAYLIST_STORE_LENGTH)
+  	vargs->playlist->length = i;
+  else
+  	vargs->playlist->length = MAX_PLAYLIST_STORE_LENGTH;
 
   my_finishCommand(vargs->conn);
 }
@@ -418,16 +418,23 @@ int update_playlist_state(struct VerboseArgs *vargs)
 	  ret = 1;
 	}
 
-  if(vargs->new_command_signal)
+  if(vargs->redraw_signal)
 	{
-	  vargs->new_command_signal = 0;
+	  vargs->redraw_signal = 0;
 	  ret = 1;
 	}
   
-  if(vargs->playlist->length != queue_len)
+  if(vargs->searchlist->mode == SEARCHING)
 	{
-	  vargs->playlist->length = queue_len;
-	  playlist_items_update(vargs);
+	  update_searchlist(vargs);
+	  vargs->searchlist->mode = TYPING;
+	  ret = 1;
+	}
+  else if(vargs->searchlist->mode == DISABLE &&
+		  vargs->playlist->length != queue_len)
+	{
+	  // vargs->playlist->length = queue_len;
+	  playlist_list_update(vargs);
 	  ret = 1;
 	}
 
@@ -437,7 +444,95 @@ int update_playlist_state(struct VerboseArgs *vargs)
   if(vargs->playlist->begin > vargs->playlist->length)
 	vargs->playlist->begin = 1;
 
+  /* if(vargs->playlist->length == 0) */
+  /* 	vargs->playlist->begin = 0; */
+  
   return ret;
+}
+
+static
+char *is_substring_ignorecase(const char *main, char *sub)
+{
+  char lower_main[64], lower_sub[64];
+  const char *pt;
+  int i;
+
+  pt = main, i = 0;
+  for(i = 0; main[i] && i < 64; i++)
+	lower_main[i] = isalpha(main[i]) ?
+	  (islower(main[i]) ? main[i] : (char)tolower(main[i])) : main[i];
+  lower_main[i] = '\0';
+
+  for(i = 0; sub[i] && i < 64; i++)
+	lower_sub[i] = isalpha(sub[i]) ?
+	  (islower(sub[i]) ? sub[i] : (char)tolower(sub[i])) : sub[i];
+  lower_sub[i] = '\0';
+
+  return strstr(lower_main, lower_sub);
+}
+
+void
+update_searchlist(struct VerboseArgs* vargs)
+{
+  char (*tag_name)[128];
+  int i, j;
+
+  switch(vargs->searchlist->tag)
+	{
+	case MPD_TAG_ARTIST:
+	  tag_name = vargs->playlist->artist; break;
+	case MPD_TAG_ALBUM:
+	  tag_name = vargs->playlist->album; break;
+	default:
+	  tag_name = vargs->playlist->title; break;	  
+	}
+
+  for(i = j = 0; i < vargs->playlist->length; i++)
+	{
+	  if(is_substring_ignorecase(tag_name[i],
+								 vargs->searchlist->key) != NULL
+		 || is_substring_ignorecase(vargs->playlist->album[i],
+								 vargs->searchlist->key) != NULL
+		 || is_substring_ignorecase(vargs->playlist->artist[i],
+								 vargs->searchlist->key) != NULL)
+		{
+		  strcpy(vargs->playlist->title[j],
+				 vargs->playlist->title[i]);
+		  strcpy(vargs->playlist->artist[j],
+				 vargs->playlist->artist[i]);
+		  strcpy(vargs->playlist->album[j],
+				 vargs->playlist->album[i]);
+		  strcpy(vargs->playlist->pretty_title[j],
+				 vargs->playlist->pretty_title[i]);
+		  vargs->playlist->id[j] = vargs->playlist->id[i];
+		  j ++;
+		}
+	}
+  vargs->playlist->length = j;
+}
+
+static void
+search_prompt(struct VerboseArgs *vargs)
+{
+  static char str[128];
+
+  snprintf(str, sizeof(str), "%s█", vargs->searchlist->key);
+  move(22, 0);
+
+  if(vargs->searchlist->mode == TYPING)
+	color_xyprint(5, -1, -1, "Search: ");
+  else
+	color_xyprint(0, -1, -1, "Search: ");
+  
+  if(vargs->playlist->length == 0)
+	color_xyprint(4, -1, -1, "no entries...");
+  else if(vargs->searchlist->mode == TYPING)
+	color_xyprint(6, -1, -1, str);
+  else
+	color_xyprint(0, -1, -1, str);
+
+  printw("%*s", 40, " ");
+  refresh();
 }
 
 static void
@@ -450,6 +545,9 @@ menu_playlist_print_routine(struct VerboseArgs *vargs)
 	redraw_playlist_screen(vargs);
 
   playlist_simple_bar(vargs);
+
+  if(vargs->searchlist->mode != DISABLE)
+	search_prompt(vargs);
 }
 
 static void
@@ -573,7 +671,7 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	  return 0;
 	}
 
-  vargs->new_command_signal = 1;
+  vargs->redraw_signal = 1;
 
   return 0;
 }
@@ -581,7 +679,7 @@ menu_main_keymap(struct VerboseArgs *vargs)
 static void
 playlist_scroll(struct VerboseArgs *vargs, int lines)
 {
-  static struct PlaylistMenuArgs *pl;
+  static struct PlaylistArgs *pl;
 
   pl = vargs->playlist;
   
@@ -633,9 +731,13 @@ static void
 playlist_play_current(struct VerboseArgs *vargs)
 {
   char *args = (char*)malloc(8 * sizeof(char));
-  snprintf(args, sizeof(args), "%i", vargs->playlist->cursor);
+  int i = vargs->playlist->cursor;
+  snprintf(args, sizeof(args), "%i", vargs->playlist->id[i-1]);
   cmd_play(1, &args, vargs->conn);
   free(args);
+
+  if(vargs->searchlist->mode != DISABLE)
+	vargs->menu_keymap = &search_mode_off;
 }
 
 static void
@@ -650,7 +752,8 @@ cmd_nextsong(struct VerboseArgs* vargs)
   song_id = mpd_status_get_song_pos(status) + 1;
   mpd_status_free(status);
 
-  playlist_scroll(vargs, song_id - vargs->playlist->cursor);
+  if(vargs->searchlist->mode == DISABLE)
+	playlist_scroll(vargs, song_id - vargs->playlist->cursor);
 }
 
 static void
@@ -665,7 +768,8 @@ cmd_prevsong(struct VerboseArgs* vargs)
   song_id = mpd_status_get_song_pos(status) + 1;
   mpd_status_free(status);
 
-  playlist_scroll(vargs, song_id - vargs->playlist->cursor);
+  if(vargs->searchlist->mode == DISABLE)  
+	playlist_scroll(vargs, song_id - vargs->playlist->cursor);
 }
 
 int
@@ -712,8 +816,9 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 
 	case 'i':;
 	case 'l':  // cursor goto current playing place
-	  playlist_scroll(vargs, vargs->playlist->current
-					  - vargs->playlist->cursor);
+	  if(vargs->searchlist->mode == DISABLE)	  
+		playlist_scroll(vargs, vargs->playlist->current
+						- vargs->playlist->cursor);
 	  break;
 	case 'g':  // cursor goto the beginning
 	  playlist_scroll(vargs, 1 - vargs->playlist->cursor);
@@ -731,6 +836,16 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	  vargs->menu_print_routine = &menu_main_print_routine;
 	  vargs->menu_keymap = &menu_main_keymap;
 	  break;
+	case '/':
+	  vargs->menu_keymap = &search_mode_on;
+	  break;
+	case 127:
+	  ungetch(127);
+	  vargs->menu_keymap = &search_mode_on;
+	  break;
+	case '\\':
+	  vargs->menu_keymap = &search_mode_off;
+	  break;
 	case 'e': ;
 	case 'q':
 	  return 1;
@@ -738,7 +853,92 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	  return 0;
 	}
 
-  vargs->new_command_signal = 1;	  
+  vargs->redraw_signal = 1;	  
+  return 0;
+}
+
+int
+search_mode_on(struct VerboseArgs *vargs)
+{
+  int i, ch;
+  /** toggle search mode from the beginning,
+	  user need to choose the search tag type.
+	  default is MPD_TAG_TITLE */
+  
+  vargs->playlist->cursor = 0;
+  
+  vargs->searchlist->mode = TYPING;
+  
+  ch = getch();
+  i = strlen(vargs->searchlist->key);
+  if(ch != ERR)
+	{
+	  vargs->searchlist->mode = SEARCHING;
+
+	  if(ch == '\n' || ch == '\t')
+		{
+		  // no key word is specified
+		  if(i == 0)
+			{
+			  vargs->menu_keymap = &search_mode_off;
+			  return 0;
+			}
+			
+		  vargs->searchlist->mode = PICKING;
+		  vargs->menu_keymap = &menu_playlist_keymap;
+		  vargs->playlist->cursor = 1;
+		  vargs->playlist->begin = 1;
+		  redraw_playlist_screen(vargs);
+		  return 0;
+		}
+	  else if(ch == 127)
+		{
+		  // backspace to the begining, exit searching mode
+		  if(i == 0)
+			{
+			  vargs->menu_keymap = &search_mode_off;
+			  return 0;
+			}
+		  
+		  if(!isascii(vargs->searchlist->key[i - 1]))
+			vargs->searchlist->key[i - 3] = '\0';
+		  else
+			vargs->searchlist->key[i - 1] = '\0';
+		  
+		  playlist_list_update(vargs);
+		  return 0;
+		}
+	  else if(!isascii(ch))
+		{
+		  vargs->searchlist->key[i++] = (char)ch;		  
+		  vargs->searchlist->key[i++] = getch();
+		  vargs->searchlist->key[i++] = getch();
+		}
+	  else
+		vargs->searchlist->key[i++] = (char)ch;
+	  
+	  vargs->searchlist->key[i] = '\0';
+	}
+
+  return 0;
+}
+
+int
+search_mode_off(struct VerboseArgs *vargs)
+{
+  vargs->searchlist->mode = DISABLE;
+  vargs->searchlist->key[0] = '\0';
+  vargs->menu_keymap = &menu_playlist_keymap;
+  /* vargs->playlist->cursor = 1; */
+  /* vargs->playlist->begin = 1; */
+  playlist_list_update(vargs);
+  playlist_scroll(vargs, vargs->playlist->current
+				  - vargs->playlist->cursor);
+
+  /* to inform the display routine redraw
+	 the routine, this is a trick */
+  vargs->playlist->length = 0;
+    
   return 0;
 }
 
@@ -750,30 +950,29 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->menu_print_routine = &menu_main_print_routine;
   vargs->menu_keymap = &menu_main_keymap;
   /* initialization require redraw too */
-  vargs->new_command_signal = 1;
+  vargs->redraw_signal = 1;
 
   /** playlist arguments */
   vargs->playlist =
-	(struct PlaylistMenuArgs*) malloc(sizeof(struct PlaylistMenuArgs));
-  vargs->playlist->items =
-	(char**) malloc(MAX_PLAYLIST_STORE_LENGTH * sizeof(char*));
-  for(int i = 0; i < MAX_PLAYLIST_STORE_LENGTH; i++)
-	vargs->playlist->items[i] =
-	  (char*)malloc(128 * sizeof(char));
+	(struct PlaylistArgs*) malloc(sizeof(struct PlaylistArgs));
   vargs->playlist->begin = 1;
   vargs->playlist->length = 0;
   vargs->playlist->current = 0;
   vargs->playlist->cursor = 1;
+
+  /** searchlist arguments */
+  vargs->searchlist =
+	(struct SearchlistArgs*) malloc(sizeof(struct SearchlistArgs));
+  vargs->searchlist->mode = DISABLE;
+  vargs->searchlist->tag = MPD_TAG_TITLE;
+  vargs->searchlist->key[0] = '\0';
 }
 
 static void
 verbose_args_destroy(mpd_unused struct VerboseArgs *vargs)
 {
-  for(int i = 0; i < MAX_PLAYLIST_STORE_LENGTH; i++)
-	  free(vargs->playlist->items[i]);
-  free(vargs->playlist->items);
-
   free(vargs->playlist);
+  free(vargs->searchlist);
 }
 
 static void
@@ -792,8 +991,12 @@ color_init(void)
   my_color_pairs[1] = COLOR_PAIR(2) | A_BOLD;
   init_pair(3, COLOR_MAGENTA, COLOR_BLACK);  
   my_color_pairs[2] = COLOR_PAIR(3) | A_BOLD;
-  init_pair(4, COLOR_GREEN, COLOR_BLACK);  
+  init_pair(4, COLOR_RED, COLOR_BLACK);  
   my_color_pairs[3] = COLOR_PAIR(4) | A_BOLD;
+  init_pair(5, COLOR_GREEN, COLOR_BLACK);  
+  my_color_pairs[4] = COLOR_PAIR(5) | A_BOLD;
+  init_pair(6, COLOR_CYAN, COLOR_BLACK);  
+  my_color_pairs[5] = COLOR_PAIR(6) | A_BOLD;
   use_default_colors();
 }
 
