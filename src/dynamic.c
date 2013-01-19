@@ -225,9 +225,11 @@ print_basic_bar(struct mpd_connection *conn)
 
   move(3, 0);
   printw("[");
+  attron(my_color_pairs[2]);
   for(i = 0; i < fill_len; printw("="), i++);
   printw(">");
   for(i = 0; i < empty_len; printw(" "), i++);
+  attroff(my_color_pairs[2]);
   printw("]");
   
   printw("%3i%% %5ik/s %3i:%02i/%i:%02i%*s",
