@@ -7,7 +7,7 @@
 #define INTERVAL_UNIT 30000
 #define MAX_PLAYLIST_STORE_LENGTH 1000
 #define PLAYLIST_HEIGHT 15
-#define AXIS_LENGTH 40
+#define AXIS_LENGTH 44
 
 struct mpd_connection;
 pthread_mutex_t conn_mutex;
@@ -19,14 +19,6 @@ enum my_search_mode
   TYPING,
   SEARCHING,
   PICKING
-};
-
-enum my_menu_id
-{
-  MENU_MAIN,
-  MENU_PLAYLIST,
-  //	MENU_QUEUE,
-  MENU_NUMBER
 };
 
 struct PlaylistArgs
@@ -45,7 +37,8 @@ struct PlaylistArgs
 struct SearchlistArgs
 {
   enum my_search_mode mode;
-  enum mpd_tag_type tag; // searching type
+  enum mpd_tag_type tags[4]; // searching type
+  int crt_tag_id;
   char key[128];
 };
 
@@ -56,7 +49,6 @@ struct VerboseArgs
   void (*menu_print_routine)(struct VerboseArgs*);
   int (*menu_keymap)(struct VerboseArgs*);
   int redraw_signal;
-  int menu_id;
   struct PlaylistArgs *playlist;
   struct SearchlistArgs *searchlist;
 };

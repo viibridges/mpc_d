@@ -105,14 +105,18 @@ print_basic_help(void)
   printw("  [=] :\tVolume Up\t\t  [b] :\tPlayback\n");
   printw("  [t] :\tPlay / Pause\t\t  [l] :\tRedraw screen\n");
   printw("  <L> :\tSeek backward\t\t  <R> :\tSeek forward\n");
-  printw("\n  [e/q] : Quit\n");
+  printw("\n  [TAB] : New world\n");
+  printw("  [e/q] : Quit\n");
 }
 
 static void
-print_basic_song_info(struct mpd_connection* conn)
+print_basic_song_info(struct VerboseArgs *vargs)
 {
+  struct mpd_connection *conn;
   struct mpd_status *status;
   static char buff[55];
+
+  conn = vargs->conn;
 
   if (!mpd_command_list_begin(conn, true) ||
 	  !mpd_send_status(conn) ||
@@ -176,8 +180,13 @@ print_basic_song_info(struct mpd_connection* conn)
 
   printw("single: ");
   if (mpd_status_get_single(status))
-	printw("on\n");
-  else printw("off\n");
+	printw("on    ");
+  else printw("off   ");
+
+  printw("Search: ");
+  color_xyprint(6, -1, -1,
+		 mpd_tag_name(vargs->searchlist->tags
+					  [vargs->searchlist->crt_tag_id]));
 
   if (mpd_status_get_error(status) != NULL)
 	printw("ERROR: %s\n",
@@ -240,7 +249,7 @@ playlist_simple_bar(struct VerboseArgs *vargs)
 	fill_len, rest_len, i;
   static struct mpd_status *status;
   static const char *rot[4] = {"|", "\\", "—", "/"};
-  static const int bar_length = 27, bar_begin = 40;
+  static const int bar_length = 27, bar_begin = 43;
 
   status = getStatus(vargs->conn);
   crt_time = mpd_status_get_elapsed_time(status);
@@ -268,11 +277,11 @@ playlist_simple_bar(struct VerboseArgs *vargs)
 }
 
 static void
-redraw_main_screen(struct mpd_connection *conn)
+redraw_main_screen(struct VerboseArgs *vargs)
 {
   clear();
-  print_basic_song_info(conn);
-  print_basic_bar(conn);
+  print_basic_song_info(vargs);
+  print_basic_bar(vargs->conn);
   print_basic_help();
 }
 
@@ -282,7 +291,7 @@ menu_main_print_routine(struct VerboseArgs *vargs)
   if(check_new_state(vargs))
 	{
 	  // refresh the status display
-	  redraw_main_screen(vargs->conn);
+	  redraw_main_screen(vargs);
 	}
 
   print_basic_bar(vargs->conn);
@@ -298,7 +307,7 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
   int i, j;
 
   clear();
-  print_basic_song_info(vargs->conn);
+  print_basic_song_info(vargs);
 
   j = init_line + 1;
   for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
@@ -407,6 +416,9 @@ int update_playlist_state(struct VerboseArgs *vargs)
   struct mpd_status *status;
   int queue_len, song_id, ret = 0;
 
+  if(check_new_state(vargs))
+	ret = 1;
+
   status = getStatus(vargs->conn);
   queue_len = mpd_status_get_queue_length(status);
   song_id = mpd_status_get_song_pos(status) + 1;
@@ -444,9 +456,6 @@ int update_playlist_state(struct VerboseArgs *vargs)
   if(vargs->playlist->begin > vargs->playlist->length)
 	vargs->playlist->begin = 1;
 
-  /* if(vargs->playlist->length == 0) */
-  /* 	vargs->playlist->begin = 0; */
-  
   return ret;
 }
 
@@ -474,27 +483,39 @@ char *is_substring_ignorecase(const char *main, char *sub)
 void
 update_searchlist(struct VerboseArgs* vargs)
 {
-  char (*tag_name)[128];
-  int i, j;
+  char (*tag_name)[128], *key = vargs->searchlist->key;
+  int i, j, ct = vargs->searchlist->crt_tag_id;
 
-  switch(vargs->searchlist->tag)
+  switch(vargs->searchlist->tags[ct])
 	{
+	case MPD_TAG_TITLE:
+	  tag_name = vargs->playlist->title; break;	  
 	case MPD_TAG_ARTIST:
 	  tag_name = vargs->playlist->artist; break;
 	case MPD_TAG_ALBUM:
 	  tag_name = vargs->playlist->album; break;
 	default:
-	  tag_name = vargs->playlist->title; break;	  
+	  tag_name = NULL;
 	}
 
+  int is_substr;
+  
   for(i = j = 0; i < vargs->playlist->length; i++)
 	{
-	  if(is_substring_ignorecase(tag_name[i],
-								 vargs->searchlist->key) != NULL
-		 || is_substring_ignorecase(vargs->playlist->album[i],
-								 vargs->searchlist->key) != NULL
-		 || is_substring_ignorecase(vargs->playlist->artist[i],
-								 vargs->searchlist->key) != NULL)
+	  if(tag_name != NULL)
+		is_substr = is_substring_ignorecase
+		  (tag_name[i], key) != NULL;
+	  else
+		{
+		  is_substr = is_substring_ignorecase
+			(vargs->playlist->title[i], key) != NULL ||
+			is_substring_ignorecase
+			(vargs->playlist->album[i], key) != NULL ||
+			is_substring_ignorecase
+			(vargs->playlist->artist[i], key) != NULL;
+		}
+
+	  if(is_substr)
 		{
 		  strcpy(vargs->playlist->title[j],
 				 vargs->playlist->title[i]);
@@ -659,8 +680,11 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	  cmd_repeat(0, NULL, vargs->conn); break;
 	case 'L': // redraw screen
 	  break;
+	case 'S':
+	  vargs->searchlist->crt_tag_id ++;
+	  vargs->searchlist->crt_tag_id %= 4;	  
+	  break;
 	case '\t':
-	  vargs->menu_id = MENU_PLAYLIST;
 	  vargs->menu_print_routine = &menu_playlist_print_routine;
 	  vargs->menu_keymap = &menu_playlist_keymap;	  
 	  break;
@@ -704,6 +728,13 @@ playlist_scroll(struct VerboseArgs *vargs, int lines)
 }
 
 static void
+playlist_scroll_to(struct VerboseArgs *vargs, int line)
+{
+  vargs->playlist->cursor = 0;
+  playlist_scroll(vargs, line);
+}
+
+static void
 playlist_scroll_down_line(struct VerboseArgs *vargs)
 {
   playlist_scroll(vargs, +1);
@@ -741,35 +772,32 @@ playlist_play_current(struct VerboseArgs *vargs)
 }
 
 static void
-cmd_nextsong(struct VerboseArgs* vargs)
+playlist_scroll_to_current(struct VerboseArgs *vargs)
 {
   struct mpd_status *status;
   int song_id;
-  
-  cmd_next(0, NULL, vargs->conn);
-
-  status = getStatus(vargs->conn);
-  song_id = mpd_status_get_song_pos(status) + 1;
-  mpd_status_free(status);
-
-  if(vargs->searchlist->mode == DISABLE)
-	playlist_scroll(vargs, song_id - vargs->playlist->cursor);
-}
-
-static void
-cmd_prevsong(struct VerboseArgs* vargs)
-{
-  struct mpd_status *status;
-  int song_id;
-  
-  cmd_prev(0, NULL, vargs->conn);
-
   status = getStatus(vargs->conn);
   song_id = mpd_status_get_song_pos(status) + 1;
   mpd_status_free(status);
 
   if(vargs->searchlist->mode == DISABLE)  
-	playlist_scroll(vargs, song_id - vargs->playlist->cursor);
+	playlist_scroll_to(vargs, song_id);
+}
+
+static void
+cmd_nextsong(struct VerboseArgs* vargs)
+{
+  cmd_next(0, NULL, vargs->conn);
+
+  playlist_scroll_to_current(vargs);
+}
+
+static void
+cmd_prevsong(struct VerboseArgs* vargs)
+{
+  cmd_prev(0, NULL, vargs->conn);
+  
+  playlist_scroll_to_current(vargs);
 }
 
 int
@@ -813,26 +841,25 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	  cmd_repeat(0, NULL, vargs->conn); break;
 	case 'L':
 	  break;
+	case 'S':
+	  vargs->searchlist->crt_tag_id ++;
+	  vargs->searchlist->crt_tag_id %= 4;	  
+	  break;
 
 	case 'i':;
 	case 'l':  // cursor goto current playing place
-	  if(vargs->searchlist->mode == DISABLE)	  
-		playlist_scroll(vargs, vargs->playlist->current
-						- vargs->playlist->cursor);
+	  playlist_scroll_to_current(vargs);
 	  break;
 	case 'g':  // cursor goto the beginning
-	  playlist_scroll(vargs, 1 - vargs->playlist->cursor);
+	  playlist_scroll_to(vargs, 1);
 	  break;
 	case 'G':  // cursor goto the end
-	  playlist_scroll(vargs, vargs->playlist->length
-					  - vargs->playlist->cursor);
+	  playlist_scroll_to(vargs, vargs->playlist->length);
 	  break;
 	case 'c':  // cursor goto the center
-	  playlist_scroll(vargs, vargs->playlist->length / 2
-					  - vargs->playlist->cursor);
+	  playlist_scroll_to(vargs, vargs->playlist->length / 2);
 	  break;
 	case '\t':
-	  vargs->menu_id = MENU_MAIN;
 	  vargs->menu_print_routine = &menu_main_print_routine;
 	  vargs->menu_keymap = &menu_main_keymap;
 	  break;
@@ -886,8 +913,7 @@ search_mode_on(struct VerboseArgs *vargs)
 			
 		  vargs->searchlist->mode = PICKING;
 		  vargs->menu_keymap = &menu_playlist_keymap;
-		  vargs->playlist->cursor = 1;
-		  vargs->playlist->begin = 1;
+		  playlist_scroll_to(vargs, 1);
 		  redraw_playlist_screen(vargs);
 		  return 0;
 		}
@@ -929,12 +955,10 @@ search_mode_off(struct VerboseArgs *vargs)
   vargs->searchlist->mode = DISABLE;
   vargs->searchlist->key[0] = '\0';
   vargs->menu_keymap = &menu_playlist_keymap;
-  /* vargs->playlist->cursor = 1; */
-  /* vargs->playlist->begin = 1; */
-  playlist_list_update(vargs);
-  playlist_scroll(vargs, vargs->playlist->current
-				  - vargs->playlist->cursor);
 
+  playlist_list_update(vargs);
+  playlist_scroll_to_current(vargs);
+  
   /* to inform the display routine redraw
 	 the routine, this is a trick */
   vargs->playlist->length = 0;
@@ -946,7 +970,6 @@ static void
 verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
 {
   vargs->conn = conn;
-  vargs->menu_id = MENU_MAIN;
   vargs->menu_print_routine = &menu_main_print_routine;
   vargs->menu_keymap = &menu_main_keymap;
   /* initialization require redraw too */
@@ -964,7 +987,13 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->searchlist =
 	(struct SearchlistArgs*) malloc(sizeof(struct SearchlistArgs));
   vargs->searchlist->mode = DISABLE;
-  vargs->searchlist->tag = MPD_TAG_TITLE;
+  {
+	vargs->searchlist->tags[0] = MPD_TAG_NAME;
+    vargs->searchlist->tags[1] = MPD_TAG_TITLE;
+	vargs->searchlist->tags[2] = MPD_TAG_ARTIST;
+	vargs->searchlist->tags[3] = MPD_TAG_ALBUM;
+	vargs->searchlist->crt_tag_id = 0;
+  }
   vargs->searchlist->key[0] = '\0';
 }
 
