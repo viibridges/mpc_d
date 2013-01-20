@@ -56,6 +56,6 @@ struct VerboseArgs
 int cmd_dynamic( int argc,  char ** argv, struct mpd_connection *conn);
 int menu_playlist_keymap(struct VerboseArgs* vargs);
 int menu_main_keymap(struct VerboseArgs* vargs);
-int search_mode_on(struct VerboseArgs *vargs);
-int search_mode_off(struct VerboseArgs *vargs);
+int search_mode(struct VerboseArgs *vargs);
+void turnoff_search_mode(struct VerboseArgs *vargs);
 void update_searchlist(struct VerboseArgs* vargs);

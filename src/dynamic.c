@@ -690,6 +690,7 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	  vargs->menu_print_routine = &menu_playlist_print_routine;
 	  vargs->menu_keymap = &menu_playlist_keymap;	  
 	  break;
+	case 27: ;
 	case 'e': ;
 	case 'q':
 	  return 1;
@@ -770,7 +771,8 @@ playlist_play_current(struct VerboseArgs *vargs)
   free(args);
 
   if(vargs->searchlist->mode != DISABLE)
-	vargs->menu_keymap = &search_mode_off;
+	turnoff_search_mode(vargs);
+
 }
 
 static void
@@ -866,15 +868,18 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	  vargs->menu_keymap = &menu_main_keymap;
 	  break;
 	case '/':
-	  vargs->menu_keymap = &search_mode_on;
+	  vargs->menu_keymap = &search_mode;
 	  break;
 	case 127:
-	  ungetch(127);
-	  vargs->menu_keymap = &search_mode_on;
+	  if(vargs->searchlist->mode != DISABLE)
+		{
+		  ungetch(127);
+		  vargs->menu_keymap = &search_mode;
+		}
 	  break;
 	case '\\':
-	  vargs->menu_keymap = &search_mode_off;
-	  break;
+	  turnoff_search_mode(vargs); break;
+	case 27: ;
 	case 'e': ;
 	case 'q':
 	  return 1;
@@ -887,7 +892,7 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 }
 
 int
-search_mode_on(struct VerboseArgs *vargs)
+search_mode(struct VerboseArgs *vargs)
 {
   int i, ch;
   /** toggle search mode from the beginning,
@@ -909,7 +914,7 @@ search_mode_on(struct VerboseArgs *vargs)
 		  // no key word is specified
 		  if(i == 0)
 			{
-			  vargs->menu_keymap = &search_mode_off;
+			  turnoff_search_mode(vargs);
 			  return 0;
 			}
 			
@@ -919,12 +924,17 @@ search_mode_on(struct VerboseArgs *vargs)
 		  redraw_playlist_screen(vargs);
 		  return 0;
 		}
+	  else if(ch == '\\' || ch == 27)
+		{
+		  turnoff_search_mode(vargs);
+		  return 0;
+		}
 	  else if(ch == 127)
 		{
 		  // backspace to the begining, exit searching mode
 		  if(i == 0)
 			{
-			  vargs->menu_keymap = &search_mode_off;
+			  turnoff_search_mode(vargs);
 			  return 0;
 			}
 		  
@@ -951,9 +961,12 @@ search_mode_on(struct VerboseArgs *vargs)
   return 0;
 }
 
-int
-search_mode_off(struct VerboseArgs *vargs)
+void
+turnoff_search_mode(struct VerboseArgs *vargs)
 {
+  if(vargs->searchlist->mode == DISABLE)
+	return;
+  
   vargs->searchlist->mode = DISABLE;
   vargs->searchlist->key[0] = '\0';
   vargs->menu_keymap = &menu_playlist_keymap;
@@ -965,7 +978,7 @@ search_mode_off(struct VerboseArgs *vargs)
 	 the routine, this is a trick */
   vargs->playlist->length = 0;
     
-  return 0;
+  return ;
 }
 
 static void
