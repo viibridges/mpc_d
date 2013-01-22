@@ -704,6 +704,20 @@ menu_main_keymap(struct VerboseArgs *vargs)
 }
 
 static void
+playlist_delete_song(struct VerboseArgs *vargs)
+{
+  char *args = (char*)malloc(8 * sizeof(char));
+  int i = vargs->playlist->cursor;
+  
+  if(i < 1 || i > vargs->playlist->length)
+	return;
+	
+  snprintf(args, sizeof(args), "%i", vargs->playlist->id[i - 1]);
+  cmd_del(1, &args, vargs->conn);
+  free(args);
+}
+
+static void
 playlist_scroll(struct VerboseArgs *vargs, int lines)
 {
   static struct PlaylistArgs *pl;
@@ -863,6 +877,8 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	case 'c':  // cursor goto the center
 	  playlist_scroll_to(vargs, vargs->playlist->length / 2);
 	  break;
+	case 'd':
+	  playlist_delete_song(vargs); break;
 	case '\t':
 	  vargs->menu_print_routine = &menu_main_print_routine;
 	  vargs->menu_keymap = &menu_main_keymap;
