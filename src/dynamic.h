@@ -46,8 +46,10 @@ struct VerboseArgs
 {
   struct mpd_connection *conn;
   /** set to 1 once commands have been triggered by keyboad*/
-  void (*menu_print_routine)(struct VerboseArgs*);
   int (*menu_keymap)(struct VerboseArgs*);
+  void (*menu_print_routine)(struct VerboseArgs*);
+  int (*old_menu_keymap)(struct VerboseArgs*);
+  void (*old_menu_print_routine)(struct VerboseArgs*);  
   int redraw_signal;
   struct PlaylistArgs *playlist;
   struct SearchlistArgs *searchlist;
@@ -56,6 +58,10 @@ struct VerboseArgs
 int cmd_dynamic( int argc,  char ** argv, struct mpd_connection *conn);
 int menu_playlist_keymap(struct VerboseArgs* vargs);
 int menu_main_keymap(struct VerboseArgs* vargs);
-int search_mode(struct VerboseArgs *vargs);
+void menu_playlist_print_routine(struct VerboseArgs *vargs);
+void menu_main_print_routine(struct VerboseArgs *vargs);
+void menu_search_print_routine(struct VerboseArgs *vargs);
+int search_routine(struct VerboseArgs *vargs);
 void turnoff_search_mode(struct VerboseArgs *vargs);
+void turnon_search_mode(struct VerboseArgs *vargs);
 void update_searchlist(struct VerboseArgs* vargs);

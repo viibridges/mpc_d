@@ -287,7 +287,7 @@ redraw_main_screen(struct VerboseArgs *vargs)
   print_basic_help();
 }
 
-static void
+void
 menu_main_print_routine(struct VerboseArgs *vargs)
 {
   if(check_new_state(vargs))
@@ -558,7 +558,7 @@ search_prompt(struct VerboseArgs *vargs)
   refresh();
 }
 
-static void
+void
 menu_playlist_print_routine(struct VerboseArgs *vargs)
 {
   static int rc;
@@ -571,6 +571,12 @@ menu_playlist_print_routine(struct VerboseArgs *vargs)
 
   if(vargs->searchlist->mode != DISABLE)
 	search_prompt(vargs);
+}
+
+void
+menu_search_print_routine(struct VerboseArgs *vargs)
+{
+  menu_playlist_print_routine(vargs);
 }
 
 static void
@@ -682,11 +688,15 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	  cmd_repeat(0, NULL, vargs->conn); break;
 	case 'L': // redraw screen
 	  break;
+	case '/':
+	  turnon_search_mode(vargs); break;
 	case 'S':
 	  vargs->searchlist->crt_tag_id ++;
 	  vargs->searchlist->crt_tag_id %= 4;	  
 	  break;
 	case '\t':
+	  vargs->old_menu_keymap = vargs->menu_keymap;
+	  vargs->old_menu_print_routine = vargs->menu_print_routine;
 	  vargs->menu_print_routine = &menu_playlist_print_routine;
 	  vargs->menu_keymap = &menu_playlist_keymap;	  
 	  break;
@@ -880,17 +890,19 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	case 'd':
 	  playlist_delete_song(vargs); break;
 	case '\t':
+	  vargs->old_menu_keymap = vargs->menu_keymap;
+	  vargs->old_menu_print_routine = vargs->menu_print_routine;
 	  vargs->menu_print_routine = &menu_main_print_routine;
 	  vargs->menu_keymap = &menu_main_keymap;
 	  break;
 	case '/':
-	  vargs->menu_keymap = &search_mode;
+	  turnon_search_mode(vargs);
 	  break;
 	case 127:
 	  if(vargs->searchlist->mode != DISABLE)
 		{
 		  ungetch(127);
-		  vargs->menu_keymap = &search_mode;
+		  vargs->menu_keymap = &search_routine;
 		}
 	  break;
 	case '\\':
@@ -908,7 +920,7 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 }
 
 int
-search_mode(struct VerboseArgs *vargs)
+search_routine(struct VerboseArgs *vargs)
 {
   int i, ch;
   /** toggle search mode from the beginning,
@@ -916,9 +928,8 @@ search_mode(struct VerboseArgs *vargs)
 	  default is MPD_TAG_TITLE */
   
   vargs->playlist->cursor = 0;
-  
   vargs->searchlist->mode = TYPING;
-  
+
   ch = getch();
   i = strlen(vargs->searchlist->key);
   if(ch != ERR)
@@ -937,7 +948,7 @@ search_mode(struct VerboseArgs *vargs)
 		  vargs->searchlist->mode = PICKING;
 		  vargs->menu_keymap = &menu_playlist_keymap;
 		  playlist_scroll_to(vargs, 1);
-		  redraw_playlist_screen(vargs);
+		  vargs->redraw_signal = 1;
 		  return 0;
 		}
 	  else if(ch == '\\' || ch == 27)
@@ -978,6 +989,18 @@ search_mode(struct VerboseArgs *vargs)
 }
 
 void
+turnon_search_mode(struct VerboseArgs *vargs)
+{
+  /** record the current keymap and print_routine,
+	  thus we can switch it back when turning
+	  off the search mode */
+  vargs->old_menu_keymap = vargs->menu_keymap;
+  vargs->old_menu_print_routine = vargs->menu_print_routine;
+  vargs->menu_keymap = &search_routine;
+  vargs->menu_print_routine = &menu_search_print_routine;
+}
+
+void
 turnoff_search_mode(struct VerboseArgs *vargs)
 {
   if(vargs->searchlist->mode == DISABLE)
@@ -985,15 +1008,19 @@ turnoff_search_mode(struct VerboseArgs *vargs)
   
   vargs->searchlist->mode = DISABLE;
   vargs->searchlist->key[0] = '\0';
-  vargs->menu_keymap = &menu_playlist_keymap;
 
   playlist_list_update(vargs);
   playlist_scroll_to_current(vargs);
   
   /* to inform the display routine redraw
 	 the routine, this is a trick */
-  vargs->playlist->length = 0;
+  //vargs->playlist->length = 0;
+
+  vargs->redraw_signal = 1;
     
+  vargs->menu_keymap = vargs->old_menu_keymap;
+  vargs->menu_print_routine = vargs->old_menu_print_routine;
+
   return ;
 }
 
@@ -1003,6 +1030,8 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->conn = conn;
   vargs->menu_print_routine = &menu_main_print_routine;
   vargs->menu_keymap = &menu_main_keymap;
+  vargs->old_menu_keymap = NULL;
+  vargs->old_menu_print_routine = NULL;
   /* initialization require redraw too */
   vargs->redraw_signal = 1;
 
