@@ -158,19 +158,18 @@ print_basic_song_info(struct VerboseArgs *vargs)
 
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
-	  snprintf(buff, sizeof(buff)-1, "《%s》 - %s\n",
+	  snprintf(buff, sizeof(buff), "《%s》 - %s",
 			   get_song_tag(song, MPD_TAG_TITLE),
 			   get_song_tag(song, MPD_TAG_ARTIST));
-	  sprintf(buff + sizeof(buff) - 2, "\n");
 	  color_xyprint(1, -1, -1, buff);
 
 	  mpd_song_free(song);
 	}
 
 	if (mpd_status_get_state(status) == MPD_STATE_PLAY)
-	  printw("[playing]");
+	  printw("\n[playing]");
 	else
-	  printw("[paused] ");
+	  printw("\n[paused] ");
 
 	printw("     #%3i/%3u      %i:%02i\n",
 		   mpd_status_get_song_pos(status) + 1,
@@ -417,7 +416,7 @@ playlist_list_update(struct VerboseArgs *vargs)
 					sizeof(vargs->playlist->pretty_title[0]), 26);
 	  copy_song_tag(vargs->playlist->artist[i],
 					get_song_tag(song, MPD_TAG_ARTIST),
-					sizeof(vargs->playlist->title[0]), -1);	  
+					sizeof(vargs->playlist->title[0]), 30);	  
 	  copy_song_tag(vargs->playlist->album[i],
 					get_song_tag(song, MPD_TAG_ALBUM),
 					sizeof(vargs->playlist->title[0]), -1);
