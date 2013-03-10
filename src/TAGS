@@ -779,3 +779,248 @@ mpd_tag_name_parse(70,2299
 ignore_case_char_equals(86,2673
 ignore_case_string_equals(92,2778
 mpd_tag_name_iparse(109,3010
+
+charset.c,697
+static bool charset_enable_input;34,1156
+static bool charset_enable_output;35,1190
+static char *locale_charset;locale_charset36,1225
+static iconv_t char_conv_iconv;38,1255
+static char * char_conv_to;39,1287
+static char * char_conv_from;40,1315
+static int ignore_invalid;41,1345
+#define BUFFER_SIZE	43,1373
+static inline char * mpc_strchrnul(49,1489
+static char * skip_invalid(57,1627
+charset_set2(85,2173
+charset_set(102,2517
+static inline size_t deconst_iconv(120,2771
+		const char **a;a125,2921
+		char **b;b126,2939
+charset_conv_strdup(135,3067
+charset_close(170,3753
+charset_init(182,3932
+void charset_deinit(207,4474
+charset_to_utf8(215,4560
+charset_from_utf8(234,4856
+
+command.c,1438
+#define DIE(42,1315
+#define SIMPLE_CMD(44,1390
+#define SIMPLE_ONEARG_CMD(52,1646
+static void my_finishCommand(59,1910
+SIMPLE_CMD(64,2033
+int cmd_add 86,2597
+cmd_crop(128,3589
+get_active_song(171,4586
+wait_current(183,4880
+int cmd_current(210,5520
+int cmd_list_around(252,6467
+int cmd_playback(314,7759
+int cmd_illustrate(332,8141
+int cmd_del 383,9130
+cmd_toggle(461,10983
+cmd_outputs(475,11267
+cmd_enable(499,11853
+cmd_disable(512,12120
+int cmd_play 524,12385
+cmd_seek(558,13067
+cmd_move(690,16462
+cmd_playlist(711,16869
+int is_substring_ignorecase(734,17273
+cmd_search_general(755,17794
+int cmd_search_title 789,18459
+int cmd_search_artist 794,18603
+int cmd_search_album 799,18749
+int cmd_listall 804,18893
+int cmd_update 832,19454
+int cmd_ls 890,20699
+int cmd_lsplaylists 912,21104
+int cmd_load 930,21494
+int cmd_insert 947,21824
+int cmd_list 966,22277
+int cmd_volume 996,22844
+cmd_pause(1041,23726
+int cmd_repeat 1049,23881
+int cmd_random 1071,24258
+int cmd_single 1093,24635
+int cmd_consume 1115,25012
+int cmd_crossfade 1137,25392
+int cmd_mixrampdb 1160,25903
+int cmd_mixrampdelay 1182,26347
+cmd_version(1207,26824
+int cmd_loadtab 1220,27142
+int cmd_lstab 1243,27612
+int cmd_tab 1267,28090
+static char * DHMS(1302,28817
+#define SECSPERDAY 1308,28937
+#define SECSPERHOUR 1311,28989
+#define SECSPERMIN 1314,29040
+cmd_stats(1331,29319
+cmd_status(1355,30085
+cmd_replaygain(1363,30250
+
+dynamic.c,1406
+#define DIE(21,345
+static void my_finishCommand(23,420
+getStatus(29,570
+#define LOCK_FRAGILE 37,721
+#define UNLOCK_FRAGILE 38,775
+color_xyprint(41,847
+check_new_state(59,1214
+print_basic_help(99,2180
+print_basic_song_info(113,2668
+print_basic_bar(202,4787
+playlist_simple_bar(248,6016
+redraw_main_screen(282,6967
+menu_main_print_routine(291,7120
+redraw_playlist_screen(303,7319
+copy_song_tag(346,8371
+playlist_list_update(379,8956
+int update_playlist_state(416,10029
+char *is_substring_ignorecase(is_substring_ignorecase465,11102
+update_searchlist(486,11621
+search_prompt(538,12907
+menu_playlist_print_routine(562,13425
+menu_search_print_routine(577,13684
+cmd_forward(583,13792
+cmd_backward(593,14019
+cmd_volup(603,14247
+cmd_voldown(622,14630
+menu_rendering(641,15011
+menu_main_keymap(661,15249
+playlist_delete_song(717,16522
+playlist_scroll(731,16841
+playlist_scroll_to(758,17384
+playlist_scroll_down_line(765,17520
+playlist_scroll_up_line(771,17620
+playlist_scroll_up_page(777,17718
+playlist_scroll_down_page(783,17817
+playlist_play_current(789,17918
+playlist_scroll_to_current(803,18252
+cmd_nextsong(816,18559
+cmd_prevsong(824,18688
+menu_playlist_keymap(832,18811
+search_routine(923,20893
+turnon_search_mode(994,22329
+turnoff_search_mode(1006,22711
+verbose_args_init(1030,23236
+verbose_args_destroy(1063,24242
+color_init(1070,24370
+cmd_dynamic(1095,25093
+
+idle.c,43
+int cmd_idle(28,916
+cmd_idleloop(68,1766
+
+list.c,304
+static void makeListNodesArray(31,1109
+static void freeListNodesArray(43,1369
+List * makeList(48,1469
+int insertInList(62,1735
+int insertInListWithoutKey(98,2434
+int findInList(131,3031
+int deleteFromList(185,3932
+void deleteNodeFromList(204,4228
+void freeList(234,4780
+void clearList(257,5207
+
+main.c,452
+static struct command 46,1399
+	const char *command;command47,1423
+	const int min,48,1445
+	const int min, max;48,1445
+	int pipe;49,1516
+	cmdhandler handler;56,1873
+	const char *usage;usage57,1894
+	const char *help;help60,1962
+} mpc_table 61,1981
+print_usage(151,8599
+static int print_help(157,8756
+setup_connection(206,9975
+find_command(230,10565
+check_args(280,11690
+run(308,12397
+is_self_define_option(325,12738
+int main(339,13006
+
+message.c,95
+cmd_channels(34,1050
+cmd_sendmessage(53,1471
+cmd_waitmessage(63,1670
+cmd_subscribe(84,2203
+
+mpc,110
+‹F³F25,17341
+KK376,94772
+p,468,100939
+$ 756,103074
+J=851,113566
+XX856,116224
+<K­KK­862,120191
+
+options.c,641
+#define MAX_LONGOPT_LENGTH 27,915
+#define ERROR_UNKNOWN_OPTION 29,946
+#define ERROR_BAD_ARGUMENT 30,983
+#define ERROR_GOT_ARGUMENT 31,1020
+#define ERROR_MISSING_ARGUMENT 32,1057
+	int shortopt;35,1112
+	const char *longopt;longopt36,1127
+	const char *argument;argument37,1149
+	const char *description;description38,1172
+} arg_opt_t;39,1198
+options_t options 42,1213
+static const arg_opt_t option_table[option_table49,1383
+static const unsigned option_table_size 60,1934
+option_error(63,2037
+lookup_long_option(87,2652
+lookup_short_option(100,2884
+handle_option(113,3068
+print_option_help(148,3635
+parse_options(166,4050
+
+password.c,23
+send_password(29,1063
+
+search.c,251
+#define DIE(30,974
+get_search_type(33,1070
+get_constraints(64,1621
+static void my_finishCommand(89,2113
+add_constraint(95,2248
+add_constraints(111,2833
+static int do_search 132,3277
+cmd_search(149,3585
+cmd_find(155,3697
+cmd_findadd(161,3807
+
+status.c,47
+elapsed_percent(35,1169
+print_status(50,1440
+
+sticker.c,117
+static void my_finishCommand(30,957
+recv_print_stickers(36,1092
+recv_print_stickers2(47,1335
+cmd_sticker(70,1793
+
+util.c,573
+printErrorAndExit(39,1244
+int stdinToArgArray(56,1718
+void free_pipe_array 85,2238
+int get_boolean 91,2337
+	static const struct _bool_table 94,2382
+		const char * on;95,2417
+		const char * off;96,2436
+int parse_int(124,3029
+int parse_float(140,3350
+int parse_songnum(156,3672
+int parse_int_value_change(176,4043
+static char * appendToString(201,4534
+static const char * skipFormatting(220,4863
+song_value(244,5224
+songToFormatedString(285,6223
+print_formatted_song(423,8675
+pretty_print_song(434,8861
+print_entity_list(440,8963
+print_filenames(482,10043

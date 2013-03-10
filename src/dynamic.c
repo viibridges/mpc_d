@@ -55,6 +55,27 @@ color_xyprint(int color_scheme, int x, int y, const char *str)
 	printw("%s", str);
 }
 
+static const char *
+get_song_tag(const struct mpd_song *song, enum mpd_tag_type type)
+{
+  const char* song_tag, *uri;
+  song_tag = mpd_song_get_tag(song, type, 0);
+
+  if(song_tag == NULL)
+	{
+	  if(type == MPD_TAG_TITLE)
+		{
+		  uri = strrchr(mpd_song_get_uri(song), (int)'/') + 1;
+		  if(uri == NULL) return mpd_song_get_uri(song);
+		  else return uri;
+		}
+	  else
+		return "Unknown";
+	}
+  else
+	return song_tag;
+}
+
 static int
 check_new_state(struct VerboseArgs *vargs)
 {
@@ -138,8 +159,8 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
 	  snprintf(buff, sizeof(buff), "《%s》 - %s\n",
-			   mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
-			   mpd_song_get_tag(song, MPD_TAG_ARTIST, 0));
+			   get_song_tag(song, MPD_TAG_TITLE),
+			   get_song_tag(song, MPD_TAG_ARTIST));
 	  color_xyprint(1, -1, -1, buff);
 
 	  mpd_song_free(song);
@@ -388,16 +409,16 @@ playlist_list_update(struct VerboseArgs *vargs)
 		 && i < MAX_PLAYLIST_STORE_LENGTH)
 	{
 	  copy_song_tag(vargs->playlist->title[i],
-					mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
+					get_song_tag(song, MPD_TAG_TITLE),
 					sizeof(vargs->playlist->title[0]), -1);
 	  copy_song_tag(vargs->playlist->pretty_title[i],
-					mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
+					get_song_tag(song, MPD_TAG_TITLE),
 					sizeof(vargs->playlist->pretty_title[0]), 26);
 	  copy_song_tag(vargs->playlist->artist[i],
-					mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
+					get_song_tag(song, MPD_TAG_ARTIST),
 					sizeof(vargs->playlist->title[0]), -1);	  
 	  copy_song_tag(vargs->playlist->album[i],
-					mpd_song_get_tag(song, MPD_TAG_ALBUM, 0),
+					get_song_tag(song, MPD_TAG_ALBUM),
 					sizeof(vargs->playlist->title[0]), -1);
 	  vargs->playlist->id[i] = i + 1;
 	  ++i;
