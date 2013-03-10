@@ -135,7 +135,7 @@ print_basic_song_info(struct VerboseArgs *vargs)
 {
   struct mpd_connection *conn;
   struct mpd_status *status;
-  static char buff[55];
+  static char buff[75];
 
   conn = vargs->conn;
 
@@ -158,9 +158,10 @@ print_basic_song_info(struct VerboseArgs *vargs)
 
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
-	  snprintf(buff, sizeof(buff), "《%s》 - %s\n",
+	  snprintf(buff, sizeof(buff)-1, "《%s》 - %s\n",
 			   get_song_tag(song, MPD_TAG_TITLE),
 			   get_song_tag(song, MPD_TAG_ARTIST));
+	  sprintf(buff + sizeof(buff) - 2, "\n");
 	  color_xyprint(1, -1, -1, buff);
 
 	  mpd_song_free(song);
