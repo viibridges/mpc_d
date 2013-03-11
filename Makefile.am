@@ -21,6 +21,7 @@ src_mpc_headers = \
 	src/sticker.h \
 	src/mpc.h \
 	src/options.h \
+	src/dynamic.h \
 	src/gcc.h
 
 src_mpc_SOURCES = \
@@ -36,6 +37,7 @@ src_mpc_SOURCES = \
 	src/message.c \
 	src/search.c \
 	src/options.c \
+	src/dynamic.c \
 	$(src_mpc_headers)
 
 if HAVE_ICONV
@@ -43,7 +45,7 @@ src_mpc_SOURCES += src/charset.c
 endif
 
 src_mpc_CPPFLAGS = $(AM_CPPFLAGS) $(ICONV_CFLAGS) $(LIBMPDCLIENT_CFLAGS)
-src_mpc_LDADD = $(MPC_LIBS) $(ICONV_LIBS) $(LIBMPDCLIENT_LIBS)
+src_mpc_LDADD = $(MPC_LIBS) $(ICONV_LIBS) $(LIBMPDCLIENT_LIBS) -lpthread -lncursesw
 
 # sparse is a semantic parser
 # URL: git://www.kernel.org/pub/scm/devel/sparse/sparse.git

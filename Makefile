@@ -76,10 +76,10 @@ PROGRAMS = $(bin_PROGRAMS)
 am__src_mpc_SOURCES_DIST = src/main.c src/list.c src/password.c \
 	src/status.c src/util.c src/command.c src/sticker.c src/idle.c \
 	src/message.h src/message.c src/search.c src/options.c \
-	src/list.h src/password.h src/charset.h src/status.h \
-	src/util.h src/command.h src/idle.h src/search.h src/sticker.h \
-	src/mpc.h src/options.h src/gcc.h src/charset.c src/dynamic.h \
-	src/dynamic.c
+	src/dynamic.c src/list.h src/password.h src/charset.h \
+	src/status.h src/util.h src/command.h src/idle.h src/search.h \
+	src/sticker.h src/mpc.h src/options.h src/dynamic.h src/gcc.h \
+	src/charset.c
 am__objects_1 =
 am__objects_2 = src_mpc-charset.$(OBJEXT)
 am_src_mpc_OBJECTS = src_mpc-main.$(OBJEXT) src_mpc-list.$(OBJEXT) \
@@ -168,7 +168,7 @@ AWK = gawk
 CC = gcc -std=gnu99
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2 -Wall -Wextra -Wno-deprecated-declarations -Wmissing-prototypes -Wshadow -Wpointer-arith -Wstrict-prototypes -Wcast-qual -Wwrite-strings
-CPP = gcc -std=gnu99 -E
+CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
@@ -273,12 +273,13 @@ src_mpc_headers = \
 	src/sticker.h \
 	src/mpc.h \
 	src/options.h \
+	src/dynamic.h \
 	src/gcc.h
 
 src_mpc_SOURCES = src/main.c src/list.c src/password.c src/status.c \
-	src/util.c src/command.c src/sticker.c src/idle.c src/dynamic.c \
+	src/util.c src/command.c src/sticker.c src/idle.c \
 	src/message.h src/message.c src/search.c src/options.c \
-	$(src_mpc_headers) $(am__append_1)
+	src/dynamic.c $(src_mpc_headers) $(am__append_1)
 src_mpc_CPPFLAGS = $(AM_CPPFLAGS) $(ICONV_CFLAGS) $(LIBMPDCLIENT_CFLAGS)
 src_mpc_LDADD = $(MPC_LIBS) $(ICONV_LIBS) $(LIBMPDCLIENT_LIBS) -lpthread -lncursesw
 
@@ -399,13 +400,13 @@ distclean-compile:
 
 include ./$(DEPDIR)/src_mpc-charset.Po
 include ./$(DEPDIR)/src_mpc-command.Po
+include ./$(DEPDIR)/src_mpc-dynamic.Po
 include ./$(DEPDIR)/src_mpc-idle.Po
 include ./$(DEPDIR)/src_mpc-list.Po
 include ./$(DEPDIR)/src_mpc-main.Po
 include ./$(DEPDIR)/src_mpc-message.Po
 include ./$(DEPDIR)/src_mpc-options.Po
 include ./$(DEPDIR)/src_mpc-password.Po
-include ./$(DEPDIR)/src_mpc-dynamic.Po
 include ./$(DEPDIR)/src_mpc-search.Po
 include ./$(DEPDIR)/src_mpc-status.Po
 include ./$(DEPDIR)/src_mpc-sticker.Po
@@ -582,6 +583,16 @@ src_mpc-options.obj: src/options.c
 src_mpc-dynamic.o: src/dynamic.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_mpc_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT src_mpc-dynamic.o -MD -MP -MF $(DEPDIR)/src_mpc-dynamic.Tpo -c -o src_mpc-dynamic.o `test -f 'src/dynamic.c' || echo '$(srcdir)/'`src/dynamic.c
 	$(am__mv) $(DEPDIR)/src_mpc-dynamic.Tpo $(DEPDIR)/src_mpc-dynamic.Po
+#	source='src/dynamic.c' object='src_mpc-dynamic.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_mpc_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o src_mpc-dynamic.o `test -f 'src/dynamic.c' || echo '$(srcdir)/'`src/dynamic.c
+
+src_mpc-dynamic.obj: src/dynamic.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_mpc_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT src_mpc-dynamic.obj -MD -MP -MF $(DEPDIR)/src_mpc-dynamic.Tpo -c -o src_mpc-dynamic.obj `if test -f 'src/dynamic.c'; then $(CYGPATH_W) 'src/dynamic.c'; else $(CYGPATH_W) '$(srcdir)/src/dynamic.c'; fi`
+	$(am__mv) $(DEPDIR)/src_mpc-dynamic.Tpo $(DEPDIR)/src_mpc-dynamic.Po
+#	source='src/dynamic.c' object='src_mpc-dynamic.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_mpc_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o src_mpc-dynamic.obj `if test -f 'src/dynamic.c'; then $(CYGPATH_W) 'src/dynamic.c'; else $(CYGPATH_W) '$(srcdir)/src/dynamic.c'; fi`
 
 src_mpc-charset.o: src/charset.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_mpc_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT src_mpc-charset.o -MD -MP -MF $(DEPDIR)/src_mpc-charset.Tpo -c -o src_mpc-charset.o `test -f 'src/charset.c' || echo '$(srcdir)/'`src/charset.c
