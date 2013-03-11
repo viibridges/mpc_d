@@ -56,18 +56,28 @@ color_xyprint(int color_scheme, int x, int y, const char *str)
 }
 
 static const char *
+get_song_format(const struct mpd_song *song)
+{
+  const char *profix;
+  // normally the profix is a song's format;
+  profix = strrchr(mpd_song_get_uri(song), (int)'.');
+  if(profix == NULL) return "unknown";
+  else return profix + 1;
+}
+
+static const char *
 get_song_tag(const struct mpd_song *song, enum mpd_tag_type type)
 {
-  const char* song_tag, *uri;
+  const char *song_tag, *uri;
   song_tag = mpd_song_get_tag(song, type, 0);
 
   if(song_tag == NULL)
 	{
 	  if(type == MPD_TAG_TITLE)
 		{
-		  uri = strrchr(mpd_song_get_uri(song), (int)'/') + 1;
+		  uri = strrchr(mpd_song_get_uri(song), (int)'/');
 		  if(uri == NULL) return mpd_song_get_uri(song);
-		  else return uri;
+		  else return uri + 1;
 		}
 	  else
 		return "Unknown";
@@ -135,7 +145,7 @@ print_basic_song_info(struct VerboseArgs *vargs)
 {
   struct mpd_connection *conn;
   struct mpd_status *status;
-  static char buff[80];
+  static char buff[80], format[20];
 
   conn = vargs->conn;
 
@@ -159,15 +169,19 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
 	  static int twid = 43, awid = 28;
-	  if(snprintf(buff, twid, "< %s",
+	  color_xyprint(1, -1, -1, "< ");
+	  if(snprintf(buff, twid, "%s",
 				  get_song_tag(song, MPD_TAG_TITLE)) >= twid)
 		strcpy(buff + twid - 4, "..."); // in case of long title
 	  color_xyprint(1, -1, -1, buff);
+	  color_xyprint(1, -1, -1, " >  by  ");
 
-	  if(snprintf(buff, awid, " >  by  %s",
+	  if(snprintf(buff, awid, "%s",
 				  get_song_tag(song, MPD_TAG_ARTIST)) >= awid)
 		strcpy(buff + awid - 4, "...");
-	  color_xyprint(1, -1, -1, buff);
+	  color_xyprint(5, -1, -1, buff);
+
+	  snprintf(format, sizeof(format), "<%s>", get_song_format(song));
 
 	  mpd_song_free(song);
 	}
@@ -177,13 +191,18 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	else
 	  printw("\n[paused] ");
 
-	printw("     #%3i/%3u      %i:%02i\n",
+	printw("     #%3i/%3u      %i:%02i",
 		   mpd_status_get_song_pos(status) + 1,
 		   mpd_status_get_queue_length(status),
 		   mpd_status_get_total_time(status) / 60,
 		   mpd_status_get_total_time(status) % 60
 		   );
   }
+
+  if(format[0] != '\0')
+	printw("\t  %s\n", format);
+  else
+	printw("\n");
 	
   if (mpd_status_get_update_id(status) > 0)
 	printw("Updating DB (#%u) ...\n",
