@@ -492,10 +492,8 @@ static
 char *is_substring_ignorecase(const char *main, char *sub)
 {
   char lower_main[64], lower_sub[64];
-  const char *pt;
   int i;
 
-  pt = main, i = 0;
   for(i = 0; main[i] && i < 64; i++)
 	lower_main[i] = isalpha(main[i]) ?
 	  (islower(main[i]) ? main[i] : (char)tolower(main[i])) : main[i];
