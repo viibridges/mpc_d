@@ -316,7 +316,7 @@ playlist_simple_bar(struct VerboseArgs *vargs)
 
   for(i = 0; i < rest_len; printw("*"), i++);
 
-  move(5 + PLAYLIST_HEIGHT, bar_begin + bar_length - 1);
+  move(5 + vargs->playlist_height, bar_begin + bar_length - 1);
   attron(my_color_pairs[3]);    
   printw(rot[crt_time % 4]);
   attroff(my_color_pairs[3]);  
@@ -359,7 +359,7 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 
   j = init_line + 1;
   for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
-		+ PLAYLIST_HEIGHT - 1 && i < vargs->playlist->length; i++)
+		+ vargs->playlist_height - 1 && i < vargs->playlist->length; i++)
 	{
 	  snprintf(buff, sizeof(buff), "%3i.  %s        %s",
 			   vargs->playlist->id[i], vargs->playlist->pretty_title[i],
@@ -584,7 +584,7 @@ search_prompt(struct VerboseArgs *vargs)
   static char str[128];
 
   snprintf(str, sizeof(str), "%s█", vargs->searchlist->key);
-  move(22, 0);
+  move(vargs->playlist_height + 7, 0);
 
   if(vargs->searchlist->mode == TYPING)
 	color_xyprint(5, -1, -1, "Search: ");
@@ -785,12 +785,12 @@ playlist_scroll(struct VerboseArgs *vargs, int lines)
   else if(pl->cursor < 1)
 	pl->cursor = 1;
 
-  pl->begin = pl->cursor - PLAYLIST_HEIGHT / 2;
+  pl->begin = pl->cursor - vargs->playlist_height / 2;
 
-  if(pl->length - pl->cursor < PLAYLIST_HEIGHT / 2)
-	pl->begin = pl->length - PLAYLIST_HEIGHT + 1;
+  if(pl->length - pl->cursor < vargs->playlist_height / 2)
+	pl->begin = pl->length - vargs->playlist_height + 1;
 
-  if(pl->cursor < PLAYLIST_HEIGHT / 2)
+  if(pl->cursor < vargs->playlist_height / 2)
 	pl->begin = 1;
 
   // this expression should always be false
@@ -1078,6 +1078,20 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->old_menu_print_routine = NULL;
   /* initialization require redraw too */
   vargs->redraw_signal = 1;
+
+  /** set screen size **/
+  if(stdscr->_maxy < 8 || stdscr->_maxx < 75)
+	{
+	  endwin();
+	  fprintf(stderr, "screen too small for normally displaying.\n");
+	  exit(1);
+	}
+  else
+	{
+	  // playlist height is the key that adapts the menu size
+	  vargs->playlist_height = stdscr->_maxy - 7;
+	}
+
 
   /** playlist arguments */
   vargs->playlist =

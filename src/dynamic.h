@@ -6,7 +6,6 @@
 #define VOLUME_UNIT 3
 #define INTERVAL_UNIT 50000
 #define MAX_PLAYLIST_STORE_LENGTH 1000
-#define PLAYLIST_HEIGHT 15
 #define AXIS_LENGTH 44
 
 struct mpd_connection;
@@ -45,6 +44,8 @@ struct SearchlistArgs
 struct VerboseArgs
 {
   struct mpd_connection *conn;
+
+  int playlist_height;
   /** set to 1 once commands have been triggered by keyboad*/
   int (*menu_keymap)(struct VerboseArgs*);
   void (*menu_print_routine)(struct VerboseArgs*);
