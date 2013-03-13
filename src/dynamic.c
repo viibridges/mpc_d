@@ -168,20 +168,20 @@ print_basic_song_info(struct VerboseArgs *vargs)
 
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
-	  static int twid = 43, awid = 28;
-	  color_xyprint(1, -1, -1, "< ");
+	  static int twid = 38, awid = 28;
+	  color_xyprint(1, -1, -1, "《 ");
 	  if(snprintf(buff, twid, "%s",
 				  get_song_tag(song, MPD_TAG_TITLE)) >= twid)
 		strcpy(buff + twid - 4, "..."); // in case of long title
 	  color_xyprint(1, -1, -1, buff);
-	  color_xyprint(1, -1, -1, " >  by  ");
+	  color_xyprint(1, -1, -1, " 》  by  ");
 
 	  if(snprintf(buff, awid, "%s",
 				  get_song_tag(song, MPD_TAG_ARTIST)) >= awid)
 		strcpy(buff + awid - 4, "...");
 	  color_xyprint(5, -1, -1, buff);
 
-	  snprintf(format, sizeof(format), "<%s>", get_song_format(song));
+	  snprintf(format, sizeof(format), "* %s *", get_song_format(song));
 
 	  mpd_song_free(song);
 	}
