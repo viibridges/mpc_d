@@ -681,6 +681,22 @@ cmd_voldown(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *
   return 1;
 }
 
+/* different from the old cmd_single, this new function
+   turn on the Repeat command simultaneously */
+static int
+cmd_Single(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *conn)
+{
+  struct mpd_status *status;
+  
+  status = getStatus(conn);  
+  if(!mpd_status_get_repeat(status))
+	cmd_repeat(argc, argv, conn);
+
+  mpd_status_free(status);
+
+  return cmd_single(argc, argv, conn);
+}
+
 static void*
 menu_rendering(void *args)
 {
@@ -727,7 +743,7 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	case 'r':
 	  cmd_random(0, NULL, vargs->conn); break;
 	case 's':
-	  cmd_single(0, NULL, vargs->conn); break;
+	  cmd_Single(0, NULL, vargs->conn); break;
 	case 'R':
 	  cmd_repeat(0, NULL, vargs->conn); break;
 	case 'L': // redraw screen
@@ -908,7 +924,7 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	case 'r':
 	  cmd_random(0, NULL, vargs->conn); break;
 	case 's':
-	  cmd_single(0, NULL, vargs->conn); break;
+	  cmd_Single(0, NULL, vargs->conn); break;
 	case 'R':
 	  cmd_repeat(0, NULL, vargs->conn); break;
 	case 'L':
