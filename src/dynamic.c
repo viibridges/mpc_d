@@ -238,7 +238,7 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	printw("ERROR: %s\n",
 		   charset_from_utf8(mpd_status_get_error(status)));
 
-  refresh();
+  //refresh();
 
   mpd_status_free(status);
   my_finishCommand(conn);
@@ -287,7 +287,7 @@ print_basic_bar(struct mpd_connection *conn)
 		 total_time % 60,
 		 8, " ");
 
-  refresh();
+  //refresh();
 }
 
 static void
@@ -321,7 +321,7 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   printw(rot[crt_time % 4]);
   attroff(my_color_pairs[3]);  
   
-  refresh();
+  //refresh();
 }
 
 static void
@@ -331,6 +331,7 @@ redraw_main_screen(struct VerboseArgs *vargs)
   print_basic_song_info(vargs);
   print_basic_bar(vargs->conn);
   print_basic_help();
+  refresh();
 }
 
 void
@@ -599,7 +600,7 @@ search_prompt(struct VerboseArgs *vargs)
 	color_xyprint(0, -1, -1, str);
 
   printw("%*s", 40, " ");
-  refresh();
+  //refresh();
 }
 
 void
@@ -724,10 +725,12 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	{
 	case '+': ;
 	case '=': ;
+	case '0': 
 	  cmd_volup(0, NULL, vargs->conn); break;
 	case KEY_RIGHT:
 	  cmd_forward(0, NULL, vargs->conn); break;
-	case '-':
+	case '-': ;
+	case '9': 
 	  cmd_voldown(0, NULL, vargs->conn); break;
 	case KEY_LEFT:
 	  cmd_backward(0, NULL, vargs->conn); break;
@@ -912,10 +915,12 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 
 	case '+': ;
 	case '=': ;
+	case '0': 
 	  cmd_volup(0, NULL, vargs->conn); break;
 	case KEY_RIGHT:
 	  cmd_forward(0, NULL, vargs->conn); break;
-	case '-':
+	case '-': ;
+	case '9': 
 	  cmd_voldown(0, NULL, vargs->conn); break;
 	case KEY_LEFT:
 	  cmd_backward(0, NULL, vargs->conn); break;
