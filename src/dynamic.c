@@ -34,9 +34,6 @@ getStatus(struct mpd_connection *conn) {
 	return ret;
 }
 
-#define LOCK_FRAGILE pthread_mutex_lock(&conn_mutex);
-#define UNLOCK_FRAGILE pthread_mutex_unlock(&conn_mutex);
-
 static void 
 color_xyprint(int color_scheme, int x, int y, const char *str)
 {
@@ -238,8 +235,6 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	printw("ERROR: %s\n",
 		   charset_from_utf8(mpd_status_get_error(status)));
 
-  //refresh();
-
   mpd_status_free(status);
   my_finishCommand(conn);
 }
@@ -286,8 +281,6 @@ print_basic_bar(struct mpd_connection *conn)
 		 total_time / 60,
 		 total_time % 60,
 		 8, " ");
-
-  //refresh();
 }
 
 static void
@@ -320,8 +313,6 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   attron(my_color_pairs[3]);    
   printw(rot[crt_time % 4]);
   attroff(my_color_pairs[3]);  
-  
-  //refresh();
 }
 
 static void
@@ -331,7 +322,6 @@ redraw_main_screen(struct VerboseArgs *vargs)
   print_basic_song_info(vargs);
   print_basic_bar(vargs->conn);
   print_basic_help();
-  refresh();
 }
 
 void
@@ -385,8 +375,6 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 
   if(vargs->playlist->begin > 1)
 	mvprintw(init_line, 0, "%*s   %s", 3, " ", "^^^ ^^^");
-  
-  refresh();
 }
 
 static void
@@ -600,7 +588,6 @@ search_prompt(struct VerboseArgs *vargs)
 	color_xyprint(0, -1, -1, str);
 
   printw("%*s", 40, " ");
-  //refresh();
 }
 
 void
@@ -706,11 +693,12 @@ menu_rendering(void *args)
   vargs = (struct VerboseArgs*)args;
   for(;;)
 	{
-	  LOCK_FRAGILE
+	  pthread_mutex_lock(&conn_mutex);
 
 	  vargs->menu_print_routine(vargs);
+	  refresh();
 	  
-	  UNLOCK_FRAGILE
+	  pthread_mutex_unlock(&conn_mutex);
 
 	  usleep(INTERVAL_UNIT);
 	}
@@ -1202,9 +1190,9 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   /** main loop for keyboard hit daemon */
   for(;;)
 	{
-	  LOCK_FRAGILE
+	  pthread_mutex_lock(&conn_mutex);
 	  is_quit = vargs.menu_keymap(&vargs);
-	  UNLOCK_FRAGILE
+	  pthread_mutex_unlock(&conn_mutex);
 	  
 	  if(is_quit)
 		{
