@@ -782,6 +782,8 @@ static void
 playlist_scroll(struct VerboseArgs *vargs, int lines)
 {
   static struct PlaylistArgs *pl;
+  // mid_pos is the relative position of cursor in the screen
+  const int mid_pos = vargs->playlist_height / 2 - 1;
 
   pl = vargs->playlist;
   
@@ -792,12 +794,21 @@ playlist_scroll(struct VerboseArgs *vargs, int lines)
   else if(pl->cursor < 1)
 	pl->cursor = 1;
 
-  pl->begin = pl->cursor - vargs->playlist_height / 2;
+  pl->begin = pl->cursor - mid_pos;
 
-  if(pl->length - pl->cursor < vargs->playlist_height / 2)
+  /* as mid_pos maight have round-off error, the right hand side
+   * vargs->playlist_height - mid_pos compensates it.
+   * always keep:
+   *		begin = cursor - mid_pos    (previous instruction)
+   * while:
+   *		length - cursor = height - mid_pos - 1 (condition)
+   *		begin = length - height + 1            (body)
+   *
+   * Basic Math :) */
+  if(pl->length - pl->cursor < vargs->playlist_height - mid_pos)
 	pl->begin = pl->length - vargs->playlist_height + 1;
 
-  if(pl->cursor < vargs->playlist_height / 2)
+  if(pl->cursor < mid_pos)
 	pl->begin = 1;
 
   // this expression should always be false
