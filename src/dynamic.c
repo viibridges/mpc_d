@@ -20,6 +20,13 @@
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
+static void debug(const char *debug_info)
+{
+  move(stdscr->_maxy - 1, 0);  
+  printw(debug_info);
+  refresh();
+}
+
 static void my_finishCommand(struct mpd_connection *conn) {
 	if (!mpd_response_finish(conn))
 		printErrorAndExit(conn);
@@ -50,6 +57,16 @@ color_xyprint(int color_scheme, int x, int y, const char *str)
 	mvprintw(x, y, "%s", str);
   else
 	printw("%s", str);
+}
+
+static
+void repaint_screen(void)
+{
+  static int i;
+  
+  move(0, 0);
+  for(i = 0; i < stdscr->_maxy; i++)
+	printw("%80c\n", ' ');
 }
 
 static const char *
@@ -144,6 +161,8 @@ print_basic_song_info(struct VerboseArgs *vargs)
   struct mpd_status *status;
   static char buff[80], format[20];
 
+  move(0, 0);
+  
   conn = vargs->conn;
 
   if (!mpd_command_list_begin(conn, true) ||
@@ -318,7 +337,6 @@ playlist_simple_bar(struct VerboseArgs *vargs)
 static void
 redraw_main_screen(struct VerboseArgs *vargs)
 {
-  clear();
   print_basic_song_info(vargs);
   print_basic_bar(vargs->conn);
   print_basic_help();
@@ -345,7 +363,8 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 	"______________________________________________/̅END LINE";
   int i, j;
 
-  clear();
+  repaint_screen();
+  
   print_basic_song_info(vargs);
 
   j = init_line + 1;
@@ -706,6 +725,16 @@ menu_rendering(void *args)
   return NULL;
 }
 
+static void
+switch_to_playlist_menu(struct VerboseArgs *vargs)
+{
+  vargs->old_menu_keymap = vargs->menu_keymap;
+  vargs->old_menu_print_routine = vargs->menu_print_routine;
+  vargs->menu_print_routine = &menu_playlist_print_routine;
+  vargs->menu_keymap = &menu_playlist_keymap;	  
+  repaint_screen();
+}
+  
 int
 menu_main_keymap(struct VerboseArgs *vargs)
 {
@@ -746,10 +775,7 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	  vargs->searchlist->crt_tag_id %= 4;	  
 	  break;
 	case '\t':
-	  vargs->old_menu_keymap = vargs->menu_keymap;
-	  vargs->old_menu_print_routine = vargs->menu_print_routine;
-	  vargs->menu_print_routine = &menu_playlist_print_routine;
-	  vargs->menu_keymap = &menu_playlist_keymap;	  
+	  switch_to_playlist_menu(vargs);
 	  break;
 	case 27: ;
 	case 'e': ;
@@ -890,6 +916,16 @@ cmd_prevsong(struct VerboseArgs* vargs)
   playlist_scroll_to_current(vargs);
 }
 
+static void
+switch_to_main_menu(struct VerboseArgs* vargs)
+{
+  vargs->old_menu_keymap = vargs->menu_keymap;
+  vargs->old_menu_print_routine = vargs->menu_print_routine;
+  vargs->menu_print_routine = &menu_main_print_routine;
+  vargs->menu_keymap = &menu_main_keymap;
+  repaint_screen();
+}
+
 int
 menu_playlist_keymap(struct VerboseArgs* vargs)
 {
@@ -954,10 +990,7 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	case 'd':
 	  playlist_delete_song(vargs); break;
 	case '\t':
-	  vargs->old_menu_keymap = vargs->menu_keymap;
-	  vargs->old_menu_print_routine = vargs->menu_print_routine;
-	  vargs->menu_print_routine = &menu_main_print_routine;
-	  vargs->menu_keymap = &menu_main_keymap;
+	  switch_to_main_menu(vargs);
 	  break;
 	case '/':
 	  turnon_search_mode(vargs);
