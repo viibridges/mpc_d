@@ -68,6 +68,8 @@ void smart_sleep(struct VerboseArgs* vargs)
 {
   static int us = INTERVAL_MAX_UNIT;
 
+  pthread_mutex_lock(&conn_mutex);
+
   if(vargs->key_hit)
 	{
 	  us = INTERVAL_MIN_UNIT;
@@ -75,6 +77,8 @@ void smart_sleep(struct VerboseArgs* vargs)
 	}
   else
 	us = us < INTERVAL_MAX_UNIT ? us + INTERVAL_INCREMENT : us;
+
+  pthread_mutex_unlock(&conn_mutex);
 
   usleep(us);
 }
@@ -1059,9 +1063,6 @@ search_routine(struct VerboseArgs *vargs)
 
   ch = getch();
 
-  if(ch != ERR)
-	vargs->key_hit = 1;
-  
   i = strlen(vargs->searchlist->key);
   if(ch != ERR)
 	{
@@ -1151,6 +1152,8 @@ turnoff_search_mode(struct VerboseArgs *vargs)
     
   vargs->menu_keymap = vargs->old_menu_keymap;
   vargs->menu_print_routine = vargs->old_menu_print_routine;
+
+  repaint_screen();
 
   return ;
 }
