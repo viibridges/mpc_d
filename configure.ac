@@ -5,7 +5,7 @@ AC_CONFIG_SRCDIR(src/main.c)
 AM_INIT_AUTOMAKE([foreign 1.10 dist-bzip2])
 AC_CONFIG_HEADERS(config.h)
 
-AC_CHECK_HEADERS([pthread.h curses.h])
+AC_CHECK_HEADERS([curses.h])
 
 dnl
 dnl programs
