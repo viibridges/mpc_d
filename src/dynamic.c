@@ -20,7 +20,7 @@
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
-static void debug(const char *debug_info)
+static mpd_unused void debug(const char *debug_info)
 {
   move(stdscr->_maxy - 1, 0);  
   printw(debug_info);
@@ -57,6 +57,26 @@ color_xyprint(int color_scheme, int x, int y, const char *str)
 	mvprintw(x, y, "%s", str);
   else
 	printw("%s", str);
+}
+
+/* the principle is that: if the keyboard events
+ * occur frequently, then adjust the update rate
+ * higher, if the keyboard is just idle, keep it
+ * low. */
+static
+void smart_sleep(struct VerboseArgs* vargs)
+{
+  static int us = INTERVAL_MAX_UNIT;
+
+  if(vargs->key_hit)
+	{
+	  us = INTERVAL_MIN_UNIT;
+	  vargs->key_hit = 0;
+	}
+  else
+	us = us < INTERVAL_MAX_UNIT ? us + INTERVAL_INCREMENT : us;
+
+  usleep(us);
 }
 
 static
@@ -719,7 +739,7 @@ menu_rendering(void *args)
 	  
 	  pthread_mutex_unlock(&conn_mutex);
 
-	  usleep(INTERVAL_UNIT);
+	  smart_sleep(args);
 	}
 
   return NULL;
@@ -738,7 +758,12 @@ switch_to_playlist_menu(struct VerboseArgs *vargs)
 int
 menu_main_keymap(struct VerboseArgs *vargs)
 {
-  switch(getch())
+  int k = getch();
+
+  if(k != ERR)
+	vargs->key_hit = 1;
+
+  switch(k)
 	{
 	case '+': ;
 	case '=': ;
@@ -929,7 +954,12 @@ switch_to_main_menu(struct VerboseArgs* vargs)
 int
 menu_playlist_keymap(struct VerboseArgs* vargs)
 {
-  switch(getch())
+  int k = getch();
+
+  if(k != ERR)
+	vargs->key_hit = 1;
+	
+  switch(k)
 	{
 	case KEY_DOWN:;
 	case 'j':
@@ -1028,6 +1058,10 @@ search_routine(struct VerboseArgs *vargs)
   vargs->searchlist->mode = TYPING;
 
   ch = getch();
+
+  if(ch != ERR)
+	vargs->key_hit = 1;
+  
   i = strlen(vargs->searchlist->key);
   if(ch != ERR)
 	{
@@ -1131,6 +1165,7 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->old_menu_print_routine = NULL;
   /* initialization require redraw too */
   vargs->redraw_signal = 1;
+  vargs->key_hit = 1;
 
   /** set screen size **/
   if(stdscr->_maxy < 8 || stdscr->_maxx < 75)
@@ -1244,7 +1279,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 		  break;
 		}
 
-	  usleep(INTERVAL_UNIT);	  
+	  smart_sleep(&vargs);
 	}
 
   endwin();
