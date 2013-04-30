@@ -1,17 +1,15 @@
 /** this is my source file */
 #include <mpd/tag.h>
-#include <pthread.h>
 
 #define SEEK_UNIT 3
 #define VOLUME_UNIT 3
 #define INTERVAL_MIN_UNIT 20000
 #define INTERVAL_MAX_UNIT 100000
-#define INTERVAL_INCREMENT 200
+#define INTERVAL_INCREMENT 400
 #define MAX_PLAYLIST_STORE_LENGTH 700
 #define AXIS_LENGTH 44
 
 struct mpd_connection;
-pthread_mutex_t conn_mutex;
 int my_color_pairs[6];
 
 enum my_search_mode

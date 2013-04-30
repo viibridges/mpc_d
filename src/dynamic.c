@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <curses.h>
 #include <locale.h>
 
@@ -68,8 +67,6 @@ void smart_sleep(struct VerboseArgs* vargs)
 {
   static int us = INTERVAL_MAX_UNIT;
 
-  pthread_mutex_lock(&conn_mutex);
-
   if(vargs->key_hit)
 	{
 	  us = INTERVAL_MIN_UNIT;
@@ -78,15 +75,13 @@ void smart_sleep(struct VerboseArgs* vargs)
   else
 	us = us < INTERVAL_MAX_UNIT ? us + INTERVAL_INCREMENT : us;
 
-  pthread_mutex_unlock(&conn_mutex);
-
   usleep(us);
 }
 
 static
 void repaint_screen(void)
 {
-  static int i;
+  int i;
   
   move(0, 0);
   for(i = 0; i < stdscr->_maxy; i++)
@@ -728,27 +723,6 @@ cmd_Single(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *c
   return cmd_single(argc, argv, conn);
 }
 
-static void*
-menu_rendering(void *args)
-{
-  struct VerboseArgs *vargs;
-
-  vargs = (struct VerboseArgs*)args;
-  for(;;)
-	{
-	  pthread_mutex_lock(&conn_mutex);
-
-	  vargs->menu_print_routine(vargs);
-	  refresh();
-	  
-	  pthread_mutex_unlock(&conn_mutex);
-
-	  smart_sleep(args);
-	}
-
-  return NULL;
-}
-
 static void
 switch_to_playlist_menu(struct VerboseArgs *vargs)
 {
@@ -1066,6 +1040,8 @@ search_routine(struct VerboseArgs *vargs)
   i = strlen(vargs->searchlist->key);
   if(ch != ERR)
 	{
+	  vargs->key_hit = 1;
+	  
 	  vargs->searchlist->mode = SEARCHING;
 
 	  if(ch == '\n' || ch == '\t')
@@ -1242,8 +1218,7 @@ int
 cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 			struct mpd_connection *conn)
 {
-  pthread_t thread_menu_rendering;
-  int rc, is_quit;
+  int is_quit;
   struct VerboseArgs vargs;
 
   // ncurses basic setting
@@ -1257,39 +1232,23 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
   // ncurses for unicode support
   setlocale(LC_ALL, "");
 
-  pthread_mutex_init(&conn_mutex, NULL);
-
   verbose_args_init(&vargs, conn);
   
-  rc = pthread_create(&thread_menu_rendering, NULL,
-					  menu_rendering, (void*)&vargs);
-  if(rc)
-	{
-	  endwin();
-	  DIE("thread init failed,\nexit...\n");
-	}
-
   /** main loop for keyboard hit daemon */
   for(;;)
 	{
-	  pthread_mutex_lock(&conn_mutex);
 	  is_quit = vargs.menu_keymap(&vargs);
-	  pthread_mutex_unlock(&conn_mutex);
 	  
-	  if(is_quit)
-		{
-		  pthread_cancel(thread_menu_rendering);
-		  break;
-		}
+	  if(is_quit) break;
+
+	  vargs.menu_print_routine(&vargs);
+	  refresh();
 
 	  smart_sleep(&vargs);
 	}
 
   endwin();
   
-  pthread_join(thread_menu_rendering, NULL);
-  pthread_mutex_destroy(&conn_mutex);
-
   verbose_args_destroy(&vargs);
 
   return 0;
