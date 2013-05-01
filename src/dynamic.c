@@ -84,7 +84,7 @@ void repaint_screen(void)
   int i;
   
   move(0, 0);
-  for(i = 0; i < stdscr->_maxy; i++)
+  for(i = 0; i <= stdscr->_maxy; i++)
 	printw("%80c\n", ' ');
 }
 
