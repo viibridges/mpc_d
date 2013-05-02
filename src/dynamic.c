@@ -26,6 +26,16 @@ static mpd_unused void debug(const char *debug_info)
   refresh();
 }
 
+static mpd_unused void debug_int(const int num)
+{
+  static char nstr[32];
+
+  snprintf(nstr, 31, "%d", num);
+  move(stdscr->_maxy - 1, 0);  
+  printw(nstr);
+  refresh();
+}
+
 static void my_finishCommand(struct mpd_connection *conn) {
 	if (!mpd_response_finish(conn))
 		printErrorAndExit(conn);
@@ -995,7 +1005,7 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	case 'c':  // cursor goto the center
 	  playlist_scroll_to(vargs, vargs->playlist->length / 2);
 	  break;
-	case 'd':
+	case 'D':
 	  playlist_delete_song(vargs); break;
 	case '\t':
 	  switch_to_main_menu(vargs);
@@ -1135,6 +1145,21 @@ turnoff_search_mode(struct VerboseArgs *vargs)
 }
 
 static void
+window_height_updating(struct VerboseArgs *vargs)
+{
+  static int old_height = 0;
+  
+  // playlist height is the key that adapts the menu size
+  if(old_height != stdscr->_maxy - 7)
+	{
+	  vargs->playlist_height = stdscr->_maxy - 7;
+	  old_height = vargs->playlist_height;
+	  // tell the render repaint the screen
+	  vargs->redraw_signal = 1;
+	}
+}
+
+static void
 verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
 {
   vargs->conn = conn;
@@ -1146,20 +1171,15 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->redraw_signal = 1;
   vargs->key_hit = 1;
 
-  /** set screen size **/
+  /* check the screen size */
   if(stdscr->_maxy < 8 || stdscr->_maxx < 75)
 	{
 	  endwin();
 	  fprintf(stderr, "screen too small for normally displaying.\n");
 	  exit(1);
 	}
-  else
-	{
-	  // playlist height is the key that adapts the menu size
-	  vargs->playlist_height = stdscr->_maxy - 7;
-	}
-
-
+  window_height_updating(vargs);
+  
   /** playlist arguments */
   vargs->playlist =
 	(struct PlaylistArgs*) malloc(sizeof(struct PlaylistArgs));
@@ -1245,6 +1265,8 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	  refresh();
 
 	  smart_sleep(&vargs);
+
+	  window_height_updating(&vargs);
 	}
 
   endwin();
