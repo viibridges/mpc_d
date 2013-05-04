@@ -91,11 +91,7 @@ void smart_sleep(struct VerboseArgs* vargs)
 static
 void repaint_screen(void)
 {
-  int i;
-  
-  move(0, 0);
-  for(i = 0; i <= stdscr->_maxy; i++)
-	printw("%80c\n", ' ');
+  erase();
 }
 
 static const char *
@@ -278,6 +274,7 @@ print_basic_song_info(struct VerboseArgs *vargs)
   color_xyprint(6, -1, -1,
 		 mpd_tag_name(vargs->searchlist->tags
 					  [vargs->searchlist->crt_tag_id]));
+  printw("  ");
 
   if (mpd_status_get_error(status) != NULL)
 	printw("ERROR: %s\n",
@@ -321,13 +318,11 @@ print_basic_bar(struct mpd_connection *conn)
   attroff(my_color_pairs[2]);
   printw("]");
   
-  printw("%3i%% %5ik/s %3i:%02i/%i:%02i%*s",
+  printw("%3i%% %5ik/s %3i:%02i%*s",
 		 crt_time_perc,
 		 bit_rate,
 		 crt_time / 60,
 		 crt_time % 60,
-		 total_time / 60,
-		 total_time % 60,
 		 8, " ");
 }
 
@@ -742,7 +737,50 @@ switch_to_playlist_menu(struct VerboseArgs *vargs)
   vargs->menu_keymap = &menu_playlist_keymap;	  
   repaint_screen();
 }
+
+static void
+resize_term_window(const int x, const int y)
+{
+  char vx[128];
+  int sys_ret;
+
+  snprintf(vx, sizeof(vx),
+		   "[[ $TERM == 'linux' ]] || resize -s %d %d >/dev/null",
+		   y, x);
+  sys_ret = system(vx);
+
+  if(sys_ret == -1)
+	{
+	  endwin();
+	  fprintf(stderr, "terminal window resize failed.\n");
+	  exit(1);
+	}
+}
+
+static void
+toggle_mini_window(struct VerboseArgs *vargs)
+{
+  static int enable = 1;
+  int x, y;
+
+  if(enable)
+	{
+	  repaint_screen();
+	  refresh();
+	  x = 70, y = 15;
+	  enable = 0;
+	}
+  else
+	{
+	  x = vargs->org_screen_x;
+	  y = vargs->org_screen_y;
+	  enable = 1;
+	}
   
+  resize_term_window(x, y);
+  vargs->redraw_signal = 1;
+}
+
 int
 menu_main_keymap(struct VerboseArgs *vargs)
 {
@@ -789,6 +827,9 @@ menu_main_keymap(struct VerboseArgs *vargs)
 	  break;
 	case '\t':
 	  switch_to_playlist_menu(vargs);
+	  break;
+	case 'w':
+	  toggle_mini_window(vargs);
 	  break;
 	case 27: ;
 	case 'e': ;
@@ -1013,6 +1054,9 @@ menu_playlist_keymap(struct VerboseArgs* vargs)
 	case '/':
 	  turnon_search_mode(vargs);
 	  break;
+	case 'w':
+	  toggle_mini_window(vargs);
+	  break;
 	case 127:
 	  if(vargs->searchlist->mode != DISABLE)
 		{
@@ -1170,14 +1214,17 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   /* initialization require redraw too */
   vargs->redraw_signal = 1;
   vargs->key_hit = 1;
+  vargs->org_screen_x = stdscr->_maxx + 1;
+  vargs->org_screen_y = stdscr->_maxy + 1;
 
   /* check the screen size */
-  if(stdscr->_maxy < 8 || stdscr->_maxx < 75)
+  if(stdscr->_maxy < 8 || stdscr->_maxx < 69)
 	{
 	  endwin();
 	  fprintf(stderr, "screen too small for normally displaying.\n");
 	  exit(1);
 	}
+  toggle_mini_window(vargs); // toggle mini window mode
   window_height_updating(vargs);
   
   /** playlist arguments */
@@ -1270,7 +1317,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	}
 
   endwin();
-  
+  resize_term_window(vargs.org_screen_x, vargs.org_screen_y);
   verbose_args_destroy(&vargs);
 
   return 0;

@@ -48,6 +48,9 @@ struct VerboseArgs
   int playlist_height;
   int redraw_signal;
   int key_hit;
+  int org_screen_x; // original terminal columns
+  int org_screen_y; // original terminal rows
+  
   /** set to 1 once commands have been triggered by keyboad*/
   int (*menu_keymap)(struct VerboseArgs*);
   void (*menu_print_routine)(struct VerboseArgs*);
