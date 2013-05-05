@@ -19,21 +19,28 @@
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
+struct WindowUnit wchain[WIN_NUM]; // array stores all subwindows
+
+static WINDOW*
+specific_win(int win_id)
+{
+  WINDOW *win = wchain[win_id].win;
+  werase(win);
+  return win;
+}
+
 static mpd_unused void debug(const char *debug_info)
 {
-  move(stdscr->_maxy - 1, 0);  
-  printw(debug_info);
-  refresh();
+  WINDOW *win = specific_win(DEBUG_INFO);
+  wprintw(win, debug_info);
+  wrefresh(win);
 }
 
 static mpd_unused void debug_int(const int num)
 {
-  static char nstr[32];
-
-  snprintf(nstr, 31, "%d", num);
-  move(stdscr->_maxy - 1, 0);  
-  printw(nstr);
-  refresh();
+  WINDOW *win = specific_win(DEBUG_INFO);
+  wprintw(win, "%d", num);
+  wrefresh(win);
 }
 
 static void my_finishCommand(struct mpd_connection *conn) {
@@ -50,22 +57,23 @@ getStatus(struct mpd_connection *conn) {
 	return ret;
 }
 
+static void
+repaint_screen(void)
+{
+  erase();
+}
+
 static void 
-color_xyprint(int color_scheme, int x, int y, const char *str)
+color_print(WINDOW *win, int color_scheme, const char *str)
 {
   if(color_scheme > 0)
 	{
-	  attron(my_color_pairs[color_scheme - 1]);
-	  if(x >= 0 && y >= 0)
-		mvprintw(x, y, "%s", str);
-	  else
-		printw("%s", str);
-	  attroff(my_color_pairs[color_scheme - 1]);	  
+	  wattron(win, my_color_pairs[color_scheme - 1]);
+	  wprintw(win, "%s", str);
+	  wattroff(win, my_color_pairs[color_scheme - 1]);	  
 	}
-  else if(x >= 0 && y >= 0)
-	mvprintw(x, y, "%s", str);
   else
-	printw("%s", str);
+	wprintw(win, "%s", str);
 }
 
 /* the principle is that: if the keyboard events
@@ -86,12 +94,6 @@ void smart_sleep(struct VerboseArgs* vargs)
 	us = us < INTERVAL_MAX_UNIT ? us + INTERVAL_INCREMENT : us;
 
   usleep(us);
-}
-
-static
-void repaint_screen(void)
-{
-  erase();
 }
 
 static const char *
@@ -168,27 +170,22 @@ check_new_state(struct VerboseArgs *vargs)
 static void
 print_basic_help(void)
 {
-  move(5, 0);
-  printw("  [n] :\tNext song\t\t  [R] :\tToggle repeat\n");
-  printw("  [p] :\tPrevious song\t\t  [r] :\tToggle random\n");
-  printw("  [-] :\tVolume down\t\t  [s] :\tToggle single\n");
-  printw("  [=] :\tVolume Up\t\t  [b] :\tPlayback\n");
-  printw("  [t] :\tPlay / Pause\t\t  [l] :\tRedraw screen\n");
-  printw("  <L> :\tSeek backward\t\t  <R> :\tSeek forward\n");
-  printw("\n  [TAB] : New world\n");
-  printw("  [e/q] : Quit\n");
+  WINDOW *win = specific_win(HELPER);
+  wprintw(win, "  [n] :\tNext song\t\t  [R] :\tToggle repeat\n");
+  wprintw(win, "  [p] :\tPrevious song\t\t  [r] :\tToggle random\n");
+  wprintw(win, "  [-] :\tVolume down\t\t  [s] :\tToggle single\n");
+  wprintw(win, "  [=] :\tVolume Up\t\t  [b] :\tPlayback\n");
+  wprintw(win, "  [t] :\tPlay / Pause\t\t  [l] :\tRedraw screen\n");
+  wprintw(win, "  <L> :\tSeek backward\t\t  <R> :\tSeek forward\n");
+  wprintw(win, "\n  [TAB] : New world\n");
+  wprintw(win, "  [e/q] : Quit\n");
+  wrefresh(win);
 }
 
-static void
-print_basic_song_info(struct VerboseArgs *vargs)
+static mpd_unused struct mpd_status*
+init_mpd_status(struct mpd_connection *conn)
 {
-  struct mpd_connection *conn;
   struct mpd_status *status;
-  static char buff[80], format[20];
-
-  move(0, 0);
-  
-  conn = vargs->conn;
 
   if (!mpd_command_list_begin(conn, true) ||
 	  !mpd_send_status(conn) ||
@@ -200,6 +197,19 @@ print_basic_song_info(struct VerboseArgs *vargs)
   if (status == NULL)
 	printErrorAndExit(conn);
 
+  return status;
+}
+
+static void
+print_basic_song_info(struct VerboseArgs *vargs)
+{
+  struct mpd_connection *conn = vargs->conn;
+  struct mpd_status *status;
+  static char buff[80], format[20];
+
+  WINDOW *win = specific_win(BASIC_INFO);
+  
+  status = init_mpd_status(conn);
   if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
 	  mpd_status_get_state(status) == MPD_STATE_PAUSE) {
 	struct mpd_song *song;
@@ -210,17 +220,17 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
 	  static int twid = 38, awid = 28;
-	  color_xyprint(1, -1, -1, "《 ");
+	  color_print(win, 1, "《 ");
 	  if(snprintf(buff, twid, "%s",
 				  get_song_tag(song, MPD_TAG_TITLE)) >= twid)
 		strcpy(buff + twid - 4, "..."); // in case of long title
-	  color_xyprint(1, -1, -1, buff);
-	  color_xyprint(1, -1, -1, " 》  by  ");
+	  color_print(win, 1, buff);
+	  color_print(win, 1, " 》  by  ");
 
 	  if(snprintf(buff, awid, "%s",
 				  get_song_tag(song, MPD_TAG_ARTIST)) >= awid)
 		strcpy(buff + awid - 4, "...");
-	  color_xyprint(5, -1, -1, buff);
+	  color_print(win, 5, buff);
 
 	  snprintf(format, sizeof(format), "* %s *", get_song_format(song));
 
@@ -228,11 +238,11 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	}
 
 	if (mpd_status_get_state(status) == MPD_STATE_PLAY)
-	  printw("\n[playing]");
+	  wprintw(win, "\n[playing]");
 	else
-	  printw("\n[paused] ");
+	  wprintw(win, "\n[paused] ");
 
-	printw("     #%3i/%3u      %i:%02i",
+	wprintw(win, "     #%3i/%3u      %i:%02i",
 		   mpd_status_get_song_pos(status) + 1,
 		   mpd_status_get_queue_length(status),
 		   mpd_status_get_total_time(status) / 60,
@@ -241,56 +251,60 @@ print_basic_song_info(struct VerboseArgs *vargs)
   }
 
   if(format[0] != '\0')
-	printw("\t  %s\n", format);
+	wprintw(win, "\t  %s\n", format);
   else
-	printw("\n");
+	wprintw(win, "\n");
 	
   if (mpd_status_get_update_id(status) > 0)
-	printw("Updating DB (#%u) ...\n",
+	wprintw(win, "Updating DB (#%u) ...\n",
 		   mpd_status_get_update_id(status));
 
   if (mpd_status_get_volume(status) >= 0)
-	printw("volume:%3i%c   ", mpd_status_get_volume(status), '%');
+	wprintw(win, "volume:%3i%c   ", mpd_status_get_volume(status), '%');
   else {
-	printw("volume: n/a   ");
+	wprintw(win, "volume: n/a   ");
   }
 
-  printw("Repeat: ");
+  wprintw(win, "Repeat: ");
   if (mpd_status_get_repeat(status))
-	printw("on    ");
-  else printw("off   ");
+	wprintw(win, "on    ");
+  else wprintw(win, "off   ");
 
-  printw("random: ");
+  wprintw(win, "random: ");
   if (mpd_status_get_random(status))
-	printw("on    ");
-  else printw("off   ");
+	wprintw(win, "on    ");
+  else wprintw(win, "off   ");
 
-  printw("single: ");
+  wprintw(win, "single: ");
   if (mpd_status_get_single(status))
-	printw("on    ");
-  else printw("off   ");
+	wprintw(win, "on    ");
+  else wprintw(win, "off   ");
 
-  printw("Search: ");
-  color_xyprint(6, -1, -1,
+  wprintw(win, "Search: ");
+  color_print(win, 6,
 		 mpd_tag_name(vargs->searchlist->tags
 					  [vargs->searchlist->crt_tag_id]));
-  printw("  ");
+  wprintw(win, "  ");
 
   if (mpd_status_get_error(status) != NULL)
-	printw("ERROR: %s\n",
+	wprintw(win, "ERROR: %s\n",
 		   charset_from_utf8(mpd_status_get_error(status)));
 
   mpd_status_free(status);
   my_finishCommand(conn);
+
+  wrefresh(win);
 }
 
-static void
+static void // VERBOSE_PROC_BAR
 print_basic_bar(struct mpd_connection *conn)
 {
   static int crt_time, crt_time_perc, total_time,
 	fill_len, empty_len, i, bit_rate, last_bit_rate = 0;
   static struct mpd_status *status;
 
+  WINDOW *win = specific_win(VERBOSE_PROC_BAR);
+  
   status = getStatus(conn);
   crt_time = mpd_status_get_elapsed_time(status);
   total_time = mpd_status_get_total_time(status);
@@ -310,20 +324,22 @@ print_basic_bar(struct mpd_connection *conn)
   empty_len = AXIS_LENGTH - fill_len;
 
   move(3, 0);
-  printw("[");
-  attron(my_color_pairs[2]);
-  for(i = 0; i < fill_len; printw("="), i++);
-  printw(">");
-  for(i = 0; i < empty_len; printw(" "), i++);
-  attroff(my_color_pairs[2]);
-  printw("]");
+  wprintw(win, "[");
+  wattron(win, my_color_pairs[2]);
+  for(i = 0; i < fill_len; wprintw(win, "="), i++);
+  wprintw(win, ">");
+  for(i = 0; i < empty_len; wprintw(win, " "), i++);
+  wattroff(win, my_color_pairs[2]);
+  wprintw(win, "]");
   
-  printw("%3i%% %5ik/s %3i:%02i%*s",
+  wprintw(win, "%3i%% %5ik/s %3i:%02i%*s",
 		 crt_time_perc,
 		 bit_rate,
 		 crt_time / 60,
 		 crt_time % 60,
 		 8, " ");
+
+  wrefresh(win);
 }
 
 static void
@@ -332,9 +348,10 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   static int crt_time, crt_time_perc, total_time,
 	fill_len, rest_len, i;
   static struct mpd_status *status;
-  static const char *rot[4] = {"|", "\\", "—", "/"};
   static const int bar_length = 27, bar_begin = 43;
 
+  WINDOW *win = specific_win(SIMPLE_PROC_BAR);
+  
   status = getStatus(vargs->conn);
   crt_time = mpd_status_get_elapsed_time(status);
   total_time = mpd_status_get_total_time(status);
@@ -346,16 +363,13 @@ playlist_simple_bar(struct VerboseArgs *vargs)
 
   move(4, bar_begin);
 
-  attron(my_color_pairs[2]);  
-  for(i = 0; i < fill_len; printw("*"), i++);
-  attroff(my_color_pairs[2]);  
+  wattron(win, my_color_pairs[2]);  
+  for(i = 0; i < fill_len; wprintw(win, "*"), i++);
+  wattroff(win, my_color_pairs[2]);  
 
-  for(i = 0; i < rest_len; printw("*"), i++);
+  for(i = 0; i < rest_len; wprintw(win, "*"), i++);
 
-  move(5 + vargs->playlist_height, bar_begin + bar_length - 1);
-  attron(my_color_pairs[3]);    
-  printw(rot[crt_time % 4]);
-  attroff(my_color_pairs[3]);  
+  wrefresh(win);
 }
 
 static void
@@ -381,43 +395,52 @@ menu_main_print_routine(struct VerboseArgs *vargs)
 static void
 redraw_playlist_screen(struct VerboseArgs *vargs)
 {
-  static const int init_line = 4;
   static char buff[80];
   static const char *bar =
 	"______________________________________________/̅END LINE";
-  int i, j;
+  int i;
 
-  repaint_screen();
+  WINDOW *win = specific_win(PLAYLIST);  
   
   print_basic_song_info(vargs);
 
-  j = init_line + 1;
+  wmove(win, 1, 0);
   for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
 		+ vargs->playlist_height - 1 && i < vargs->playlist->length; i++)
 	{
 	  snprintf(buff, sizeof(buff), "%3i.  %s        %s",
 			   vargs->playlist->id[i], vargs->playlist->pretty_title[i],
 			   vargs->playlist->artist[i]);
+
 	  if(i + 1 == vargs->playlist->cursor)
 		{
-		  color_xyprint(2, j++, 0, buff);
+		  color_print(win, 2, buff);
+		  wprintw(win, "\n");
 		  continue;
 		}
 	  
 	  if(vargs->playlist->id[i] == vargs->playlist->current)
-		color_xyprint(1, j++, 0, buff);	  
+		{
+		  color_print(win, 1, buff);	  
+		  wprintw(win, "\n");
+		}
 	  else
-		color_xyprint(0, j++, 0, buff);
+		{
+		  color_print(win, 0, buff);
+		  wprintw(win, "\n");
+		}
 	}
 
 
-  mvprintw(j, 0, "%*s %s", 5, " ", bar);
+  wprintw(win, "%*s %s", 5, " ", bar);
 
   if(i < vargs->playlist->length)
-  	mvprintw(j, 0, "%*s   %s", 3, " ", "... ...  ");
+  	mvwprintw(win, win->_maxy, 0, "%*s   %s", 3, " ", "... ...  ");
 
   if(vargs->playlist->begin > 1)
-	mvprintw(init_line, 0, "%*s   %s", 3, " ", "^^^ ^^^");
+	mvwprintw(win, 0, 0, "%*s   %s", 3, " ", "^^^ ^^^");
+
+  wrefresh(win);
 }
 
 static void
@@ -615,22 +638,26 @@ search_prompt(struct VerboseArgs *vargs)
 {
   static char str[128];
 
+  WINDOW *win = specific_win(SEARCH_INPUT);
+  
   snprintf(str, sizeof(str), "%s█", vargs->searchlist->key);
   move(vargs->playlist_height + 7, 0);
 
   if(vargs->searchlist->mode == TYPING)
-	color_xyprint(5, -1, -1, "Search: ");
+	color_print(win, 5, "Search: ");
   else
-	color_xyprint(0, -1, -1, "Search: ");
+	color_print(win, 0, "Search: ");
   
   if(vargs->playlist->length == 0)
-	color_xyprint(4, -1, -1, "no entries...");
+	color_print(win, 4, "no entries...");
   else if(vargs->searchlist->mode == TYPING)
-	color_xyprint(6, -1, -1, str);
+	color_print(win, 6, str);
   else
-	color_xyprint(0, -1, -1, str);
+	color_print(win, 0, str);
 
-  printw("%*s", 40, " ");
+  wprintw(win, "%*s", 40, " ");
+
+  wrefresh(win);
 }
 
 void
@@ -765,8 +792,6 @@ toggle_mini_window(struct VerboseArgs *vargs)
 
   if(enable)
 	{
-	  repaint_screen();
-	  refresh();
 	  x = 70, y = 15;
 	  enable = 0;
 	}
@@ -1160,6 +1185,8 @@ turnon_search_mode(struct VerboseArgs *vargs)
   vargs->old_menu_print_routine = vargs->menu_print_routine;
   vargs->menu_keymap = &search_routine;
   vargs->menu_print_routine = &menu_search_print_routine;
+
+  repaint_screen();
 }
 
 void
@@ -1184,7 +1211,7 @@ turnoff_search_mode(struct VerboseArgs *vargs)
   vargs->menu_print_routine = vargs->old_menu_print_routine;
 
   repaint_screen();
-
+  
   return ;
 }
 
@@ -1201,6 +1228,42 @@ window_height_updating(struct VerboseArgs *vargs)
 	  // tell the render repaint the screen
 	  vargs->redraw_signal = 1;
 	}
+}
+
+// basically sizes are what we are concerned
+static void
+wchain_size_update(void)
+{
+  int height = stdscr->_maxy, width = stdscr->_maxx;
+  int wparam[WIN_NUM][4] =
+	{
+	  {3, width, 0, 0},             // BASIC_INFO
+	  {1, width, 3, 0},				// VERBOSE_PROC_BAR
+	  {9, width, 5, 0},				// HELPER
+	  {1, 27, 3, 43},				// SIMPLE_PROC_BAR
+	  {height - 5, width, 4, 0},	// PLAYLIST
+	  {height - 5, width, 4, 0},	// SEARCHLIST
+	  {1, width, height - 1, 0},	// SEARCH_INPUT
+	  {1, width, height - 2, 0}		// DEBUG_INFO
+	}; 
+
+  int i;
+  for(i = 0; i < WIN_NUM; i++)
+	{
+	  wresize(wchain[i].win, wparam[i][0], wparam[i][1]);
+	  mvwin(wchain[i].win, wparam[i][2], wparam[i][3]);
+	}
+
+}
+
+static void
+wchain_init(void)
+{
+  int i;
+  for(i = 0; i < WIN_NUM; i++)
+	wchain[i].win = newwin(1, 1, 0, 0);// we're gonna change soon
+
+  wchain_size_update();
 }
 
 static void
@@ -1224,7 +1287,7 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
 	  fprintf(stderr, "screen too small for normally displaying.\n");
 	  exit(1);
 	}
-  toggle_mini_window(vargs); // toggle mini window mode
+  //toggle_mini_window(vargs); // toggle mini window mode
   window_height_updating(vargs);
   
   /** playlist arguments */
@@ -1290,6 +1353,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 
   // ncurses basic setting
   initscr();
+
   timeout(1); // enable the non block getch()
   curs_set(0); // cursor invisible
   noecho();
@@ -1298,6 +1362,9 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 
   // ncurses for unicode support
   setlocale(LC_ALL, "");
+
+  /** windows chain initilization **/
+  wchain_init();
 
   verbose_args_init(&vargs, conn);
   
@@ -1309,8 +1376,6 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 	  if(is_quit) break;
 
 	  vargs.menu_print_routine(&vargs);
-	  refresh();
-
 	  smart_sleep(&vargs);
 
 	  window_height_updating(&vargs);
@@ -1318,6 +1383,7 @@ cmd_dynamic(mpd_unused int argc, mpd_unused char **argv,
 
   endwin();
   resize_term_window(vargs.org_screen_x, vargs.org_screen_y);
+  
   verbose_args_destroy(&vargs);
 
   return 0;

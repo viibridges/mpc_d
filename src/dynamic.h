@@ -1,5 +1,6 @@
 /** this is my source file */
 #include <mpd/tag.h>
+#include <curses.h>
 
 #define SEEK_UNIT 3
 #define VOLUME_UNIT 3
@@ -13,11 +14,32 @@ struct mpd_connection;
 int my_color_pairs[6];
 
 enum my_search_mode
+  {
+	DISABLE,
+	TYPING,
+	SEARCHING,
+	PICKING
+  };
+
+enum window_id
+  {
+	BASIC_INFO,
+	VERBOSE_PROC_BAR,
+	HELPER,
+	SIMPLE_PROC_BAR,
+	PLAYLIST,
+	SEARCHLIST,
+	SEARCH_INPUT,
+	DEBUG_INFO,
+	WIN_NUM
+  };
+
+struct WindowUnit
 {
-  DISABLE,
-  TYPING,
-  SEARCHING,
-  PICKING
+  int id;
+  int redraw_signal;
+  
+  WINDOW *win;
 };
 
 struct PlaylistArgs
