@@ -583,10 +583,7 @@ void searchlist_update_checking(struct VerboseArgs*vargs)
 	{
 	  update_searchlist(vargs);
 	  vargs->searchlist->search_mode = TYPING;
-	  signal_win(BASIC_INFO);
-	  signal_win(PLIST_UP_STATE_BAR);
-	  signal_win(PLAYLIST);
-	  signal_win(PLIST_DOWN_STATE_BAR);;
+	  signal_all_wins();
 	}
 }
 
@@ -659,6 +656,7 @@ update_searchlist(struct VerboseArgs* vargs)
 		}
 	}
   vargs->playlist->length = j;
+  vargs->playlist->begin = 1;
 }
 
 static void
@@ -1087,7 +1085,7 @@ playlist_keymap(struct VerboseArgs* vargs)
 	  if(vargs->searchlist->search_mode != DISABLE)
 		{
 		  ungetch(127);
-		  vargs->menu_keymap = &searchlist_keymap;
+		  vargs->searchlist->wmode.listen_keyboard = &searchlist_keymap;
 		}
 	  break;
 	case '\\':
@@ -1131,11 +1129,10 @@ searchlist_keymap(struct VerboseArgs *vargs)
 			}
 			
 		  vargs->searchlist->search_mode = PICKING;
-		  vargs->menu_keymap = &playlist_keymap;
+		  vargs->searchlist->wmode.listen_keyboard = &playlist_keymap;
 		  playlist_scroll_to(vargs, 1);
 		  signal_win(SEARCHLIST);
 		  signal_win(SEARCH_INPUT);
-		  return 0;
 		}
 	  else if(ch == '\\' || ch == 27)
 		{
@@ -1166,6 +1163,7 @@ searchlist_keymap(struct VerboseArgs *vargs)
 		vargs->searchlist->key[i++] = (char)ch;
 	  
 	  vargs->searchlist->key[i] = '\0';
+	  signal_win(SEARCH_INPUT);
 	}
 }
 
@@ -1173,6 +1171,10 @@ void
 turnon_search_mode(struct VerboseArgs *vargs)
 {
   clean_screen();
+  
+  vargs->searchlist->key[0] = '\0';
+  vargs->searchlist->search_mode = TYPING;
+  vargs->searchlist->wmode.listen_keyboard = &searchlist_keymap;
 
   winset_update(&vargs->searchlist->wmode);
 }
@@ -1183,11 +1185,14 @@ turnoff_search_mode(struct VerboseArgs *vargs)
   if(vargs->searchlist->search_mode == DISABLE)
 	return;
   
-  vargs->searchlist->search_mode = DISABLE;
   vargs->searchlist->key[0] = '\0';
+  vargs->searchlist->search_mode = DISABLE;
 
   playlist_list_update(vargs);
   playlist_scroll_to_current(vargs);
+
+  /* get back the keymap */
+  vargs->searchlist->wmode.listen_keyboard = &searchlist_keymap;
   
   clean_screen();
   winset_update(&vargs->playlist->wmode);
@@ -1306,8 +1311,6 @@ static void
 verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
 {
   vargs->conn = conn;
-  vargs->menu_keymap = &basic_keymap;
-  vargs->old_menu_keymap = NULL;
   /* initialization require redraw too */
   vargs->key_hit = 1;
   vargs->quit_signal = 0;
@@ -1330,6 +1333,9 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->playlist->length = 0;
   vargs->playlist->current = 0;
   vargs->playlist->cursor = 1;
+  /** it's turn out to be good that updating
+	  the playlist in the first place **/
+  playlist_list_update(vargs);
 
   /** searchlist arguments */
   vargs->searchlist =

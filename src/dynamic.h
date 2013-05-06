@@ -93,8 +93,6 @@ struct VerboseArgs
   int org_screen_y; // original terminal rows
   
   /** set to 1 once commands have been triggered by keyboad*/
-  int (*menu_keymap)(struct VerboseArgs*);
-  int (*old_menu_keymap)(struct VerboseArgs*);
   struct PlaylistArgs *playlist;
   struct SearchlistArgs *searchlist;
   
