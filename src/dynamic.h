@@ -27,19 +27,36 @@ enum window_id
 	VERBOSE_PROC_BAR,
 	HELPER,
 	SIMPLE_PROC_BAR,
+	PLIST_UP_STATE_BAR,
 	PLAYLIST,
+	PLIST_DOWN_STATE_BAR,
 	SEARCHLIST,
 	SEARCH_INPUT,
 	DEBUG_INFO,
-	WIN_NUM
+	WIN_NUM            
   };
+
+struct VerboseArgs;
 
 struct WindowUnit
 {
   int id;
+  int flash; // if 1 means this window redraw alway every time, its redraw_signal always be 1;
   int redraw_signal;
   
   WINDOW *win;
+
+  // each window has its own redraw routine
+  void (*redraw_routine)(struct VerboseArgs*);
+};
+
+struct WinMode
+{
+  int size;
+  struct WindowUnit **wins;
+
+  void (*update_checking)(struct VerboseArgs*);
+  void (*listen_keyboard)(struct VerboseArgs*);
 };
 
 struct PlaylistArgs
@@ -53,42 +70,45 @@ struct PlaylistArgs
   int begin;
   int current; // current playing song id
   int cursor;  // marked as song id
+  struct WinMode wmode; // windows in this mode
 };
 
 struct SearchlistArgs
 {
-  enum my_search_mode mode;
+  enum my_search_mode search_mode;
   enum mpd_tag_type tags[4]; // searching type
   int crt_tag_id;
   char key[128];
+  struct WinMode wmode; // windows in this mode
 };
 
 struct VerboseArgs
 {
   struct mpd_connection *conn;
 
-  int playlist_height;
   int redraw_signal;
+  int quit_signal;
   int key_hit;
   int org_screen_x; // original terminal columns
   int org_screen_y; // original terminal rows
   
   /** set to 1 once commands have been triggered by keyboad*/
   int (*menu_keymap)(struct VerboseArgs*);
-  void (*menu_print_routine)(struct VerboseArgs*);
   int (*old_menu_keymap)(struct VerboseArgs*);
-  void (*old_menu_print_routine)(struct VerboseArgs*);  
   struct PlaylistArgs *playlist;
   struct SearchlistArgs *searchlist;
+  
+  struct WinMode wmode; // windows in main mode
 };
 
 int cmd_dynamic( int argc,  char ** argv, struct mpd_connection *conn);
-int menu_playlist_keymap(struct VerboseArgs* vargs);
-int menu_main_keymap(struct VerboseArgs* vargs);
-void menu_playlist_print_routine(struct VerboseArgs *vargs);
-void menu_main_print_routine(struct VerboseArgs *vargs);
-void menu_search_print_routine(struct VerboseArgs *vargs);
-int search_routine(struct VerboseArgs *vargs);
+void playlist_keymap(struct VerboseArgs* vargs);
+void basic_keymap(struct VerboseArgs* vargs);
+/* void menu_playlist_print_routine(struct VerboseArgs *vargs); */
+/* void menu_main_print_routine(struct VerboseArgs *vargs); */
+/* void menu_search_print_routine(struct VerboseArgs *vargs); */
+void searchlist_keymap(struct VerboseArgs *vargs);
 void turnoff_search_mode(struct VerboseArgs *vargs);
 void turnon_search_mode(struct VerboseArgs *vargs);
 void update_searchlist(struct VerboseArgs* vargs);
+void screen_redraw(struct VerboseArgs *vargs);
