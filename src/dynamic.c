@@ -558,13 +558,13 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	else
 	  wprintw(win, "\n[paused] ");
 
-	wprintw(win, "   #%3i/%3u    ",
+	wprintw(win, "   #%3i/%3u   ",
 			mpd_status_get_song_pos(status) + 1,
 			mpd_status_get_queue_length(status));
   }
 
   total_time = mpd_status_get_total_time(status);
-  wprintw(win, "%i:%02i%18c",
+  wprintw(win, "%02i:%02i%18c",
 		  total_time / 60, total_time % 60,
 		  ' ');
 
