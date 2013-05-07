@@ -47,6 +47,13 @@ static void signal_all_wins(void)
 }
   
 static void
+clean_window(int id)
+{
+  werase(wchain[id].win);
+  wrefresh(wchain[id].win);
+}
+
+static void
 clean_screen(void)
 {
   int i;
@@ -61,7 +68,6 @@ static void
 winset_update(struct WinMode *wmode)
 {
   being_mode = wmode;
-  clean_screen();
   signal_all_wins();
 }
 
@@ -559,12 +565,19 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	  mpd_song_free(song);
 	}
 
+	wprintw(win, "\n[");
 	if (mpd_status_get_state(status) == MPD_STATE_PLAY)
-	  wprintw(win, "\n[playing]");
+	  {
+		color_print(win, 6, "playing");
+		wprintw(win, "]");
+	  }
 	else
-	  wprintw(win, "\n[paused] ");
+	  {
+		color_print(win, 4, "paused");
+		wprintw(win, "] ");
+	  }
 
-	wprintw(win, "   #%3i/%3u   ",
+	wprintw(win, "    %3i/%3u   ",
 			mpd_status_get_song_pos(status) + 1,
 			mpd_status_get_queue_length(status));
   }
@@ -579,7 +592,7 @@ print_basic_song_info(struct VerboseArgs *vargs)
 
   wprintw(win, "["); // status modes [ors] : repeat, random, single
   if (mpd_status_get_random(status))
-	color_print(win, 4, "r");
+	color_print(win, 1, "r");
   else wprintw(win, "-");
 
   if (mpd_status_get_single(status))
@@ -704,14 +717,15 @@ static void
 playlist_down_state_bar(struct VerboseArgs *vargs)
 {
   static const char *bar =
-	"_________________________________________________________/TED MADE";
+	"_________________________________________________________/";
   WINDOW *win = specific_win(PLIST_DOWN_STATE_BAR);  
 
   int length = vargs->playlist->length,
 	height = wchain[PLAYLIST].win->_maxy + 1,
 	cursor = vargs->playlist->cursor;
 
-  wprintw(win, "%*s %s", 5, " ", bar);
+  wprintw(win, "%*c %s", 5, ' ', bar);
+  color_print(win, 3, "TED MADE");
 
   if(cursor + height / 2 < length)
   	mvwprintw(win, 0, 0, "%*s   %s", 3, " ", "... ...  ");
@@ -1003,6 +1017,7 @@ void fundamental_keymap_template(struct VerboseArgs *vargs, int key)
 	case 'R':
 	  cmd_Repeat(vargs); break;
 	case 'L': // redraw screen
+	  clean_screen();
 	  break;
 	case '/':
 	  turnon_search_mode(vargs); break;
@@ -1076,6 +1091,7 @@ searchlist_picking_keymap(struct VerboseArgs *vargs)
   switch(key)
 	{
 	case 'i':;
+	case '\t':;
 	case 'l': break; // these keys are masked
 	  
 	case '\n':
@@ -1162,7 +1178,10 @@ searchlist_keymap(struct VerboseArgs* vargs)
 	case '\n':;
 	case '\t':
 	  if(i == 0)
-		turnoff_search_mode(vargs);
+		{
+		  turnoff_search_mode(vargs);
+		  break;
+		}
 
 	  being_mode->listen_keyboard = &searchlist_picking_keymap;
 	  vargs->searchlist->picking_mode = 1;
@@ -1179,7 +1198,10 @@ searchlist_keymap(struct VerboseArgs* vargs)
 	  break;
 	case 127: // backspace is hitted
 	  if(i == 0)
-		turnoff_search_mode(vargs);
+		{
+		  turnoff_search_mode(vargs);
+		  break;
+		}
 	  
 	  if(!isascii(vargs->searchlist->key[i - 1]))
 		vargs->searchlist->key[i - 3] = '\0';
@@ -1210,13 +1232,12 @@ searchlist_keymap(struct VerboseArgs* vargs)
 void
 turnon_search_mode(struct VerboseArgs *vargs)
 {
-  clean_screen();
-  
   vargs->searchlist->key[0] = '\0';
   vargs->searchlist->picking_mode = 0;
   vargs->searchlist->wmode.listen_keyboard = &searchlist_keymap;
   playlist_cursor_hide(vargs);
 
+  clean_window(VERBOSE_PROC_BAR);
   winset_update(&vargs->searchlist->wmode);
 }
 
@@ -1227,7 +1248,7 @@ turnoff_search_mode(struct VerboseArgs *vargs)
   update_playlist(vargs);
   playlist_scroll_to_current(vargs);
 
-  clean_screen();
+  clean_window(SEARCH_INPUT);
   winset_update(&vargs->playlist->wmode);
 }
 
@@ -1243,7 +1264,7 @@ wchain_size_update(void)
   else
 	old_height = height, old_width = width;
 
-  debug("here!");
+  debug("look at here!");
 	
   int wparam[WIN_NUM][4] =
 	{
