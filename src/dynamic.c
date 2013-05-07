@@ -576,20 +576,12 @@ print_basic_song_info(struct VerboseArgs *vargs)
 		color_print(win, 4, "paused");
 		wprintw(win, "] ");
 	  }
-
-	wprintw(win, "    %3i/%3u   ",
-			mpd_status_get_song_pos(status) + 1,
-			mpd_status_get_queue_length(status));
   }
 
-  total_time = mpd_status_get_total_time(status);
-  wprintw(win, "%02i:%02i%18c",
-		  total_time / 60, total_time % 60,
-		  ' ');
-
+  wprintw(win, " [%3i/%3u] ",
+		  mpd_status_get_song_pos(status) + 1,
+		  mpd_status_get_queue_length(status));
   
-  wprintw(win, "%s ", format); // music format
-
   wprintw(win, "["); // status modes [ors] : repeat, random, single
   if (mpd_status_get_random(status))
 	color_print(win, 1, "r");
@@ -603,6 +595,12 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	color_print(win, 5, "o");
   else wprintw(win, "-");
   wprintw(win, "]");
+
+  wprintw(win, "%21c%s ", ' ', format); // music format
+
+  total_time = mpd_status_get_total_time(status);
+  wprintw(win, "%02i:%02i",
+		  total_time / 60, total_time % 60);
 
   bit_rate = mpd_status_get_kbit_rate(status);
   if(abs(old_bit_rate - bit_rate) / (float)(bit_rate + 1) > 0.2
@@ -1336,12 +1334,13 @@ static void
 winset_init(struct VerboseArgs *vargs)
 {
   // for basic mode (main menu)
-  vargs->wmode.size = 3;
+  vargs->wmode.size = 2;
+  //vargs->wmode.size = 3;
   vargs->wmode.wins = (struct WindowUnit**)
 	malloc(vargs->wmode.size * sizeof(struct WindowUnit*));
   vargs->wmode.wins[0] = &wchain[BASIC_INFO];
   vargs->wmode.wins[1] = &wchain[VERBOSE_PROC_BAR];
-  vargs->wmode.wins[2] = &wchain[HELPER];
+  //vargs->wmode.wins[2] = &wchain[HELPER];
   vargs->wmode.update_checking = &basic_state_checking;
   vargs->wmode.listen_keyboard = &basic_keymap;
 
