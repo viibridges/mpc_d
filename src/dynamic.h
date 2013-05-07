@@ -11,7 +11,6 @@
 #define AXIS_LENGTH 44
 
 struct mpd_connection;
-int my_color_pairs[7];
 
 enum window_id
   {

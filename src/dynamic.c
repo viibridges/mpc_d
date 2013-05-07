@@ -21,6 +21,7 @@
 
 static struct WindowUnit *wchain; // array stores all subwindows
 static struct WinMode *being_mode; // pointer to current used window set
+static int my_color_pairs[8];
 
 
 /*************************************
@@ -565,7 +566,7 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	  mpd_song_free(song);
 	}
 
-	wprintw(win, "\n[");
+	mvwprintw(win, 1, 0, "[");
 	if (mpd_status_get_state(status) == MPD_STATE_PLAY)
 	  {
 		color_print(win, 6, "playing");
@@ -574,15 +575,16 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	else
 	  {
 		color_print(win, 4, "paused");
-		wprintw(win, "] ");
+		wprintw(win, "]");
 	  }
   }
 
-  wprintw(win, " [%3i/%3u] ",
+  mvwprintw(win, 1, 10, "[%i/%u]",
 		  mpd_status_get_song_pos(status) + 1,
 		  mpd_status_get_queue_length(status));
   
-  wprintw(win, "["); // status modes [ors] : repeat, random, single
+  // status modes [ors] : repeat, random, single
+  mvwprintw(win, 1, 20, "["); 
   if (mpd_status_get_random(status))
 	color_print(win, 1, "r");
   else wprintw(win, "-");
@@ -596,10 +598,12 @@ print_basic_song_info(struct VerboseArgs *vargs)
   else wprintw(win, "-");
   wprintw(win, "]");
 
-  wprintw(win, "%21c%s ", ' ', format); // music format
+  int rstart = 46;
+  
+  mvwprintw(win, 1, rstart, "%s ", format); // music format
 
   total_time = mpd_status_get_total_time(status);
-  wprintw(win, "%02i:%02i",
+  mvwprintw(win, 1, rstart + 6, "%02i:%02i",
 		  total_time / 60, total_time % 60);
 
   bit_rate = mpd_status_get_kbit_rate(status);
@@ -608,20 +612,20 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	old_bit_rate = bit_rate;
   else
 	bit_rate = old_bit_rate;
-  wprintw(win, " %5ik/s", bit_rate);
+  mvwprintw(win, 1, rstart + 11, " %5ik/s", bit_rate);
   
   if (mpd_status_get_update_id(status) > 0)
-	wprintw(win, "Updating DB (#%u) ...\n",
+	mvwprintw(win, 2, 0, "Updating DB (#%u) ...",
 			mpd_status_get_update_id(status));
 
-  wprintw(win, "\n%46c", ' ');
+  wmove(win, 2, rstart);
   if (mpd_status_get_volume(status) >= 0)
-	wprintw(win, "Volume:%3i%c   ", mpd_status_get_volume(status), '%');
+	wprintw(win, "Volume:%3i%c ", mpd_status_get_volume(status), '%');
   else {
 	wprintw(win, "Volume: n/a   ");
   }
 
-  wprintw(win, "Search: ");
+  mvwprintw(win, 2, rstart + 14, "Search: ");
   color_print(win, 6,
 			  mpd_tag_name(vargs->searchlist->tags
 						   [vargs->searchlist->crt_tag_id]));
@@ -715,7 +719,7 @@ static void
 playlist_down_state_bar(struct VerboseArgs *vargs)
 {
   static const char *bar =
-	"_________________________________________________________/";
+	"__________________________________________________________/";
   WINDOW *win = specific_win(PLIST_DOWN_STATE_BAR);  
 
   int length = vargs->playlist->length,
@@ -723,7 +727,7 @@ playlist_down_state_bar(struct VerboseArgs *vargs)
 	cursor = vargs->playlist->cursor;
 
   wprintw(win, "%*c %s", 5, ' ', bar);
-  color_print(win, 3, "TED MADE");
+  color_print(win, 8, "TED MADE");
 
   if(cursor + height / 2 < length)
   	mvwprintw(win, 0, 0, "%*s   %s", 3, " ", "... ...  ");
@@ -1455,6 +1459,8 @@ color_init(void)
   my_color_pairs[5] = COLOR_PAIR(6) | A_BOLD;
   init_pair(7, COLOR_BLUE, COLOR_BLACK);
   my_color_pairs[6] = COLOR_PAIR(7) | A_BOLD;
+  init_pair(8, 0, COLOR_BLACK);
+  my_color_pairs[7] = COLOR_PAIR(8) | A_BOLD;
   use_default_colors();
 }
 
