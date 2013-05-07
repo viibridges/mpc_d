@@ -11,15 +11,7 @@
 #define AXIS_LENGTH 44
 
 struct mpd_connection;
-int my_color_pairs[6];
-
-enum my_search_mode
-  {
-	DISABLE,
-	TYPING,
-	SEARCHING,
-	PICKING
-  };
+int my_color_pairs[7];
 
 enum window_id
   {
@@ -40,8 +32,9 @@ struct VerboseArgs;
 
 struct WindowUnit
 {
-  int id;
-  int flash; // if 1 means this window redraw alway every time, its redraw_signal always be 1;
+  // if 1 means this window redraw alway every time,
+  // its redraw_signal always be 1;
+  int flash; 
   int redraw_signal;
   
   WINDOW *win;
@@ -61,24 +54,31 @@ struct WinMode
 
 struct PlaylistArgs
 {
-  char album[MAX_PLAYLIST_STORE_LENGTH][128],
-	artist[MAX_PLAYLIST_STORE_LENGTH][128],
-	title[MAX_PLAYLIST_STORE_LENGTH][128],
-	pretty_title[MAX_PLAYLIST_STORE_LENGTH][128];
+  char album[MAX_PLAYLIST_STORE_LENGTH][128];
+  char artist[MAX_PLAYLIST_STORE_LENGTH][128];
+  char title[MAX_PLAYLIST_STORE_LENGTH][128];
+  char pretty_title[MAX_PLAYLIST_STORE_LENGTH][128];
   int id[MAX_PLAYLIST_STORE_LENGTH];
+
   int length;
   int begin;
   int current; // current playing song id
   int cursor;  // marked as song id
+
   struct WinMode wmode; // windows in this mode
 };
 
 struct SearchlistArgs
 {
-  enum my_search_mode search_mode;
   enum mpd_tag_type tags[4]; // searching type
-  int crt_tag_id;
   char key[128];
+  int crt_tag_id;
+  int update_signal; // signal that activates update_searchlist()
+  int picking_mode; // 1 when picking a song
+
+  // share the same heap with the playlist, why not!  I don't want to waste memory; and some functions can be reused.
+  struct PlaylistArgs *plist; // pointer to playlist
+
   struct WinMode wmode; // windows in this mode
 };
 
@@ -89,8 +89,6 @@ struct VerboseArgs
   int redraw_signal;
   int quit_signal;
   int key_hit;
-  int org_screen_x; // original terminal columns
-  int org_screen_y; // original terminal rows
   
   /** set to 1 once commands have been triggered by keyboad*/
   struct PlaylistArgs *playlist;
@@ -99,12 +97,9 @@ struct VerboseArgs
   struct WinMode wmode; // windows in main mode
 };
 
-int cmd_dynamic( int argc,  char ** argv, struct mpd_connection *conn);
+int cmd_dynamic( int argc,  char **argv, struct mpd_connection *conn);
 void playlist_keymap(struct VerboseArgs* vargs);
 void basic_keymap(struct VerboseArgs* vargs);
-/* void menu_playlist_print_routine(struct VerboseArgs *vargs); */
-/* void menu_main_print_routine(struct VerboseArgs *vargs); */
-/* void menu_search_print_routine(struct VerboseArgs *vargs); */
 void searchlist_keymap(struct VerboseArgs *vargs);
 void turnoff_search_mode(struct VerboseArgs *vargs);
 void turnon_search_mode(struct VerboseArgs *vargs);
