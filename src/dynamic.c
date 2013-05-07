@@ -519,8 +519,9 @@ print_basic_song_info(struct VerboseArgs *vargs)
 {
   struct mpd_connection *conn = vargs->conn;
   struct mpd_status *status;
-  char buff[80], format[16];
+  char format[16];
   int total_time, bit_rate;
+  static int old_bit_rate = 111;
 
   WINDOW *win = specific_win(BASIC_INFO);
   
@@ -534,11 +535,12 @@ print_basic_song_info(struct VerboseArgs *vargs)
 
 	song = mpd_recv_song(conn);
 	if (song != NULL) {
-	  int twid = 38;
-	  if(snprintf(buff, twid, "%s",
-				  get_song_tag(song, MPD_TAG_TITLE)) >= twid)
-		strcpy(buff + twid - 4, "..."); // in case of long title
-	  color_print(win, 1, buff);
+	  char buff[80];
+	  /* int twid = 38; */
+	  /* if(snprintf(buff, twid, "%s", */
+	  /* 			  get_song_tag(song, MPD_TAG_TITLE)) >= twid) */
+	  /* 	strcpy(buff + twid - 4, "..."); // in case of long title */
+	  /* color_print(win, 1, buff); */
 
 	  /* print artist
 	  int awid = 28;
@@ -548,6 +550,10 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	  color_print(win, 5, buff);
 	  */
 
+	  int title_len = win->_maxx < (int)sizeof(buff) ?
+		win->_maxx : (int)sizeof(buff);
+	  snprintf(buff, title_len, "%s", get_song_tag(song, MPD_TAG_TITLE));
+	  color_print(win, 1,  buff);
 	  snprintf(format, 6, "%s%10c", get_song_format(song), ' ');
 	  
 	  mpd_song_free(song);
@@ -586,6 +592,11 @@ print_basic_song_info(struct VerboseArgs *vargs)
   wprintw(win, "]");
 
   bit_rate = mpd_status_get_kbit_rate(status);
+  if(abs(old_bit_rate - bit_rate) / (float)(bit_rate + 1) > 0.2
+	 && bit_rate != 0)
+	old_bit_rate = bit_rate;
+  else
+	bit_rate = old_bit_rate;
   wprintw(win, " %5ik/s", bit_rate);
   
   if (mpd_status_get_update_id(status) > 0)
