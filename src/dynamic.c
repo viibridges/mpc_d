@@ -533,6 +533,9 @@ print_basic_song_info(struct VerboseArgs *vargs)
   WINDOW *win = specific_win(BASIC_INFO);
   
   status = init_mpd_status(conn);
+  
+  strncpy(format, "null", sizeof(format));
+  
   if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
 	  mpd_status_get_state(status) == MPD_STATE_PAUSE) {
 	struct mpd_song *song;
@@ -562,7 +565,7 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	  snprintf(buff, title_len, "%s", get_song_tag(song, MPD_TAG_TITLE));
 	  color_print(win, 1,  buff);
 	  snprintf(format, 6, "%s%10c", get_song_format(song), ' ');
-	  
+
 	  mpd_song_free(song);
 	}
 
