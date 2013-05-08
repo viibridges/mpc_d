@@ -663,8 +663,10 @@ print_basic_bar(struct VerboseArgs *vargs)
   move(3, 0);
   wprintw(win, "[");
   wattron(win, my_color_pairs[2]);
-  for(i = 0; i < fill_len; wprintw(win, "="), i++);
+  for(i = 0; i < fill_len - 1; wprintw(win, "="), i++);
+  if(i == fill_len - 1) wprintw(win, "+");
   wprintw(win, ">");
+  //for(i = 0; i <= fill_len; wprintw(win, "="), i++);
   for(i = 0; i < empty_len; wprintw(win, " "), i++);
   wattroff(win, my_color_pairs[2]);
   wprintw(win, "]");
