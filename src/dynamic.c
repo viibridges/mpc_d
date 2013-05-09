@@ -16,6 +16,8 @@
 #include <unistd.h>
 #include <curses.h>
 #include <locale.h>
+#include <math.h>
+#include <fcntl.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
@@ -443,6 +445,112 @@ switch_to_playlist_menu(struct VerboseArgs *vargs)
   winset_update(&vargs->playlist->wmode);
 }
 
+static void
+toggle_visualizer(void)
+{
+  if(wchain[VISUALIZER].visible)
+	{
+	  clean_window(VISUALIZER);
+	  wchain[VISUALIZER].visible = 0;
+	}
+  else
+	wchain[VISUALIZER].visible = 1;
+}
+
+/** Music Visualizer **/
+static void
+get_fifo_id(struct VerboseArgs *vargs)
+{
+  const char *fifo_path = vargs->visualizer->fifo_file;
+  int id = -1;
+  
+  if((id = open(fifo_path , O_RDONLY | O_NONBLOCK)) < 0)
+	debug("couldn't open file /tmp/mpd.fifo");
+
+  vargs->visualizer->fifo_id = id;
+}
+
+static void
+draw_sound_wave(int16_t *buf)
+{
+  int i;
+  double energy = .0, scope = 100.;
+  const int size = sizeof(buf);
+  int width = wchain[VISUALIZER].win->_maxx + 1;
+  
+  for(i = 0; i < size; i++)
+	energy += buf[i] * buf[i];
+
+  /** sqrt() filter the sound energy **/
+  energy = pow(sqrt(energy / size), 0.55);
+  
+  int bars = energy * width / scope;
+
+  static int last_bars = 0, max = 0;
+  const int brake = 1;
+
+  if(bars - last_bars > brake)
+	bars -= brake;
+  else if(last_bars - bars > brake)
+	bars = last_bars - brake;
+
+  last_bars = bars;
+  
+  if(max < bars || max > bars + 8)
+	max = bars;
+  if(bars < 2)
+	max = bars;
+
+  WINDOW *win = specific_win(VISUALIZER);
+
+  int long_tail = 0;
+  while(max > width)
+	{
+	  bars -= width;
+	  max -= width;
+	  long_tail = 1;
+	}
+
+  if(long_tail)
+	{
+	  wattron(win, my_color_pairs[0]);
+	  for(i = 0; i < width - max - 2; i++)
+		mvwprintw(win, 0, i, "|");
+	  mvwprintw(win, 0, width - max, "+");
+	  wattroff(win, my_color_pairs[0]);
+
+	  wattron(win, my_color_pairs[5]);
+	  for(i = width - bars; i < width; i++)
+		mvwprintw(win, 0, i, "|");
+	  wattroff(win, my_color_pairs[6]);
+	}
+  else
+	{
+	  wattron(win, my_color_pairs[0]);
+	  for(i = 0; i < bars; i++)
+		mvwprintw(win, 0, i, "|");
+	  mvwprintw(win, 0, max, "+");
+	  wattroff(win, my_color_pairs[0]);  
+	}
+}
+
+static void
+print_visualizer(struct VerboseArgs *vargs)
+{
+  int fifo_id = vargs->visualizer->fifo_id;
+  int16_t *buf = vargs->visualizer->buff;
+
+  if (fifo_id < 0)
+	return;
+
+  if(read(fifo_id, buf, sizeof(buf)) < 0)
+	return;
+
+  draw_sound_wave(buf);
+  vargs->key_hit = 1;
+}
+
+
 /* the principle is that: if the keyboard events
  * occur frequently, then adjust the update rate
  * higher, if the keyboard is just idle, keep it
@@ -468,26 +576,26 @@ basic_state_checking(struct VerboseArgs *vargs)
 {
   static int repeat, randomm, single, queue_len, id,
 	volume, bit_rate,
-	play, rep, ran, sin, que, idd, vol, ply, btr;
+	play, rep, ran, sgl, que, idd, vol, ply, btr;
   struct mpd_status *status;
 
   status = getStatus(vargs->conn);
   rep = mpd_status_get_repeat(status);
   ran = mpd_status_get_random(status);
-  sin = mpd_status_get_single(status);
+  sgl = mpd_status_get_single(status);
   que = mpd_status_get_queue_length(status);
   idd = mpd_status_get_song_id(status);
   vol = mpd_status_get_volume(status);
   ply = mpd_status_get_state(status);
   btr = mpd_status_get_kbit_rate(status);
   mpd_status_free(status);
-  if(rep != repeat || ran != randomm || sin != single
+  if(rep != repeat || ran != randomm || sgl != single
 	 || que != queue_len || idd != id || vol != volume
 	 || ply != play)
 	{
 	  repeat = rep;
 	  randomm = ran;
-	  single = sin;
+	  single = sgl;
 	  queue_len = que;
 	  id = idd;
 	  volume = vol;
@@ -518,7 +626,6 @@ print_basic_help(mpd_unused struct VerboseArgs *vargs)
   wprintw(win, "  <L> :\tSeek backward\t\t  <R> :\tSeek forward\n");
   wprintw(win, "\n  [TAB] : New world\n");
   wprintw(win, "  [e/q] : Quit\n");
-  wrefresh(win);
 }
 
 static void
@@ -640,19 +747,18 @@ print_basic_song_info(struct VerboseArgs *vargs)
 
   mpd_status_free(status);
   my_finishCommand(conn);
-
-  wrefresh(win);
 }
 
 static void // VERBOSE_PROC_BAR
 print_basic_bar(struct VerboseArgs *vargs)
 {
-  static int crt_time, crt_time_perc, total_time,
+  int crt_time, crt_time_perc, total_time,
 	fill_len, empty_len, i;
-  static struct mpd_status *status;
+  struct mpd_status *status;
   struct mpd_connection *conn = vargs->conn;
 
   WINDOW *win = specific_win(VERBOSE_PROC_BAR);
+  const int axis_length = win->_maxx - 7;
   
   status = getStatus(conn);
   crt_time = mpd_status_get_elapsed_time(status);
@@ -660,10 +766,12 @@ print_basic_bar(struct VerboseArgs *vargs)
   mpd_status_free(status);
 
   crt_time_perc = (total_time == 0 ? 0 : 100 * crt_time / total_time);  
-  fill_len = crt_time_perc * AXIS_LENGTH / 100;
-  empty_len = AXIS_LENGTH - fill_len;
+  fill_len = crt_time_perc * axis_length / 100;
+  empty_len = axis_length - fill_len;
 
-  move(3, 0);
+
+  wprintw(win, "%3i%% ", crt_time_perc);
+  
   wprintw(win, "[");
   wattron(win, my_color_pairs[2]);
   for(i = 0; i < fill_len - 1; wprintw(win, "="), i++);
@@ -673,21 +781,17 @@ print_basic_bar(struct VerboseArgs *vargs)
   for(i = 0; i < empty_len; wprintw(win, " "), i++);
   wattroff(win, my_color_pairs[2]);
   wprintw(win, "]");
-
-  wprintw(win, "%3i%%%8c", crt_time_perc, ' ');
-  
-  wrefresh(win);
 }
 
 static void
 playlist_simple_bar(struct VerboseArgs *vargs)
 {
-  static int crt_time, crt_time_perc, total_time,
+  int crt_time, crt_time_perc, total_time,
 	fill_len, rest_len, i;
-  static struct mpd_status *status;
-  static const int bar_length = 30, bar_begin = 43;
+  struct mpd_status *status;
 
   WINDOW *win = specific_win(SIMPLE_PROC_BAR);
+  const int bar_length = win->_maxx + 1;
   
   status = getStatus(vargs->conn);
   crt_time = mpd_status_get_elapsed_time(status);
@@ -698,15 +802,11 @@ playlist_simple_bar(struct VerboseArgs *vargs)
   fill_len = crt_time_perc * bar_length / 100;
   rest_len = bar_length - fill_len;
 
-  move(4, bar_begin);
-
   wattron(win, my_color_pairs[2]);  
   for(i = 0; i < fill_len; wprintw(win, "*"), i++);
   wattroff(win, my_color_pairs[2]);  
 
   for(i = 0; i < rest_len; wprintw(win, "*"), i++);
-
-  wrefresh(win);
 }
 
 static void
@@ -716,8 +816,6 @@ playlist_up_state_bar(struct VerboseArgs *vargs)
 
   if(vargs->playlist->begin > 1)
 	wprintw(win, "%*s   %s", 3, " ", "^^^ ^^^");
-
-  wrefresh(win);  
 }
 
 static void
@@ -736,8 +834,6 @@ playlist_down_state_bar(struct VerboseArgs *vargs)
 
   if(cursor + height / 2 < length)
   	mvwprintw(win, 0, 0, "%*s   %s", 3, " ", "... ...  ");
-
-  wrefresh(win);
 }
 
 static void
@@ -773,8 +869,6 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 		  wprintw(win, "\n");
 		}
 	}
-
-  wrefresh(win);
 }
 
 static void
@@ -986,8 +1080,6 @@ search_prompt(struct VerboseArgs *vargs)
 	color_print(win, 6, str);
 
   wprintw(win, "%*s", 40, " ");
-
-  wrefresh(win);
 }
 
 static
@@ -1033,6 +1125,9 @@ void fundamental_keymap_template(struct VerboseArgs *vargs, int key)
 	case '\t':
 	  switch_to_playlist_menu(vargs);
 	  break;
+	case 'v':
+	  toggle_visualizer();
+	  break;
 	case 27: ;
 	case 'e': ;
 	case 'q':
@@ -1047,6 +1142,8 @@ void playlist_keymap_template(struct VerboseArgs *vargs, int key)
   // filter those different with the template
   switch(key)
 	{
+	case 'v': break; // key be masked
+	  
 	case KEY_DOWN:;
 	case 'j':
 	  playlist_scroll_down_line(vargs);break;
@@ -1245,6 +1342,7 @@ turnon_search_mode(struct VerboseArgs *vargs)
   playlist_cursor_hide(vargs);
 
   clean_window(VERBOSE_PROC_BAR);
+  clean_window(VISUALIZER);  
   winset_update(&vargs->searchlist->wmode);
 }
 
@@ -1271,12 +1369,11 @@ wchain_size_update(void)
   else
 	old_height = height, old_width = width;
 
-  debug("look at here!");
-	
   int wparam[WIN_NUM][4] =
 	{
 	  {3, width, 0, 0},             // BASIC_INFO
-	  {1, width, 3, 0},				// VERBOSE_PROC_BAR
+	  {1, 47, 3, 0},				// VERBOSE_PROC_BAR
+	  {1, width - 56, 3, 48},		// VISUALIZER
 	  {9, width, 5, 0},				// HELPER
 	  {1, width - 43, 4, 43},		// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
@@ -1302,7 +1399,8 @@ wchain_init(void)
 	{
 	  &print_basic_song_info,    // BASIC_INFO       
 	  &print_basic_bar,			 // VERBOSE_PROC_BAR 
-	  &print_basic_help,		 // HELPER           
+	  &print_visualizer,		 // VISUALIZER
+	  &print_basic_help,		 // HELPER
 	  &playlist_simple_bar,		 // SIMPLE_PROC_BAR  
 	  &playlist_up_state_bar,    // PLIST_UP_STATE_BAR
 	  &redraw_playlist_screen,	 // PLAYLIST
@@ -1318,13 +1416,19 @@ wchain_init(void)
 	{
 	  wchain[i].win = newwin(0, 0, 0, 0);// we're gonna change soon
 	  wchain[i].redraw_routine = func[i];
+	  wchain[i].visible = 1;
 	  wchain[i].flash = 0;
 	}
 
   // some windows need refresh frequently
   wchain[VERBOSE_PROC_BAR].flash = 1;
   wchain[SIMPLE_PROC_BAR].flash = 1;
+  wchain[VISUALIZER].flash = 1;
 
+  // and some need to hide
+  wchain[HELPER].visible = 0;
+  wchain[VISUALIZER].visible = 0;
+  
   // we share the inventory window among searchlist and playlist
   // the way we achieve this is repoint the searchlist window unit
   // to the playlist's.
@@ -1343,13 +1447,13 @@ static void
 winset_init(struct VerboseArgs *vargs)
 {
   // for basic mode (main menu)
-  vargs->wmode.size = 2;
-  //vargs->wmode.size = 3;
+  vargs->wmode.size = 4;
   vargs->wmode.wins = (struct WindowUnit**)
 	malloc(vargs->wmode.size * sizeof(struct WindowUnit*));
   vargs->wmode.wins[0] = &wchain[BASIC_INFO];
   vargs->wmode.wins[1] = &wchain[VERBOSE_PROC_BAR];
-  //vargs->wmode.wins[2] = &wchain[HELPER];
+  vargs->wmode.wins[2] = &wchain[VISUALIZER];
+  vargs->wmode.wins[3] = &wchain[HELPER];
   vargs->wmode.update_checking = &basic_state_checking;
   vargs->wmode.listen_keyboard = &basic_keymap;
 
@@ -1427,6 +1531,13 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->searchlist->key[0] = '\0';
   vargs->searchlist->plist = vargs->playlist; // windows in this mode
 
+  /** the visualizer **/
+  vargs->visualizer =
+	(struct VisualizerArgs*) malloc(sizeof(struct VisualizerArgs));
+  strncpy(vargs->visualizer->fifo_file, "/tmp/mpd.fifo",
+		  sizeof(vargs->visualizer->fifo_file));
+  get_fifo_id(vargs);
+  
   /** windows set initialization **/
   winset_init(vargs);
   winset_update(&vargs->wmode);
@@ -1438,6 +1549,7 @@ verbose_args_destroy(mpd_unused struct VerboseArgs *vargs)
   winset_free(vargs);
   free(vargs->playlist);
   free(vargs->searchlist);
+  free(vargs->visualizer);
 }
 
 static void
@@ -1520,8 +1632,11 @@ screen_redraw(struct VerboseArgs *vargs)
   struct WindowUnit **wunit = being_mode->wins;
   for(i = 0; i < being_mode->size; i++)
 	{
-	  if(wunit[i]->redraw_signal)
-		wunit[i]->redraw_routine(vargs);
+	  if(wunit[i]->visible && wunit[i]->redraw_signal)
+		{
+		  wunit[i]->redraw_routine(vargs);
+		  wrefresh(wunit[i]->win);
+		}
 	  wunit[i]->redraw_signal = wunit[i]->flash | 0;
 	}
 }

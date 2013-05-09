@@ -1,6 +1,7 @@
 /** this is my source file */
 #include <mpd/tag.h>
 #include <curses.h>
+#include <fcntl.h>
 
 #define SEEK_UNIT 3
 #define VOLUME_UNIT 3
@@ -8,7 +9,6 @@
 #define INTERVAL_MAX_UNIT 200000
 #define INTERVAL_INCREMENT 800
 #define MAX_PLAYLIST_STORE_LENGTH 700
-#define AXIS_LENGTH 44
 
 struct mpd_connection;
 
@@ -16,6 +16,7 @@ enum window_id
   {
 	BASIC_INFO,
 	VERBOSE_PROC_BAR,
+	VISUALIZER,
 	HELPER,
 	SIMPLE_PROC_BAR,
 	PLIST_UP_STATE_BAR,
@@ -31,9 +32,10 @@ struct VerboseArgs;
 
 struct WindowUnit
 {
-  // if 1 means this window redraw alway every time,
-  // its redraw_signal always be 1;
-  int flash; 
+  int visible;
+  // if visible and 1 means this window redraw alway
+  // every time, its redraw_signal always be 1;
+  int flash;
   int redraw_signal;
   
   WINDOW *win;
@@ -49,6 +51,13 @@ struct WinMode
 
   void (*update_checking)(struct VerboseArgs*);
   void (*listen_keyboard)(struct VerboseArgs*);
+};
+
+struct VisualizerArgs
+{
+  int fifo_id;
+  char fifo_file[32];
+  int16_t buff[512];
 };
 
 struct PlaylistArgs
@@ -92,6 +101,7 @@ struct VerboseArgs
   /** set to 1 once commands have been triggered by keyboad*/
   struct PlaylistArgs *playlist;
   struct SearchlistArgs *searchlist;
+  struct VisualizerArgs *visualizer;  
   
   struct WinMode wmode; // windows in main mode
 };

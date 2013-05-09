@@ -676,7 +676,8 @@ cmd_seek(mpd_unused int argc, mpd_unused char **argv, struct mpd_connection *con
 	}
 
 	if (seekto > (int)mpd_status_get_total_time(status))
-		DIE("Seek amount would seek past the end of the song\n");
+	  //DIE("Seek amount would seek past the end of the song\n");
+	  return 1;
 
 	if (!mpd_run_seek_id(conn, mpd_status_get_song_id(status), seekto))
 		printErrorAndExit(conn);
