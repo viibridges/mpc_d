@@ -527,7 +527,10 @@ draw_sound_wave(int16_t *buf)
   int i;
   double energy = .0, scope = 20.;
   const int size = sizeof(buf);
-  int width = wchain[VISUALIZER].win->_maxx + 1;
+
+  WINDOW *win = specific_win(VISUALIZER);
+
+  const int width = win->_maxx - 1;
   
   for(i = 0; i < size; i++)
 	/* energy += buf[i] * buf[i]; */
@@ -554,36 +557,24 @@ draw_sound_wave(int16_t *buf)
   if(bars < 2)
 	max = bars;
 
-  WINDOW *win = specific_win(VISUALIZER);
-
-  wprintw(win, "[");
   int long_tail = 0;
-  if(max >= width)
+  while(bars > width)
 	{
-	  bars -= width;
-	  max -= width;
+	  max = bars - width;
+	  bars = width - max;
 	  long_tail = 1;
 	}
+  
   if(max > width)
 	max = width;
-  if(bars > width)
-	bars = width;
+
+  wprintw(win, "[");
 
   if(long_tail)
 	{
-	  /* wattron(win, my_color_pairs[0]); */
-	  /* for(i = 0; i < width - max - 1; i++) */
-	  /* 	mvwprintw(win, 0, i, "/"); */
-	  /* wattroff(win, my_color_pairs[0]); */
-
-	  /* wattron(win, my_color_pairs[5]); */
-	  /* for(i = width - bars + 2; i < width; i++) */
-	  /* 	mvwprintw(win, 0, i, "\\"); */
-	  /* wattroff(win, my_color_pairs[6]); */
-	  /* wmove(win, 0, width - max); */
-	  /* color_print(win, 3, "+"); */
-	  for(i = 0; i < width - max - 1; i++)
+	  for(i = 0; i < bars; i++)
 		color_print(win, 1, "/");
+
 	  const char *trail = "-/|\\";
 	  static int j = 0;
 
@@ -596,14 +587,14 @@ draw_sound_wave(int16_t *buf)
   else
 	{
 	  wattron(win, my_color_pairs[0]);
-	  for(i = 1; i < bars; i++)
-		mvwprintw(win, 0, i, "/");
+	  for(i = 0; i < bars; i++)
+		wprintw(win, "/");
 	  wattroff(win, my_color_pairs[0]);  
 	  wmove(win, 0, max);
 	  color_print(win, 3, "+");
 	}
 
-  mvwprintw(win, 0, width - 1, "]");
+  mvwprintw(win, 0, win->_maxx, "]");
 }
 
 static void
@@ -1594,7 +1585,7 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->quit_signal = 0;
 
   /* check the screen size */
-  if(stdscr->_maxy < 8 || stdscr->_maxx < 68)
+  if(stdscr->_maxy < 3 || stdscr->_maxx < 68)
 	{
 	  endwin();
 	  fprintf(stderr, "screen too small for normally displaying.\n");
