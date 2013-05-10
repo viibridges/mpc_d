@@ -14,18 +14,19 @@ struct mpd_connection;
 
 enum window_id
   {
-	BASIC_INFO,
-	VERBOSE_PROC_BAR,
-	VISUALIZER,
-	HELPER,
-	SIMPLE_PROC_BAR,
-	PLIST_UP_STATE_BAR,
-	PLAYLIST,
-	PLIST_DOWN_STATE_BAR,
-	SEARCHLIST,
-	SEARCH_INPUT,
-	DEBUG_INFO,
-	WIN_NUM            
+	BASIC_INFO,              // title, status, play mode ...
+	EXTRA_INFO,				 // volume meter, search tag ...
+	VERBOSE_PROC_BAR,		 // time bar for basic mode
+	VISUALIZER,				 // visulizer: vu meter
+	HELPER,					 // help page
+	SIMPLE_PROC_BAR,		 // time bar for playlist mode
+	PLIST_UP_STATE_BAR,		 // implies scroll up
+	PLAYLIST,				 // playlist
+	PLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
+	SEARCHLIST,				 // searchlist
+	SEARCH_INPUT,			 // search prompt area
+	DEBUG_INFO,				 // for debug perpuse only
+	WIN_NUM                  // number of windows
   };
 
 struct VerboseArgs;

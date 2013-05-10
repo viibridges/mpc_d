@@ -556,6 +556,7 @@ draw_sound_wave(int16_t *buf)
 
   WINDOW *win = specific_win(VISUALIZER);
 
+  wprintw(win, "[");
   int long_tail = 0;
   if(max >= width)
 	{
@@ -595,12 +596,14 @@ draw_sound_wave(int16_t *buf)
   else
 	{
 	  wattron(win, my_color_pairs[0]);
-	  for(i = 0; i < bars; i++)
+	  for(i = 1; i < bars; i++)
 		mvwprintw(win, 0, i, "/");
 	  wattroff(win, my_color_pairs[0]);  
 	  wmove(win, 0, max);
 	  color_print(win, 3, "+");
 	}
+
+  mvwprintw(win, 0, width - 1, "]");
 }
 
 static void
@@ -707,6 +710,38 @@ print_basic_help(mpd_unused struct VerboseArgs *vargs)
 }
 
 static void
+print_extra_info(struct VerboseArgs *vargs)
+{
+  WINDOW *win = specific_win(EXTRA_INFO);
+
+  struct mpd_status *status;
+  status = init_mpd_status(vargs->conn);
+  
+  if (mpd_status_get_update_id(status) > 0)
+	wprintw(win, "Updating DB (#%u) ...",
+			mpd_status_get_update_id(status));
+
+  if (mpd_status_get_volume(status) >= 0)
+	wprintw(win, "Volume:%3i%c ", mpd_status_get_volume(status), '%');
+  else {
+	wprintw(win, "Volume: n/a   ");
+  }
+
+  mvwprintw(win, 0, 14, "Search: ");
+  color_print(win, 6,
+			  mpd_tag_name(vargs->searchlist->tags
+						   [vargs->searchlist->crt_tag_id]));
+  wprintw(win, "  ");
+
+  if (mpd_status_get_error(status) != NULL)
+	wprintw(win, "ERROR: %s\n",
+			charset_from_utf8(mpd_status_get_error(status)));
+
+  mpd_status_free(status);
+  my_finishCommand(vargs->conn);
+}
+
+static void
 print_basic_song_info(struct VerboseArgs *vargs)
 {
   struct mpd_connection *conn = vargs->conn;
@@ -749,8 +784,9 @@ print_basic_song_info(struct VerboseArgs *vargs)
 		win->_maxx : (int)sizeof(buff);
 	  snprintf(buff, title_len, "%s", get_song_tag(song, MPD_TAG_TITLE));
 	  color_print(win, 1,  buff);
-	  snprintf(format, 6, "%s%10c", get_song_format(song), ' ');
-
+	  //snprintf(format, 6, "%s%10c", get_song_format(song), ' ');
+	  strncpy(format, get_song_format(song), sizeof(format));
+	  
 	  mpd_song_free(song);
 	}
 
@@ -767,12 +803,12 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	  }
   }
 
-  mvwprintw(win, 1, 10, "[%i/%u]",
-		  mpd_status_get_song_pos(status) + 1,
-		  mpd_status_get_queue_length(status));
+  /* mvwprintw(win, 1, 10, "[%i/%u]", */
+  /* 		  mpd_status_get_song_pos(status) + 1, */
+  /* 		  mpd_status_get_queue_length(status)); */
   
   // status modes [ors] : repeat, random, single
-  mvwprintw(win, 1, 20, "["); 
+  mvwprintw(win, 1, 10, "["); 
   if (mpd_status_get_random(status))
 	color_print(win, 1, "r");
   else wprintw(win, "-");
@@ -786,13 +822,10 @@ print_basic_song_info(struct VerboseArgs *vargs)
   else wprintw(win, "-");
   wprintw(win, "]");
 
-  int rstart = 46;
-  
-  mvwprintw(win, 1, rstart, "%s ", format); // music format
+  mvwprintw(win, 1, 16, "[%s]", format); // music format
 
   total_time = mpd_status_get_total_time(status);
-  mvwprintw(win, 1, rstart + 6, "%02i:%02i",
-		  total_time / 60, total_time % 60);
+  mvwprintw(win, 1, 46, "%02i:%i", total_time / 60, total_time % 60);
 
   bit_rate = mpd_status_get_kbit_rate(status);
   if(abs(old_bit_rate - bit_rate) / (float)(bit_rate + 1) > 0.2
@@ -800,29 +833,8 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	old_bit_rate = bit_rate;
   else
 	bit_rate = old_bit_rate;
-  mvwprintw(win, 1, rstart + 11, " %5ik/s", bit_rate);
+  mvwprintw(win, 1, 59, " %ik/s", bit_rate);
   
-  if (mpd_status_get_update_id(status) > 0)
-	mvwprintw(win, 2, 0, "Updating DB (#%u) ...",
-			mpd_status_get_update_id(status));
-
-  wmove(win, 2, rstart);
-  if (mpd_status_get_volume(status) >= 0)
-	wprintw(win, "Volume:%3i%c ", mpd_status_get_volume(status), '%');
-  else {
-	wprintw(win, "Volume: n/a   ");
-  }
-
-  mvwprintw(win, 2, rstart + 14, "Search: ");
-  color_print(win, 6,
-			  mpd_tag_name(vargs->searchlist->tags
-						   [vargs->searchlist->crt_tag_id]));
-  wprintw(win, "  ");
-
-  if (mpd_status_get_error(status) != NULL)
-	wprintw(win, "ERROR: %s\n",
-			charset_from_utf8(mpd_status_get_error(status)));
-
   mpd_status_free(status);
   my_finishCommand(conn);
 }
@@ -846,9 +858,6 @@ print_basic_bar(struct VerboseArgs *vargs)
   crt_time_perc = (total_time == 0 ? 0 : 100 * crt_time / total_time);  
   fill_len = crt_time_perc * axis_length / 100;
   empty_len = axis_length - fill_len;
-
-
-  wprintw(win, "%3i%% ", crt_time_perc);
   
   wprintw(win, "[");
   wattron(win, my_color_pairs[2]);
@@ -859,6 +868,8 @@ print_basic_bar(struct VerboseArgs *vargs)
   for(i = 0; i < empty_len; wprintw(win, " "), i++);
   wattroff(win, my_color_pairs[2]);
   wprintw(win, "]");
+
+  wprintw(win, "%3i%% ", crt_time_perc);
 }
 
 static void
@@ -1449,9 +1460,10 @@ wchain_size_update(void)
 
   int wparam[WIN_NUM][4] =
 	{
-	  {3, width, 0, 0},             // BASIC_INFO
-	  {1, 47, 3, 0},				// VERBOSE_PROC_BAR
-	  {1, 24, 3, 48},				// VISUALIZER
+	  {2, width, 0, 0},             // BASIC_INFO
+	  {1, width - 47, 2, 46},       // EXTRA_INFO
+	  {1, 42, 2, 0},				// VERBOSE_PROC_BAR
+	  {1, 67, 3, 0},				// VISUALIZER
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
@@ -1476,6 +1488,7 @@ wchain_init(void)
   void (*func[WIN_NUM])(struct VerboseArgs*) =
 	{
 	  &print_basic_song_info,    // BASIC_INFO       
+	  &print_extra_info,		 // EXTRA_INFO       
 	  &print_basic_bar,			 // VERBOSE_PROC_BAR 
 	  &print_visualizer,		 // VISUALIZER
 	  &print_basic_help,		 // HELPER
@@ -1525,38 +1538,41 @@ static void
 winset_init(struct VerboseArgs *vargs)
 {
   // for basic mode (main menu)
-  vargs->wmode.size = 4;
+  vargs->wmode.size = 5;
   vargs->wmode.wins = (struct WindowUnit**)
 	malloc(vargs->wmode.size * sizeof(struct WindowUnit*));
   vargs->wmode.wins[0] = &wchain[BASIC_INFO];
-  vargs->wmode.wins[1] = &wchain[VERBOSE_PROC_BAR];
-  vargs->wmode.wins[2] = &wchain[VISUALIZER];
-  vargs->wmode.wins[3] = &wchain[HELPER];
+  vargs->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  vargs->wmode.wins[2] = &wchain[VERBOSE_PROC_BAR];
+  vargs->wmode.wins[3] = &wchain[VISUALIZER];
+  vargs->wmode.wins[4] = &wchain[HELPER];
   vargs->wmode.update_checking = &basic_state_checking;
   vargs->wmode.listen_keyboard = &basic_keymap;
 
   // playlist wmode
-  vargs->playlist->wmode.size = 5;
+  vargs->playlist->wmode.size = 6;
   vargs->playlist->wmode.wins = (struct WindowUnit**)
 	malloc(vargs->playlist->wmode.size * sizeof(struct WindowUnit*));
   vargs->playlist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
-  vargs->playlist->wmode.wins[1] = &wchain[PLIST_UP_STATE_BAR];
-  vargs->playlist->wmode.wins[2] = &wchain[SIMPLE_PROC_BAR];
-  vargs->playlist->wmode.wins[3] = &wchain[BASIC_INFO];
-  vargs->playlist->wmode.wins[4] = &wchain[PLAYLIST];
+  vargs->playlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  vargs->playlist->wmode.wins[2] = &wchain[PLIST_UP_STATE_BAR];
+  vargs->playlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  vargs->playlist->wmode.wins[4] = &wchain[BASIC_INFO];
+  vargs->playlist->wmode.wins[5] = &wchain[PLAYLIST];
   vargs->playlist->wmode.update_checking = &playlist_update_checking;
   vargs->playlist->wmode.listen_keyboard = &playlist_keymap;
 
   // searchlist wmode
-  vargs->searchlist->wmode.size = 6;
+  vargs->searchlist->wmode.size = 7;
   vargs->searchlist->wmode.wins = (struct WindowUnit**)
 	malloc(vargs->searchlist->wmode.size * sizeof(struct WindowUnit*));
   vargs->searchlist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
-  vargs->searchlist->wmode.wins[1] = &wchain[PLIST_UP_STATE_BAR];
-  vargs->searchlist->wmode.wins[2] = &wchain[SEARCH_INPUT];  
-  vargs->searchlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
-  vargs->searchlist->wmode.wins[4] = &wchain[BASIC_INFO];
-  vargs->searchlist->wmode.wins[5] = &wchain[SEARCHLIST];  
+  vargs->searchlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  vargs->searchlist->wmode.wins[2] = &wchain[PLIST_UP_STATE_BAR];
+  vargs->searchlist->wmode.wins[3] = &wchain[SEARCH_INPUT];  
+  vargs->searchlist->wmode.wins[4] = &wchain[SIMPLE_PROC_BAR];
+  vargs->searchlist->wmode.wins[5] = &wchain[BASIC_INFO];
+  vargs->searchlist->wmode.wins[6] = &wchain[SEARCHLIST];  
   vargs->searchlist->wmode.update_checking = &searchlist_update_checking;
   vargs->searchlist->wmode.listen_keyboard = &searchlist_keymap;
 }
