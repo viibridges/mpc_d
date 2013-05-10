@@ -130,6 +130,15 @@ static mpd_unused void debug(const char *debug_info)
   wrefresh(win);
 }
 
+static mpd_unused void debug_static(const char *debug_info)
+{
+  static int t = 1;
+  WINDOW *win = specific_win(DEBUG_INFO);
+  wprintw(win, "[%i] ", t++);
+  wprintw(win, debug_info);
+  wrefresh(win);
+}
+
 static mpd_unused void debug_int(const int num)
 {
   WINDOW *win = specific_win(DEBUG_INFO);
@@ -465,24 +474,68 @@ get_fifo_id(struct VerboseArgs *vargs)
   int id = -1;
   
   if((id = open(fifo_path , O_RDONLY | O_NONBLOCK)) < 0)
-	debug("couldn't open file /tmp/mpd.fifo");
+	debug("couldn't open the fifo file");
 
   vargs->visualizer->fifo_id = id;
+}
+
+static mpd_unused int
+get_fifo_output_id(struct VerboseArgs *vargs)
+{
+	struct mpd_output *output;
+	int ret = -1, id;
+	const char *name;
+
+	mpd_send_outputs(vargs->conn);
+
+	while ((output = mpd_recv_output(vargs->conn)) != NULL) {
+		id = mpd_output_get_id(output);
+		name = mpd_output_get_name(output);
+
+		if (mpd_output_get_enabled(output)
+			&& !strstr(name, "FIFO"))
+		  ret = id;
+
+		mpd_output_free(output);
+	}
+
+	if(ret == -1)
+	  debug("output disenabled.");
+	
+	mpd_response_finish(vargs->conn);
+
+	return ret;
+}
+
+
+static mpd_unused void
+fifo_output_update(struct VerboseArgs *vargs)
+{
+  int fifo_output_id = get_fifo_output_id(vargs);
+
+  if(fifo_output_id != -1)
+	{
+	  mpd_run_disable_output(vargs->conn, fifo_output_id);
+	  usleep(3e4);
+	  mpd_run_enable_output(vargs->conn, fifo_output_id);
+	}
 }
 
 static void
 draw_sound_wave(int16_t *buf)
 {
   int i;
-  double energy = .0, scope = 100.;
+  double energy = .0, scope = 20.;
   const int size = sizeof(buf);
   int width = wchain[VISUALIZER].win->_maxx + 1;
   
   for(i = 0; i < size; i++)
-	energy += buf[i] * buf[i];
+	/* energy += buf[i] * buf[i]; */
+	if(energy < buf[i] * buf[i])
+	  energy = buf[i] * buf[i];
 
   /** sqrt() filter the sound energy **/
-  energy = pow(sqrt(energy / size), 0.55);
+  energy = pow(sqrt(energy / size), 1. / 3.);
   
   int bars = energy * width / scope;
 
@@ -491,12 +544,12 @@ draw_sound_wave(int16_t *buf)
 
   if(bars - last_bars > brake)
 	bars -= brake;
-  else if(last_bars - bars > brake)
+  else
 	bars = last_bars - brake;
 
   last_bars = bars;
   
-  if(max < bars || max > bars + 8)
+  if(max < bars || max > bars + 5)
 	max = bars;
   if(bars < 2)
 	max = bars;
@@ -504,33 +557,49 @@ draw_sound_wave(int16_t *buf)
   WINDOW *win = specific_win(VISUALIZER);
 
   int long_tail = 0;
-  while(max > width)
+  if(max >= width)
 	{
 	  bars -= width;
 	  max -= width;
 	  long_tail = 1;
 	}
+  if(max > width)
+	max = width;
+  if(bars > width)
+	bars = width;
 
   if(long_tail)
 	{
-	  wattron(win, my_color_pairs[0]);
-	  for(i = 0; i < width - max - 2; i++)
-		mvwprintw(win, 0, i, "|");
-	  mvwprintw(win, 0, width - max, "+");
-	  wattroff(win, my_color_pairs[0]);
+	  /* wattron(win, my_color_pairs[0]); */
+	  /* for(i = 0; i < width - max - 1; i++) */
+	  /* 	mvwprintw(win, 0, i, "/"); */
+	  /* wattroff(win, my_color_pairs[0]); */
 
-	  wattron(win, my_color_pairs[5]);
-	  for(i = width - bars; i < width; i++)
-		mvwprintw(win, 0, i, "|");
-	  wattroff(win, my_color_pairs[6]);
+	  /* wattron(win, my_color_pairs[5]); */
+	  /* for(i = width - bars + 2; i < width; i++) */
+	  /* 	mvwprintw(win, 0, i, "\\"); */
+	  /* wattroff(win, my_color_pairs[6]); */
+	  /* wmove(win, 0, width - max); */
+	  /* color_print(win, 3, "+"); */
+	  for(i = 0; i < width - max - 1; i++)
+		color_print(win, 1, "/");
+	  const char *trail = "-/|\\";
+	  static int j = 0;
+
+	  wattron(win, my_color_pairs[2]);
+	  for(i = 0; i < max; i++)
+		wprintw(win, "%c", trail[j]);
+	  wattroff(win, my_color_pairs[2]);	  
+	  j = (j + 1) % 4;
 	}
   else
 	{
 	  wattron(win, my_color_pairs[0]);
 	  for(i = 0; i < bars; i++)
-		mvwprintw(win, 0, i, "|");
-	  mvwprintw(win, 0, max, "+");
+		mvwprintw(win, 0, i, "/");
 	  wattroff(win, my_color_pairs[0]);  
+	  wmove(win, 0, max);
+	  color_print(win, 3, "+");
 	}
 }
 
@@ -546,8 +615,16 @@ print_visualizer(struct VerboseArgs *vargs)
   if(read(fifo_id, buf, sizeof(buf)) < 0)
 	return;
 
+  static long count = 0;
+  // some delicate calculation of the refresh interval 
+  if(count++ % 4000 == 0)
+	{
+	  fifo_output_update(vargs);
+	  count = 1;
+	}
+  
   draw_sound_wave(buf);
-  vargs->key_hit = 1;
+  vargs->interval_level = 1;
 }
 
 
@@ -560,10 +637,11 @@ void smart_sleep(struct VerboseArgs* vargs)
 {
   static int us = INTERVAL_MAX_UNIT;
 
-  if(vargs->key_hit)
+  if(vargs->interval_level)
 	{
-	  us = INTERVAL_MIN_UNIT;
-	  vargs->key_hit = 0;
+	  us = INTERVAL_MIN_UNIT +
+		(vargs->interval_level - 1) * 10000;
+	  vargs->interval_level = 0;
 	}
   else
 	us = us < INTERVAL_MAX_UNIT ? us + INTERVAL_INCREMENT : us;
@@ -1188,7 +1266,7 @@ searchlist_picking_keymap(struct VerboseArgs *vargs)
   int key = getch();
 
   if(key != ERR)
-	vargs->key_hit = 1;
+	vargs->interval_level = 1;
   else
 	return;
 
@@ -1239,7 +1317,7 @@ basic_keymap(struct VerboseArgs *vargs)
   int key = getch();
 
   if(key != ERR)
-	vargs->key_hit = 1;
+	vargs->interval_level = 1;
   else
 	return;
 
@@ -1255,7 +1333,7 @@ playlist_keymap(struct VerboseArgs* vargs)
   int key = getch();
 
   if(key != ERR)
-	vargs->key_hit = 1;
+	vargs->interval_level = 1;
   else
 	return;
 
@@ -1271,7 +1349,7 @@ searchlist_keymap(struct VerboseArgs* vargs)
   int i, key = getch();
 
   if(key != ERR)
-	vargs->key_hit = 1;
+	vargs->interval_level = 1;
   else
 	return;
 
@@ -1373,9 +1451,9 @@ wchain_size_update(void)
 	{
 	  {3, width, 0, 0},             // BASIC_INFO
 	  {1, 47, 3, 0},				// VERBOSE_PROC_BAR
-	  {1, width - 56, 3, 48},		// VISUALIZER
+	  {1, 24, 3, 48},				// VISUALIZER
 	  {9, width, 5, 0},				// HELPER
-	  {1, width - 43, 4, 43},		// SIMPLE_PROC_BAR
+	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
 	  {height - 8, width, 5, 0},	// PLAYLIST
 	  {1, width, height - 3, 0},	// PLIST_DOWN_STATE_BAR
@@ -1496,7 +1574,7 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
 {
   vargs->conn = conn;
   /* initialization require redraw too */
-  vargs->key_hit = 1;
+  vargs->interval_level = 1;
   vargs->quit_signal = 0;
 
   /* check the screen size */

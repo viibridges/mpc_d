@@ -57,7 +57,7 @@ struct VisualizerArgs
 {
   int fifo_id;
   char fifo_file[32];
-  int16_t buff[512];
+  int16_t buff[32];
 };
 
 struct PlaylistArgs
@@ -96,7 +96,10 @@ struct VerboseArgs
 
   int redraw_signal;
   int quit_signal;
-  int key_hit;
+  // 1 for the minimum interval, 0 for dynamic (increase),
+  // the larger the longer, the scope is between
+  // INTERVAL_MIN_UNIT and  INTERVAL_MAX_UNIT
+  int interval_level;
   
   /** set to 1 once commands have been triggered by keyboad*/
   struct PlaylistArgs *playlist;
