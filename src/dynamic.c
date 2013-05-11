@@ -522,42 +522,17 @@ fifo_output_update(struct VerboseArgs *vargs)
 }
 
 static void
-draw_sound_wave(int16_t *buf)
+print_uv_meter(int bars, int max)
 {
-  int i;
-  double energy = .0, scope = 20.;
-  const int size = sizeof(buf);
-
+  int i, long_tail = 0;
+  
   WINDOW *win = specific_win(VISUALIZER);
 
-  const int width = win->_maxx - 1;
+  int width = win->_maxx - 1;
+
+  if(max == 0)
+	bars = max = 1;
   
-  for(i = 0; i < size; i++)
-	/* energy += buf[i] * buf[i]; */
-	if(energy < buf[i] * buf[i])
-	  energy = buf[i] * buf[i];
-
-  /** sqrt() filter the sound energy **/
-  energy = pow(sqrt(energy / size), 1. / 3.);
-  
-  int bars = energy * width / scope;
-
-  static int last_bars = 0, max = 0;
-  const int brake = 1;
-
-  if(bars - last_bars > brake)
-	bars -= brake;
-  else
-	bars = last_bars - brake;
-
-  last_bars = bars;
-  
-  if(max < bars || max > bars + 5)
-	max = bars;
-  if(bars < 2)
-	max = bars;
-
-  int long_tail = 0;
   while(bars > width)
 	{
 	  max = bars - width;
@@ -595,6 +570,51 @@ draw_sound_wave(int16_t *buf)
 	}
 
   mvwprintw(win, 0, win->_maxx, "]");
+}
+
+static void
+draw_sound_wave(int16_t *buf)
+{
+  int i;
+  double energy = .0, scope = 25.;
+  const int size = sizeof(buf);
+
+  const int width = wchain[VISUALIZER].win->_maxx - 1;
+  
+  for(i = 0; i < size; i++)
+	energy += buf[i] * buf[i];
+	/* if(energy < buf[i] * buf[i]) */
+	/*   energy = buf[i] * buf[i]; */
+
+  /** sqrt() filter the sound energy **/
+  energy = pow(sqrt(energy / size), 1. / 3.);
+  
+  int bars = energy * width / scope;
+
+  static int last_bars = 0, max = 0;
+  const int brake = 1;
+
+  if(bars - last_bars > brake)
+	bars -= brake;
+  else
+	bars = last_bars - brake;
+
+  last_bars = bars;
+  
+  if(max < bars || max > bars + 5)
+	max = bars;
+  if(bars < 2)
+	max = bars;
+
+  /* it seems that the mpd fifo a little percivably
+	 forward than the sound card rendering, I use
+	 cache to synchronize them */
+  #define DELAY 23
+  static int bcache[DELAY], mcache[DELAY], id = 0;
+  bcache[id] = bars, mcache[id] = max;
+  id = (id + 1) % DELAY;
+  
+  print_uv_meter(bcache[id], mcache[id]);
 }
 
 static void
@@ -1454,7 +1474,7 @@ wchain_size_update(void)
 	  {2, width, 0, 0},             // BASIC_INFO
 	  {1, width - 47, 2, 46},       // EXTRA_INFO
 	  {1, 42, 2, 0},				// VERBOSE_PROC_BAR
-	  {1, 67, 3, 0},				// VISUALIZER
+	  {1, 72, 3, 0},				// VISUALIZER
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
