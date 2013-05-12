@@ -543,15 +543,17 @@ print_uv_meter(int bars, int max)
   if(max > width)
 	max = width;
 
-  wprintw(win, "[");
+  wprintw(win, "_");
 
   if(long_tail)
 	{
-	  for(i = 0; i < bars; i++)
-		color_print(win, 1, "/");
-
 	  const char *trail = "-/|\\";
 	  static int j = 0;
+
+	  wattron(win, my_color_pairs[0]);
+	  for(i = 0; i < bars; i++)
+		wprintw(win, "%c", trail[j]);
+	  wattron(win, my_color_pairs[0]);
 
 	  wattron(win, my_color_pairs[2]);
 	  for(i = 0; i < max; i++)
@@ -563,21 +565,21 @@ print_uv_meter(int bars, int max)
 	{
 	  wattron(win, my_color_pairs[0]);
 	  for(i = 0; i < bars; i++)
-		wprintw(win, "/");
+		wprintw(win, "|");
 	  wattroff(win, my_color_pairs[0]);  
 	  wmove(win, 0, max);
 	  color_print(win, 3, "+");
 	}
 
-  mvwprintw(win, 0, win->_maxx, "]");
+  mvwprintw(win, 0, win->_maxx, "_");
 }
 
 static void
 draw_sound_wave(int16_t *buf)
 {
   int i;
-  double energy = .0, scope = 25.;
-  const int size = sizeof(buf);
+  double energy = .0, scope = 30.;
+  const int size = BUFFER_SIZE;
 
   const int width = wchain[VISUALIZER].win->_maxx - 1;
   
@@ -586,7 +588,7 @@ draw_sound_wave(int16_t *buf)
 	/* if(energy < buf[i] * buf[i]) */
 	/*   energy = buf[i] * buf[i]; */
 
-  /** sqrt() filter the sound energy **/
+  /** filter the sound energy **/
   energy = pow(sqrt(energy / size), 1. / 3.);
   
   int bars = energy * width / scope;
@@ -601,7 +603,7 @@ draw_sound_wave(int16_t *buf)
 
   last_bars = bars;
   
-  if(max < bars || max > bars + 5)
+  if(max < bars || max > bars + 10)
 	max = bars;
   if(bars < 2)
 	max = bars;
@@ -609,12 +611,13 @@ draw_sound_wave(int16_t *buf)
   /* it seems that the mpd fifo a little percivably
 	 forward than the sound card rendering, I use
 	 cache to synchronize them */
-  #define DELAY 23
+#define DELAY 15
   static int bcache[DELAY], mcache[DELAY], id = 0;
   bcache[id] = bars, mcache[id] = max;
   id = (id + 1) % DELAY;
-  
   print_uv_meter(bcache[id], mcache[id]);
+  
+  //print_uv_meter(bars, max);
 }
 
 static void
@@ -626,7 +629,8 @@ print_visualizer(struct VerboseArgs *vargs)
   if (fifo_id < 0)
 	return;
 
-  if(read(fifo_id, buf, sizeof(buf)) < 0)
+  if(read(fifo_id, buf, BUFFER_SIZE *
+		  sizeof(int16_t) / sizeof(char)) < 0)
 	return;
 
   static long count = 0;
@@ -844,7 +848,7 @@ print_basic_song_info(struct VerboseArgs *vargs)
 	old_bit_rate = bit_rate;
   else
 	bit_rate = old_bit_rate;
-  mvwprintw(win, 1, 59, " %ik/s", bit_rate);
+  mvwprintw(win, 1, 59, " %ikb/s", bit_rate);
   
   mpd_status_free(status);
   my_finishCommand(conn);

@@ -9,6 +9,7 @@
 #define INTERVAL_MAX_UNIT 200000
 #define INTERVAL_INCREMENT 800
 #define MAX_PLAYLIST_STORE_LENGTH 700
+#define BUFFER_SIZE 32
 
 struct mpd_connection;
 
@@ -57,8 +58,8 @@ struct WinMode
 struct VisualizerArgs
 {
   int fifo_id;
-  char fifo_file[32];
-  int16_t buff[32];
+  char fifo_file[64];
+  int16_t buff[BUFFER_SIZE];
 };
 
 struct PlaylistArgs
