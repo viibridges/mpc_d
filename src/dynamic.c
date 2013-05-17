@@ -926,7 +926,7 @@ static void
 playlist_down_state_bar(struct VerboseArgs *vargs)
 {
   static const char *bar =
-	"__________________________________________________________/";
+	"_________________________________________________________/";
   WINDOW *win = specific_win(PLIST_DOWN_STATE_BAR);  
 
   int length = vargs->playlist->length,
@@ -944,7 +944,7 @@ static void
 redraw_playlist_screen(struct VerboseArgs *vargs)
 {
   static char buff[96];
-  int i, height = wchain[PLAYLIST].win->_maxy + 1;
+  int line = 0, i, height = wchain[PLAYLIST].win->_maxy + 1;
 
   WINDOW *win = specific_win(PLAYLIST);  
   
@@ -958,19 +958,19 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 	  if(i + 1 == vargs->playlist->cursor)
 		{
 		  color_print(win, 2, buff);
-		  wprintw(win, "\n");
+		  wmove(win, ++line, 0);
 		  continue;
 		}
 	  
 	  if(vargs->playlist->id[i] == vargs->playlist->current)
 		{
 		  color_print(win, 1, buff);	  
-		  wprintw(win, "\n");
+		  wmove(win, ++line, 0);
 		}
 	  else
 		{
 		  color_print(win, 0, buff);
-		  wprintw(win, "\n");
+		  wmove(win, ++line, 0);
 		}
 	}
 }
@@ -1482,9 +1482,9 @@ wchain_size_update(void)
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
-	  {height - 8, width, 5, 0},	// PLAYLIST
+	  {height - 8, 72, 5, 0},	// PLAYLIST
 	  {1, width, height - 3, 0},	// PLIST_DOWN_STATE_BAR
-	  {height - 8, width, 5, 0},	// SEARCHLIST
+	  {height - 8, 72, 5, 0},	// SEARCHLIST
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
 	}; 
