@@ -941,36 +941,52 @@ playlist_down_state_bar(struct VerboseArgs *vargs)
 }
 
 static void
+print_playlist_item(WINDOW *win, int line, int color, int id,
+					char *title, char *artist)
+{
+  const int title_left = 6;
+  const int artist_left = 43;
+  const int width = win->_maxx + 1;
+
+  wattron(win, my_color_pairs[color - 1]);
+
+  mvwprintw(win, line, 0, "%*c", width, ' ');
+  mvwprintw(win, line, 0, "%3i.", id);
+  mvwprintw(win, line, title_left, "%s", title);
+  mvwprintw(win, line, artist_left, "%s", artist);
+  
+  wattroff(win, my_color_pairs[color - 1]);
+}
+
+static void
 redraw_playlist_screen(struct VerboseArgs *vargs)
 {
-  static char buff[96];
   int line = 0, i, height = wchain[PLAYLIST].win->_maxy + 1;
 
   WINDOW *win = specific_win(PLAYLIST);  
-  
+
+  int id;
+  char *title, *artist;
   for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
 		+ height - 1 && i < vargs->playlist->length; i++)
 	{
-	  snprintf(buff, sizeof(buff), "%3i.  %s           %s",
-			   vargs->playlist->id[i], vargs->playlist->pretty_title[i],
-			   vargs->playlist->artist[i]);
+	  id = vargs->playlist->id[i];
+	  title = vargs->playlist->pretty_title[i];
+	  artist = vargs->playlist->artist[i];
 
 	  if(i + 1 == vargs->playlist->cursor)
 		{
-		  color_print(win, 2, buff);
-		  wmove(win, ++line, 0);
+		  print_playlist_item(win, line++, 2, id, title, artist);
 		  continue;
 		}
 	  
 	  if(vargs->playlist->id[i] == vargs->playlist->current)
 		{
-		  color_print(win, 1, buff);	  
-		  wmove(win, ++line, 0);
+		  print_playlist_item(win, line++, 1, id, title, artist);
 		}
 	  else
 		{
-		  color_print(win, 0, buff);
-		  wmove(win, ++line, 0);
+		  print_playlist_item(win, line++, 0, id, title, artist);
 		}
 	}
 }
@@ -1000,9 +1016,6 @@ copy_song_tag(char *string, const char * tag, int size, int width)
 		  strncpy(string + width - 3, "...", 4);
 		  return;
 		}
-	  else
-		for(int j = 0; i < size - 1 && j < width - 2*unic - asci; i++, j++)
-		  string[i] = ' ';
 	}
 
   string[i] = '\0';
@@ -1028,7 +1041,7 @@ update_playlist(struct VerboseArgs *vargs)
 					sizeof(vargs->playlist->pretty_title[0]), 26);
 	  copy_song_tag(vargs->playlist->artist[i],
 					get_song_tag(song, MPD_TAG_ARTIST),
-					sizeof(vargs->playlist->title[0]), 30);	  
+					sizeof(vargs->playlist->title[0]), 20);	  
 	  copy_song_tag(vargs->playlist->album[i],
 					get_song_tag(song, MPD_TAG_ALBUM),
 					sizeof(vargs->playlist->title[0]), -1);
@@ -1482,7 +1495,7 @@ wchain_size_update(void)
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
-	  {height - 8, 72, 5, 0},	// PLAYLIST
+	  {height - 8, 73, 5, 0},	// PLAYLIST
 	  {1, width, height - 3, 0},	// PLIST_DOWN_STATE_BAR
 	  {height - 8, 72, 5, 0},	// SEARCHLIST
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
