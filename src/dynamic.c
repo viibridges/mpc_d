@@ -1,11 +1,5 @@
 #include "dynamic.h"
-#include "command.h"
-#include "charset.h"
-#include "options.h"
-#include "util.h"
-#include "search.h"
-#include "status.h"
-#include "gcc.h"
+//#include "command.h"
 
 #include <mpd/client.h>
 
@@ -18,6 +12,7 @@
 #include <locale.h>
 #include <math.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
@@ -91,6 +86,20 @@ color_print(WINDOW *win, int color_scheme, const char *str)
 /*************************************
  **    SYSTEM  AND  MISCELLANY      **
  *************************************/
+static void
+printErrorAndExit(struct mpd_connection *conn)
+{
+	const char *message;
+
+	assert(mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS);
+
+	message = mpd_connection_get_error_message(conn);
+
+	fprintf(stderr, "error: %s\n", message);
+	mpd_connection_free(conn);
+	exit(EXIT_FAILURE);
+}
+
 static void my_finishCommand(struct mpd_connection *conn) {
   if (!mpd_response_finish(conn))
 	printErrorAndExit(conn);
@@ -288,6 +297,28 @@ static void
 cmd_Playback(struct VerboseArgs* vargs)
 {
   cmd_playback(0, NULL, vargs->conn);
+}
+
+int cmd_repeat ( int argc, char ** argv, struct mpd_connection *conn )
+{
+	int mode;
+
+	if(argc==1) {
+		mode = get_boolean(argv[0]);
+		if (mode < 0)
+			return -1;
+	}
+	else {
+		struct mpd_status *status;
+		status = getStatus(conn);
+		mode = !mpd_status_get_repeat(status);
+		mpd_status_free(status);
+	}
+
+	if (!mpd_run_repeat(conn, mode))
+		printErrorAndExit(conn);
+
+	return 1;
 }
 
 static void
@@ -749,8 +780,7 @@ print_extra_info(struct VerboseArgs *vargs)
   wprintw(win, "  ");
 
   if (mpd_status_get_error(status) != NULL)
-	wprintw(win, "ERROR: %s\n",
-			charset_from_utf8(mpd_status_get_error(status)));
+	wprintw(win, "ERROR: %s\n", mpd_status_get_error(status));
 
   mpd_status_free(status);
   my_finishCommand(vargs->conn);
@@ -946,7 +976,7 @@ print_playlist_item(WINDOW *win, int line, int color, int id,
 {
   const int title_left = 6;
   const int artist_left = 43;
-  const int width = win->_maxx + 1;
+  const int width = win->_maxx - 8;
 
   wattron(win, my_color_pairs[color - 1]);
 
