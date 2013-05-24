@@ -946,7 +946,7 @@ print_playlist_item(WINDOW *win, int line, int color, int id,
 {
   const int title_left = 6;
   const int artist_left = 43;
-  const int width = win->_maxx + 1;
+  const int width = win->_maxx - 8;
 
   wattron(win, my_color_pairs[color - 1]);
 
