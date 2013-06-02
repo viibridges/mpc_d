@@ -145,6 +145,7 @@ static mpd_unused void debug_int(const int num)
   wprintw(win, "%d", num);
   wrefresh(win);
 }
+
 static const char *
 get_song_format(const struct mpd_song *song)
 {
@@ -1260,10 +1261,12 @@ void playlist_keymap_template(struct VerboseArgs *vargs, int key)
   switch(key)
 	{
 	case 'v': break; // key be masked
-	  
+
+	case 14: ; // ctrl-n
 	case KEY_DOWN:;
 	case 'j':
 	  playlist_scroll_down_line(vargs);break;
+	case 16: ; // ctrl-p
 	case KEY_UP:;
 	case 'k':
 	  playlist_scroll_up_line(vargs);break;
@@ -1274,6 +1277,7 @@ void playlist_keymap_template(struct VerboseArgs *vargs, int key)
 	case ' ':
 	  playlist_scroll_down_page(vargs);break;
 	case 'i':;
+	case 12: ; // ctrl-l
 	case 'l':  // cursor goto current playing place
 	  playlist_scroll_to_current(vargs);
 	  break;
