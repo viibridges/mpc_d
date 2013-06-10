@@ -25,6 +25,7 @@ enum window_id
 	PLAYLIST,				 // playlist
 	PLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
 	SEARCHLIST,				 // searchlist
+	DIRLIST,				 // window list item in current directory
 	SEARCH_INPUT,			 // search prompt area
 	DEBUG_INFO,				 // for debug perpuse only
 	WIN_NUM                  // number of windows
@@ -73,7 +74,7 @@ struct PlaylistArgs
   int length;
   int begin;
   int current; // current playing song id
-  int cursor;  // marked as song id
+  int cursor;
 
   struct WinMode wmode; // windows in this mode
 };
@@ -83,13 +84,28 @@ struct SearchlistArgs
   enum mpd_tag_type tags[4]; // searching type
   char key[128];
   int crt_tag_id;
-  int update_signal; // signal that activates update_searchlist()
+  int update_signal; // signal that activates searchlist_update()
   int picking_mode; // 1 when picking a song
 
   // share the same heap with the playlist, why not!  I don't want to waste memory; and some functions can be reused.
   struct PlaylistArgs *plist; // pointer to playlist
 
   struct WinMode wmode; // windows in this mode
+};
+
+struct DirlistArgs
+{
+  char root_dir[128];
+  char crt_dir[512];
+  char filename[MAX_PLAYLIST_STORE_LENGTH][128]; // all items in current dir
+
+  struct WinMode wmode; // windows in this mode
+
+  int update_signal;
+
+  int length;
+  int begin;
+  int cursor;
 };
 
 struct VerboseArgs
@@ -106,6 +122,7 @@ struct VerboseArgs
   /** set to 1 once commands have been triggered by keyboad*/
   struct PlaylistArgs *playlist;
   struct SearchlistArgs *searchlist;
+  struct DirlistArgs *dirlist;
   struct VisualizerArgs *visualizer;  
   
   struct WinMode wmode; // windows in main mode
@@ -115,7 +132,10 @@ int cmd_dynamic( int argc,  char **argv, struct mpd_connection *conn);
 void playlist_keymap(struct VerboseArgs* vargs);
 void basic_keymap(struct VerboseArgs* vargs);
 void searchlist_keymap(struct VerboseArgs *vargs);
+void dirlist_keymap(struct VerboseArgs *vargs);
 void turnoff_search_mode(struct VerboseArgs *vargs);
 void turnon_search_mode(struct VerboseArgs *vargs);
-void update_searchlist(struct VerboseArgs* vargs);
+void playlist_update(struct VerboseArgs* vargs);
+void searchlist_update(struct VerboseArgs* vargs);
+void dirlist_update(struct VerboseArgs* vargs);
 void screen_redraw(struct VerboseArgs *vargs);

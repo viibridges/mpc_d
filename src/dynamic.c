@@ -18,6 +18,9 @@
 #include <locale.h>
 #include <math.h>
 #include <fcntl.h>
+#include <dirent.h> 
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
 
@@ -121,6 +124,17 @@ init_mpd_status(struct mpd_connection *conn)
 	printErrorAndExit(conn);
 
   return status;
+}
+
+static int
+is_dir_exist(char *path)
+{
+  struct stat s;
+
+  if (!stat(path, &s) && (s.st_mode & S_IFDIR))
+	return 1;
+  else
+	return 0;
 }
 
 static mpd_unused void debug(const char *debug_info)
@@ -403,6 +417,103 @@ playlist_cursor_hide(struct VerboseArgs* vargs)
 }
 
 static void
+enter_selected_dir(struct VerboseArgs* vargs)
+{
+  char temp[512];
+  
+  snprintf(temp, 512, "%s/%s",
+		   vargs->dirlist->crt_dir,
+		   vargs->dirlist->filename[vargs->dirlist->cursor - 1]);
+
+  if(is_dir_exist(temp))
+	{
+	  strcpy(vargs->dirlist->crt_dir, temp);
+
+	  vargs->dirlist->begin = 1;
+	  vargs->dirlist->cursor = 1;
+	  vargs->dirlist->update_signal = 1;
+	}
+}
+
+static void
+exit_current_dir(struct VerboseArgs* vargs)
+{
+  char *p;
+
+  p = strrchr(vargs->dirlist->crt_dir, '/');
+
+  if(p)
+	{
+	  *p = '\0';
+	  vargs->dirlist->begin = 1;
+	  vargs->dirlist->cursor = 1;
+	  vargs->dirlist->update_signal = 1;
+	}
+}
+
+/* this funciton cloned from playlist_scroll */
+static void
+dirlist_scroll(struct VerboseArgs *vargs, int lines)
+{
+  static struct DirlistArgs *pl;
+  int height = wchain[DIRLIST].win->_maxy + 1;
+  // mid_pos is the relative position of cursor in the screen
+  const int mid_pos = height / 2 - 1;
+
+  pl = vargs->dirlist;
+  
+  pl->cursor += lines;
+	
+  if(pl->cursor > pl->length)
+	pl->cursor = pl->length;
+  else if(pl->cursor < 1)
+	pl->cursor = 1;
+
+  pl->begin = pl->cursor - mid_pos;
+
+  if(pl->length - pl->cursor < height - mid_pos)
+	pl->begin = pl->length - height + 1;
+
+  if(pl->cursor < mid_pos)
+	pl->begin = 1;
+
+  // this expression should always be false
+  if(pl->begin < 1)
+	pl->begin = 1;
+}
+
+static void
+dirlist_scroll_to(struct VerboseArgs *vargs, int line)
+{
+  vargs->dirlist->cursor = 0;
+  dirlist_scroll(vargs, line);
+}
+
+static void
+dirlist_scroll_down_line(struct VerboseArgs *vargs)
+{
+  dirlist_scroll(vargs, +1);
+}
+
+static void
+dirlist_scroll_up_line(struct VerboseArgs *vargs)
+{
+  dirlist_scroll(vargs, -1);
+}
+
+static void
+dirlist_scroll_up_page(struct VerboseArgs *vargs)
+{
+  dirlist_scroll(vargs, -15);
+}
+
+static void
+dirlist_scroll_down_page(struct VerboseArgs *vargs)
+{
+  dirlist_scroll(vargs, +15);
+}
+
+static void
 cmd_nextsong(struct VerboseArgs* vargs)
 {
   cmd_next(0, NULL, vargs->conn);
@@ -453,6 +564,14 @@ switch_to_playlist_menu(struct VerboseArgs *vargs)
   clean_screen();
   
   winset_update(&vargs->playlist->wmode);
+}
+
+static void
+switch_to_dirlist_menu(struct VerboseArgs *vargs)
+{
+  clean_screen();
+  
+  winset_update(&vargs->dirlist->wmode);
 }
 
 static void
@@ -651,8 +770,8 @@ print_visualizer(struct VerboseArgs *vargs)
  * occur frequently, then adjust the update rate
  * higher, if the keyboard is just idle, keep it
  * low. */
-static
-void smart_sleep(struct VerboseArgs* vargs)
+static void
+smart_sleep(struct VerboseArgs* vargs)
 {
   static int us = INTERVAL_MAX_UNIT;
 
@@ -942,25 +1061,25 @@ playlist_down_state_bar(struct VerboseArgs *vargs)
 }
 
 static void
-print_playlist_item(WINDOW *win, int line, int color, int id,
-					char *title, char *artist)
+print_list_item(WINDOW *win, int line, int color, int id,
+					char *ltext, char *rtext)
 {
-  const int title_left = 6;
-  const int artist_left = 43;
+  const int ltext_left = 6;
+  const int rtext_left = 43;
   const int width = win->_maxx - 8;
 
   wattron(win, my_color_pairs[color - 1]);
 
   mvwprintw(win, line, 0, "%*c", width, ' ');
-  mvwprintw(win, line, 0, "%3i.", id);
-  mvwprintw(win, line, title_left, "%s", title);
-  mvwprintw(win, line, artist_left, "%s", artist);
+  id ? mvwprintw(win, line, 0, "%3i.", id) : 1;
+  ltext ? mvwprintw(win, line, ltext_left, "%s", ltext) : 1;
+  rtext ? mvwprintw(win, line, rtext_left, "%s", rtext) : 1;
   
   wattroff(win, my_color_pairs[color - 1]);
 }
 
 static void
-redraw_playlist_screen(struct VerboseArgs *vargs)
+playlist_redraw_screen(struct VerboseArgs *vargs)
 {
   int line = 0, i, height = wchain[PLAYLIST].win->_maxy + 1;
 
@@ -977,23 +1096,43 @@ redraw_playlist_screen(struct VerboseArgs *vargs)
 
 	  if(i + 1 == vargs->playlist->cursor)
 		{
-		  print_playlist_item(win, line++, 2, id, title, artist);
+		  print_list_item(win, line++, 2, id, title, artist);
 		  continue;
 		}
 	  
 	  if(vargs->playlist->id[i] == vargs->playlist->current)
 		{
-		  print_playlist_item(win, line++, 1, id, title, artist);
+		  print_list_item(win, line++, 1, id, title, artist);
 		}
 	  else
 		{
-		  print_playlist_item(win, line++, 0, id, title, artist);
+		  print_list_item(win, line++, 0, id, title, artist);
 		}
 	}
 }
 
 static void
-copy_song_tag(char *string, const char * tag, int size, int width)
+dirlist_redraw_screen(struct VerboseArgs *vargs)
+{
+  int line = 0, i, height = wchain[DIRLIST].win->_maxy + 1;
+
+  WINDOW *win = specific_win(DIRLIST);  
+
+  char *filename;
+  for(i = vargs->dirlist->begin - 1; i < vargs->dirlist->begin
+		+ height - 1 && i < vargs->dirlist->length; i++)
+	{
+	  filename = vargs->dirlist->filename[i];
+
+	  if(i + 1 == vargs->dirlist->cursor)
+		print_list_item(win, line++, 2, i + 1, filename, NULL);
+	  else
+		print_list_item(win, line++, 0, i + 1, filename, NULL);
+	}
+}
+
+static void
+pretty_copy(char *string, const char * tag, int size, int width)
 {
   static int i, unic, asci;
 
@@ -1022,8 +1161,8 @@ copy_song_tag(char *string, const char * tag, int size, int width)
   string[i] = '\0';
 }
 
-static void
-update_playlist(struct VerboseArgs *vargs)
+void
+playlist_update(struct VerboseArgs *vargs)
 {
   struct mpd_song *song;
   
@@ -1034,16 +1173,16 @@ update_playlist(struct VerboseArgs *vargs)
   while ((song = mpd_recv_song(vargs->conn)) != NULL
 		 && i < MAX_PLAYLIST_STORE_LENGTH)
 	{
-	  copy_song_tag(vargs->playlist->title[i],
+	  pretty_copy(vargs->playlist->title[i],
 					get_song_tag(song, MPD_TAG_TITLE),
 					sizeof(vargs->playlist->title[0]), -1);
-	  copy_song_tag(vargs->playlist->pretty_title[i],
+	  pretty_copy(vargs->playlist->pretty_title[i],
 					get_song_tag(song, MPD_TAG_TITLE),
 					sizeof(vargs->playlist->pretty_title[0]), 26);
-	  copy_song_tag(vargs->playlist->artist[i],
+	  pretty_copy(vargs->playlist->artist[i],
 					get_song_tag(song, MPD_TAG_ARTIST),
 					sizeof(vargs->playlist->title[0]), 20);	  
-	  copy_song_tag(vargs->playlist->album[i],
+	  pretty_copy(vargs->playlist->album[i],
 					get_song_tag(song, MPD_TAG_ALBUM),
 					sizeof(vargs->playlist->title[0]), -1);
 	  vargs->playlist->id[i] = i + 1;
@@ -1060,7 +1199,7 @@ update_playlist(struct VerboseArgs *vargs)
 }
 
 void
-update_searchlist(struct VerboseArgs* vargs)
+searchlist_update(struct VerboseArgs* vargs)
 {
   char (*tag_name)[128], *key = vargs->searchlist->key;
   int i, j, ct = vargs->searchlist->crt_tag_id;
@@ -1068,7 +1207,7 @@ update_searchlist(struct VerboseArgs* vargs)
   /* we examine and update the playlist (datebase for searching)
    * every time, see if any modification (delete or add songs)
    * was made by other client during searching */
-  update_playlist(vargs);
+  playlist_update(vargs);
 
   // now plist is fresh
   switch(vargs->searchlist->tags[ct])
@@ -1117,8 +1256,38 @@ update_searchlist(struct VerboseArgs* vargs)
   vargs->searchlist->plist->begin = 1;
 }
 
-static
-void playlist_update_checking(struct VerboseArgs *vargs)
+void
+dirlist_update(struct VerboseArgs* vargs)
+{
+  DIR *d;
+  struct dirent *dir;
+
+  d = opendir(vargs->dirlist->crt_dir);
+  
+  if(d)
+	{
+
+	  dir = readdir(d); // skip the directory itself
+
+	  int i = 0;
+  
+	  while ((dir = readdir(d)) != NULL)
+		{
+		  if(dir->d_name[0] != '.')
+			{
+			  pretty_copy(vargs->dirlist->filename[i], dir->d_name, 128, 60);
+			  i++;
+			}
+		}
+
+	  vargs->dirlist->length = i;
+
+	  closedir(d);
+	}
+}
+
+static void
+playlist_update_checking(struct VerboseArgs *vargs)
 {
   struct mpd_status *status;
   int queue_len, song_id;
@@ -1133,19 +1302,13 @@ void playlist_update_checking(struct VerboseArgs *vargs)
   if(vargs->playlist->current != song_id)
 	{
 	  vargs->playlist->current = song_id;
-	  signal_win(BASIC_INFO);
-	  signal_win(PLIST_UP_STATE_BAR);
-	  signal_win(PLAYLIST);
-	  signal_win(PLIST_DOWN_STATE_BAR);;
+	  signal_all_wins();
 	}
 
   if(vargs->playlist->length != queue_len)
 	{
-	  update_playlist(vargs);
-	  signal_win(BASIC_INFO);
-	  signal_win(PLIST_UP_STATE_BAR);
-	  signal_win(PLAYLIST);
-	  signal_win(PLIST_DOWN_STATE_BAR);;
+	  playlist_update(vargs);
+	  signal_all_wins();
 	}
 
   /** for some unexcepted cases vargs->playlist->begin
@@ -1153,6 +1316,18 @@ void playlist_update_checking(struct VerboseArgs *vargs)
 	  if this happens, we reset the begin's value */
   if(vargs->playlist->begin > vargs->playlist->length)
 	vargs->playlist->begin = 1;
+}
+
+static
+void dirlist_update_checking(struct VerboseArgs *vargs)
+{
+  // TODO, when modification happened then update
+  if(vargs->dirlist->update_signal)
+	{
+	  dirlist_update(vargs);
+	  vargs->dirlist->update_signal = 0;
+	  signal_all_wins();
+	}
 }
 
 static
@@ -1170,7 +1345,7 @@ void searchlist_update_checking(struct VerboseArgs*vargs)
 
   if(vargs->searchlist->update_signal)
 	{
-	  update_searchlist(vargs);
+	  searchlist_update(vargs);
 	  vargs->searchlist->update_signal = 0;
 	  signal_all_wins();
 	}
@@ -1243,6 +1418,15 @@ void fundamental_keymap_template(struct VerboseArgs *vargs, int key)
 	case '\t':
 	  switch_to_playlist_menu(vargs);
 	  break;
+	case '1':
+	  switch_to_main_menu(vargs);
+	  break;
+	case '2':
+	  switch_to_playlist_menu(vargs);
+	  break;
+	case '3':
+	  switch_to_dirlist_menu(vargs);
+	  break;
 	case 'v':
 	  toggle_visualizer();
 	  break;
@@ -1300,7 +1484,50 @@ void playlist_keymap_template(struct VerboseArgs *vargs, int key)
 	  fundamental_keymap_template(vargs, key);
 	}
 }
-  
+
+static void
+dirlist_keymap_template(struct VerboseArgs *vargs, int key)
+{
+  // filter those different with the template
+  switch(key)
+	{
+	case 'v': break; // key be masked
+
+	case '\n':
+	  enter_selected_dir(vargs);break;
+	case 127:
+	  exit_current_dir(vargs);break;
+	  
+	case 14: ; // ctrl-n
+	case KEY_DOWN:;
+	case 'j':
+	  dirlist_scroll_down_line(vargs);break;
+	case 16: ; // ctrl-p
+	case KEY_UP:;
+	case 'k':
+	  dirlist_scroll_up_line(vargs);break;
+	case 'b':
+	  dirlist_scroll_up_page(vargs);break;
+	case ' ':
+	  dirlist_scroll_down_page(vargs);break;
+	case 'g':  // cursor goto the beginning
+	  dirlist_scroll_to(vargs, 1);
+	  break;
+	case 'G':  // cursor goto the end
+	  dirlist_scroll_to(vargs, vargs->dirlist->length);
+	  break;
+	case 'c':  // cursor goto the center
+	  dirlist_scroll_to(vargs, vargs->dirlist->length / 2);
+	  break;
+	case '\t':
+	  switch_to_main_menu(vargs);
+	  break;
+	  
+	default:
+	  fundamental_keymap_template(vargs, key);
+	}
+}
+
 // for picking the song from the searchlist
 // corporate with searchlist_keymap()
 static void
@@ -1381,6 +1608,21 @@ playlist_keymap(struct VerboseArgs* vargs)
 	return;
 
   playlist_keymap_template(vargs, key);
+
+  signal_all_wins();  
+}
+
+void
+dirlist_keymap(struct VerboseArgs* vargs)
+{
+  int key = getch();
+
+  if(key != ERR)
+	vargs->interval_level = 1;
+  else
+	return;
+
+  dirlist_keymap_template(vargs, key);
 
   signal_all_wins();  
 }
@@ -1471,7 +1713,7 @@ void
 turnoff_search_mode(struct VerboseArgs *vargs)
 {
   vargs->searchlist->key[0] = '\0';
-  update_playlist(vargs);
+  playlist_update(vargs);
   playlist_scroll_to_current(vargs);
 
   clean_window(SEARCH_INPUT);
@@ -1499,9 +1741,10 @@ wchain_size_update(void)
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
-	  {height - 8, 73, 5, 0},	// PLAYLIST
+	  {height - 8, 73, 5, 0},	    // PLAYLIST
 	  {1, width, height - 3, 0},	// PLIST_DOWN_STATE_BAR
-	  {height - 8, 72, 5, 0},	// SEARCHLIST
+	  {height - 8, 72, 5, 0},	    // SEARCHLIST
+	  {height - 8, 72, 5, 0},	    // DIRLIST
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
 	}; 
@@ -1526,9 +1769,10 @@ wchain_init(void)
 	  &print_basic_help,		 // HELPER
 	  &playlist_simple_bar,		 // SIMPLE_PROC_BAR  
 	  &playlist_up_state_bar,    // PLIST_UP_STATE_BAR
-	  &redraw_playlist_screen,	 // PLAYLIST
+	  &playlist_redraw_screen,	 // PLAYLIST
 	  &playlist_down_state_bar,  // PLIST_DOWN_STATE_BAR
-	  &redraw_playlist_screen,	 // SEARCHLIST       
+	  &playlist_redraw_screen,	 // SEARCHLIST
+	  &dirlist_redraw_screen,    // DIRLIST
 	  &search_prompt,			 // SEARCH_INPUT
 	  NULL						 // DEBUG_INFO  
 	};
@@ -1607,6 +1851,19 @@ winset_init(struct VerboseArgs *vargs)
   vargs->searchlist->wmode.wins[6] = &wchain[SEARCHLIST];  
   vargs->searchlist->wmode.update_checking = &searchlist_update_checking;
   vargs->searchlist->wmode.listen_keyboard = &searchlist_keymap;
+
+  // searchlist wmode
+  vargs->dirlist->wmode.size = 6;
+  vargs->dirlist->wmode.wins = (struct WindowUnit**)
+	malloc(vargs->dirlist->wmode.size * sizeof(struct WindowUnit*));
+  vargs->dirlist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
+  vargs->dirlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  vargs->dirlist->wmode.wins[2] = &wchain[PLIST_UP_STATE_BAR];
+  vargs->dirlist->wmode.wins[3] = &wchain[DIRLIST];  
+  vargs->dirlist->wmode.wins[4] = &wchain[SIMPLE_PROC_BAR];
+  vargs->dirlist->wmode.wins[5] = &wchain[BASIC_INFO];
+  vargs->dirlist->wmode.update_checking = &dirlist_update_checking;
+  vargs->dirlist->wmode.listen_keyboard = &dirlist_keymap;
 }
 
 static void
@@ -1615,6 +1872,7 @@ winset_free(struct VerboseArgs *vargs)
   free(vargs->wmode.wins);
   free(vargs->playlist->wmode.wins);
   free(vargs->searchlist->wmode.wins);
+  free(vargs->dirlist->wmode.wins);
 }
 
 static void
@@ -1642,7 +1900,7 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->playlist->cursor = 1;
   /** it's turn out to be good that updating
 	  the playlist in the first place **/
-  update_playlist(vargs);
+  playlist_update(vargs);
 
   /** searchlist arguments */
   vargs->searchlist =
@@ -1657,11 +1915,23 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   vargs->searchlist->key[0] = '\0';
   vargs->searchlist->plist = vargs->playlist; // windows in this mode
 
+  /** dirlist arguments **/
+  // TODO add this automatically according to the mpd setting
+  vargs->dirlist =
+	(struct DirlistArgs*) malloc(sizeof(struct DirlistArgs));
+
+  vargs->dirlist->begin = 1;
+  vargs->dirlist->length = 0;
+  vargs->dirlist->cursor = 1;
+  strncpy(vargs->dirlist->root_dir, "/home/ted/Music", 128);
+  strncpy(vargs->dirlist->crt_dir, vargs->dirlist->root_dir, 512);
+  dirlist_update(vargs);
+
   /** the visualizer **/
   vargs->visualizer =
 	(struct VisualizerArgs*) malloc(sizeof(struct VisualizerArgs));
-  strncpy(vargs->visualizer->fifo_file, "/tmp/mpd.fifo",
-		  sizeof(vargs->visualizer->fifo_file));
+  // TODO add this automatically according to the mpd setting
+  strncpy(vargs->visualizer->fifo_file, "/tmp/mpd.fifo", 64);
   get_fifo_id(vargs);
   
   /** windows set initialization **/
