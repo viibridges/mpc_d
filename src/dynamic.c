@@ -1627,6 +1627,10 @@ tapelist_update(struct VerboseArgs* vargs)
 	
 	while((entity = mpd_recv_entity(vargs->conn)) != NULL && i < 128)
 	  {
+		enum mpd_entity_type type = mpd_entity_get_type(entity);
+		if(type != MPD_ENTITY_TYPE_PLAYLIST)
+		  continue;
+		
 		playlist = mpd_entity_get_playlist(entity);
 		strncpy(vargs->tapelist->tapename[i],
 				mpd_playlist_get_path(playlist), 512);
