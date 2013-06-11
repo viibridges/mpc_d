@@ -366,8 +366,11 @@ cmd_volup(struct VerboseArgs *vargs)
   if(volume > 100)
 	volume = 100;
 
-  if (!mpd_run_set_volume(conn, volume))
+  if (!mpd_send_set_volume(conn, volume))
 	printErrorAndExit(conn);
+
+  my_finishCommand(conn);
+  
   return 1;
 }
   
@@ -388,6 +391,9 @@ cmd_voldown(struct VerboseArgs *vargs)
 
   if (!mpd_run_set_volume(conn, volume))
 	printErrorAndExit(conn);
+
+  my_finishCommand(conn);
+  
   return 1;
 }
 
@@ -717,6 +723,68 @@ dirlist_scroll_down_page(struct VerboseArgs *vargs)
   dirlist_scroll(vargs, +15);
 }
 
+/* this funciton cloned from playlist_scroll */
+static void
+tapelist_scroll(struct VerboseArgs *vargs, int lines)
+{
+  static struct TapelistArgs *pl;
+  int height = wchain[TAPELIST].win->_maxy + 1;
+  // mid_pos is the relative position of cursor in the screen
+  const int mid_pos = height / 2 - 1;
+
+  pl = vargs->tapelist;
+  
+  pl->cursor += lines;
+	
+  if(pl->cursor > pl->length)
+	pl->cursor = pl->length;
+  else if(pl->cursor < 1)
+	pl->cursor = 1;
+
+  pl->begin = pl->cursor - mid_pos;
+
+  if(pl->length - pl->cursor < height - mid_pos)
+	pl->begin = pl->length - height + 1;
+
+  if(pl->cursor < mid_pos)
+	pl->begin = 1;
+
+  // this expression should always be false
+  if(pl->begin < 1)
+	pl->begin = 1;
+}
+
+static void
+tapelist_scroll_to(struct VerboseArgs *vargs, int line)
+{
+  vargs->tapelist->cursor = 0;
+  tapelist_scroll(vargs, line);
+}
+
+static void
+tapelist_scroll_down_line(struct VerboseArgs *vargs)
+{
+  tapelist_scroll(vargs, +1);
+}
+
+static void
+tapelist_scroll_up_line(struct VerboseArgs *vargs)
+{
+  tapelist_scroll(vargs, -1);
+}
+
+static void
+tapelist_scroll_up_page(struct VerboseArgs *vargs)
+{
+  tapelist_scroll(vargs, -15);
+}
+
+static void
+tapelist_scroll_down_page(struct VerboseArgs *vargs)
+{
+  tapelist_scroll(vargs, +15);
+}
+
 static void
 cmd_nextsong(struct VerboseArgs* vargs)
 {
@@ -748,7 +816,9 @@ playlist_delete_song_in_cursor(struct VerboseArgs *vargs)
   if(i < 0 || i >= vargs->playlist->length)
 	return;
 	
-  mpd_run_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
+  mpd_send_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
+
+  my_finishCommand(vargs->conn);
 }
 
 // if any is deleted then return 1
@@ -760,7 +830,10 @@ playlist_delete_song_in_batch(struct VerboseArgs *vargs)
   // delete in descended order won't screw things up
   for(i = vargs->playlist->length - 1; i >= 0; i--)
 	if(vargs->playlist->meta[i].selected)
-		mpd_run_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
+	  {
+		mpd_send_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
+		my_finishCommand(vargs->conn);
+	  }
 }
 
 static void
@@ -794,6 +867,14 @@ switch_to_dirlist_menu(struct VerboseArgs *vargs)
   clean_screen();
   
   winset_update(&vargs->dirlist->wmode);
+}
+
+static void
+switch_to_tapelist_menu(struct VerboseArgs *vargs)
+{
+  clean_screen();
+  
+  winset_update(&vargs->tapelist->wmode);
 }
 
 static void
@@ -1362,6 +1443,26 @@ dirlist_redraw_screen(struct VerboseArgs *vargs)
 }
 
 static void
+tapelist_redraw_screen(struct VerboseArgs *vargs)
+{
+  int line = 0, i, height = wchain[TAPELIST].win->_maxy + 1;
+
+  WINDOW *win = specific_win(TAPELIST);  
+
+  char *filename;
+  for(i = vargs->tapelist->begin - 1; i < vargs->tapelist->begin
+		+ height - 1 && i < vargs->tapelist->length; i++)
+	{
+	  filename = vargs->tapelist->tapename[i];
+
+	  if(i + 1 == vargs->tapelist->cursor)
+		print_list_item(win, line++, 2, i + 1, filename, NULL);
+	  else
+		print_list_item(win, line++, 0, i + 1, filename, NULL);
+	}
+}
+
+static void
 pretty_copy(char *string, const char * tag, int size, int width)
 {
   static int i, unic, asci;
@@ -1513,6 +1614,31 @@ dirlist_update(struct VerboseArgs* vargs)
 	}
 }
 
+void
+tapelist_update(struct VerboseArgs* vargs)
+{
+	struct mpd_entity *entity;
+	const struct mpd_playlist *playlist;
+
+	int i = 0;
+
+	if (!mpd_send_list_meta(vargs->conn, ""))
+	  return;
+	
+	while((entity = mpd_recv_entity(vargs->conn)) != NULL && i < 128)
+	  {
+		playlist = mpd_entity_get_playlist(entity);
+		strncpy(vargs->tapelist->tapename[i],
+				mpd_playlist_get_path(playlist), 512);
+
+		mpd_entity_free(entity);
+
+		i++;
+	  }
+
+	vargs->tapelist->length = i;
+}
+
 static void
 playlist_update_checking(struct VerboseArgs *vargs)
 {
@@ -1555,6 +1681,17 @@ void dirlist_update_checking(struct VerboseArgs *vargs)
 	{
 	  dirlist_update(vargs);
 	  vargs->dirlist->update_signal = 0;
+	  signal_all_wins();
+	}
+}
+
+static
+void tapelist_update_checking(struct VerboseArgs *vargs)
+{
+  if(vargs->tapelist->update_signal)
+	{
+	  tapelist_update(vargs);
+	  vargs->tapelist->update_signal = 0;
 	  signal_all_wins();
 	}
 }
@@ -1655,6 +1792,9 @@ void fundamental_keymap_template(struct VerboseArgs *vargs, int key)
 	  break;
 	case '3':
 	  switch_to_dirlist_menu(vargs);
+	  break;
+	case '4':
+	  switch_to_tapelist_menu(vargs);
 	  break;
 	case 'v':
 	  toggle_visualizer();
@@ -1774,6 +1914,48 @@ dirlist_keymap_template(struct VerboseArgs *vargs, int key)
 	}
 }
 
+static void
+tapelist_keymap_template(struct VerboseArgs *vargs, int key)
+{
+  // filter those different with the template
+  switch(key)
+	{
+	case 'U':;
+	case 'J':;
+	case 'K':;
+	case 'm':;
+	case 'v': break; // key be masked
+
+	case 14: ; // ctrl-n
+	case KEY_DOWN:;
+	case 'j':
+	  tapelist_scroll_down_line(vargs);break;
+	case 16: ; // ctrl-p
+	case KEY_UP:;
+	case 'k':
+	  tapelist_scroll_up_line(vargs);break;
+	case 'b':
+	  tapelist_scroll_up_page(vargs);break;
+	case ' ':
+	  tapelist_scroll_down_page(vargs);break;
+	case 'g':  // cursor goto the beginning
+	  tapelist_scroll_to(vargs, 1);
+	  break;
+	case 'G':  // cursor goto the end
+	  tapelist_scroll_to(vargs, vargs->tapelist->length);
+	  break;
+	case 'c':  // cursor goto the center
+	  tapelist_scroll_to(vargs, vargs->tapelist->length / 2);
+	  break;
+	case '\t':
+	  switch_to_main_menu(vargs);
+	  break;
+	  
+	default:
+	  fundamental_keymap_template(vargs, key);
+	}
+}
+
 // for picking the song from the searchlist
 // corporate with searchlist_keymap()
 static void
@@ -1873,6 +2055,21 @@ dirlist_keymap(struct VerboseArgs* vargs)
 	return;
 
   dirlist_keymap_template(vargs, key);
+
+  signal_all_wins();  
+}
+
+void
+tapelist_keymap(struct VerboseArgs* vargs)
+{
+  int key = getch();
+
+  if(key != ERR)
+	vargs->interval_level = 1;
+  else
+	return;
+
+  tapelist_keymap_template(vargs, key);
 
   signal_all_wins();  
 }
@@ -1995,6 +2192,7 @@ wchain_size_update(void)
 	  {1, width, height - 3, 0},	// PLIST_DOWN_STATE_BAR
 	  {height - 8, 72, 5, 0},	    // SEARCHLIST
 	  {height - 8, 72, 5, 0},	    // DIRLIST
+	  {height - 8, 72, 5, 0},	    // TAPELIST
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
 	}; 
@@ -2023,6 +2221,7 @@ wchain_init(void)
 	  &playlist_down_state_bar,  // PLIST_DOWN_STATE_BAR
 	  &playlist_redraw_screen,	 // SEARCHLIST
 	  &dirlist_redraw_screen,    // DIRLIST
+	  &tapelist_redraw_screen,   // TAPELIST
 	  &search_prompt,			 // SEARCH_INPUT
 	  NULL						 // DEBUG_INFO  
 	};
@@ -2102,7 +2301,7 @@ winset_init(struct VerboseArgs *vargs)
   vargs->searchlist->wmode.update_checking = &searchlist_update_checking;
   vargs->searchlist->wmode.listen_keyboard = &searchlist_keymap;
 
-  // searchlist wmode
+  // dirlist wmode
   vargs->dirlist->wmode.size = 6;
   vargs->dirlist->wmode.wins = (struct WindowUnit**)
 	malloc(vargs->dirlist->wmode.size * sizeof(struct WindowUnit*));
@@ -2114,6 +2313,19 @@ winset_init(struct VerboseArgs *vargs)
   vargs->dirlist->wmode.wins[5] = &wchain[BASIC_INFO];
   vargs->dirlist->wmode.update_checking = &dirlist_update_checking;
   vargs->dirlist->wmode.listen_keyboard = &dirlist_keymap;
+
+  // tapelist wmode
+  vargs->tapelist->wmode.size = 6;
+  vargs->tapelist->wmode.wins = (struct WindowUnit**)
+	malloc(vargs->tapelist->wmode.size * sizeof(struct WindowUnit*));
+  vargs->tapelist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
+  vargs->tapelist->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  vargs->tapelist->wmode.wins[2] = &wchain[PLIST_UP_STATE_BAR];
+  vargs->tapelist->wmode.wins[3] = &wchain[TAPELIST];  
+  vargs->tapelist->wmode.wins[4] = &wchain[SIMPLE_PROC_BAR];
+  vargs->tapelist->wmode.wins[5] = &wchain[BASIC_INFO];
+  vargs->tapelist->wmode.update_checking = &tapelist_update_checking;
+  vargs->tapelist->wmode.listen_keyboard = &tapelist_keymap;
 }
 
 static void
@@ -2123,6 +2335,7 @@ winset_free(struct VerboseArgs *vargs)
   free(vargs->playlist->wmode.wins);
   free(vargs->searchlist->wmode.wins);
   free(vargs->dirlist->wmode.wins);
+  free(vargs->tapelist->wmode.wins);
 }
 
 static void
@@ -2177,6 +2390,15 @@ verbose_args_init(struct VerboseArgs *vargs, struct mpd_connection *conn)
   strncpy(vargs->dirlist->crt_dir, vargs->dirlist->root_dir, 512);
   dirlist_update(vargs);
 
+  /** tapelist arguments **/
+  vargs->tapelist =
+	(struct TapelistArgs*) malloc(sizeof(struct TapelistArgs));
+
+  vargs->tapelist->begin = 1;
+  vargs->tapelist->length = 0;
+  vargs->tapelist->cursor = 1;
+  tapelist_update(vargs);
+  
   /** the visualizer **/
   vargs->visualizer =
 	(struct VisualizerArgs*) malloc(sizeof(struct VisualizerArgs));
@@ -2195,6 +2417,8 @@ verbose_args_destroy(mpd_unused struct VerboseArgs *vargs)
   winset_free(vargs);
   free(vargs->playlist);
   free(vargs->searchlist);
+  free(vargs->dirlist);
+  free(vargs->tapelist);
   free(vargs->visualizer);
 }
 

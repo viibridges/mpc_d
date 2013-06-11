@@ -26,6 +26,7 @@ enum window_id
 	PLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
 	SEARCHLIST,				 // searchlist
 	DIRLIST,				 // window list item in current directory
+	TAPELIST,                // window list all playlists
 	SEARCH_INPUT,			 // search prompt area
 	DEBUG_INFO,				 // for debug perpuse only
 	WIN_NUM                  // number of windows
@@ -117,6 +118,19 @@ struct DirlistArgs
   int cursor;
 };
 
+struct TapelistArgs
+{
+  char tapename[128][512];
+
+  struct WinMode wmode;
+
+  int update_signal;
+  
+  int length;
+  int begin;
+  int cursor;
+};
+
 struct VerboseArgs
 {
   struct mpd_connection *conn;
@@ -132,6 +146,7 @@ struct VerboseArgs
   struct PlaylistArgs *playlist;
   struct SearchlistArgs *searchlist;
   struct DirlistArgs *dirlist;
+  struct TapelistArgs *tapelist; // list of playlist
   struct VisualizerArgs *visualizer;  
   
   struct WinMode wmode; // windows in main mode
@@ -142,9 +157,11 @@ void playlist_keymap(struct VerboseArgs* vargs);
 void basic_keymap(struct VerboseArgs* vargs);
 void searchlist_keymap(struct VerboseArgs *vargs);
 void dirlist_keymap(struct VerboseArgs *vargs);
+void tapelist_keymap(struct VerboseArgs *vargs);
 void turnoff_search_mode(struct VerboseArgs *vargs);
 void turnon_search_mode(struct VerboseArgs *vargs);
 void playlist_update(struct VerboseArgs* vargs);
 void searchlist_update(struct VerboseArgs* vargs);
 void dirlist_update(struct VerboseArgs* vargs);
+void tapelist_update(struct VerboseArgs* vargs);
 void screen_redraw(struct VerboseArgs *vargs);
