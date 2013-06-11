@@ -26,7 +26,7 @@
 
 static struct WindowUnit *wchain; // array stores all subwindows
 static struct WinMode *being_mode; // pointer to current used window set
-static int my_color_pairs[8];
+static int my_color_pairs[9];
 
 
 /*************************************
@@ -174,6 +174,11 @@ static mpd_unused void debug_int(const int num)
   wrefresh(win);
 }
 
+static int get_playlist_cursor_item_index(struct VerboseArgs *vargs)
+{
+  return vargs->playlist->cursor - 1;
+}
+
 static const char *
 get_song_format(const struct mpd_song *song)
 {
@@ -222,6 +227,18 @@ char *is_substring_ignorecase(const char *main, char *sub)
   lower_sub[i] = '\0';
 
   return strstr(lower_main, lower_sub);
+}
+
+static int
+is_playlist_selected(struct VerboseArgs *vargs)
+{
+  int i;
+
+  for(i = 0; i < vargs->playlist->length; i++)
+	if(vargs->playlist->meta[i].selected)
+	  return 1;
+
+  return 0;
 }
 
 static char*
@@ -274,6 +291,22 @@ crt_mpd_relative_path(struct VerboseArgs *vargs)
 	return crt + 1;
   else
 	return NULL;
+}
+
+static void
+swap_playlist_items(struct VerboseArgs *vargs, int i, int j)
+{
+  struct MetaInfo temp;
+
+  memmove(&temp, vargs->searchlist->plist->meta + i,
+		  sizeof(struct MetaInfo) / sizeof(char));
+
+  memmove(vargs->searchlist->plist->meta + i,
+		  vargs->searchlist->plist->meta + j,
+		  sizeof(struct MetaInfo) / sizeof(char));
+
+  memmove(vargs->searchlist->plist->meta + j, &temp,
+		  sizeof(struct MetaInfo) / sizeof(char));
 }
 
 static void
@@ -403,7 +436,7 @@ cmd_Random(struct VerboseArgs* vargs)
 static void
 song_in_cursor_move_to(struct VerboseArgs *vargs, int offset)
 {
-  int from = vargs->playlist->cursor - 1;
+  int from = get_playlist_cursor_item_index(vargs);
   int to = from + offset;
 
   // check whether new position valid
@@ -415,28 +448,55 @@ song_in_cursor_move_to(struct VerboseArgs *vargs, int offset)
 	return;
 
   // no problem
-  mpd_run_move(vargs->conn, vargs->playlist->id[from] - 1,
-			   vargs->playlist->id[to] - 1);
+  mpd_run_move(vargs->conn, vargs->playlist->meta[from].id - 1,
+			   vargs->playlist->meta[to].id - 1);
 
-  // update the cursor also
-  vargs->playlist->cursor += offset;
-  
   // inform them to update the playlist
-  vargs->playlist->update_signal = 1;
+  //vargs->playlist->update_signal = 1;
+
+  swap_playlist_items(vargs, from, to);
 }
+
+static void playlist_scroll_up_line(struct VerboseArgs*);
+static void playlist_scroll_down_line(struct VerboseArgs*);
 
 static void
 song_move_up(struct VerboseArgs * vargs)
 {
   song_in_cursor_move_to(vargs, -1);
+
+  // scroll up cursor also
+  playlist_scroll_up_line(vargs);
 }
 
 static void
 song_move_down(struct VerboseArgs * vargs)
 {
   song_in_cursor_move_to(vargs, +1);
+
+  // scroll down cursor also
+  playlist_scroll_down_line(vargs);
 }
 
+static void
+toggle_select_item(struct VerboseArgs *vargs, int id)
+{
+  if(id < 0 || id >= vargs->playlist->length)
+	return;
+  else
+	vargs->playlist->meta[id].selected ^= 1;
+}
+
+static void
+toggle_select(struct VerboseArgs *vargs)
+{
+  int id = get_playlist_cursor_item_index(vargs);
+
+  toggle_select_item(vargs, id);
+
+  // move cursor forward by one step
+  playlist_scroll_down_line(vargs);
+}
 
 static void
 playlist_scroll(struct VerboseArgs *vargs, int lines)
@@ -513,7 +573,7 @@ playlist_play_current(struct VerboseArgs *vargs)
 {
   char *args = (char*)malloc(8 * sizeof(char));
   int i = vargs->playlist->cursor;
-  snprintf(args, sizeof(args), "%i", vargs->playlist->id[i-1]);
+  snprintf(args, sizeof(args), "%i", vargs->playlist->meta[i-1].id);
   cmd_play(1, &args, vargs->conn);
   free(args);
 }
@@ -681,17 +741,35 @@ change_searching_scope(struct VerboseArgs* vargs)
 }
 
 static void
-playlist_delete_song(struct VerboseArgs *vargs)
+playlist_delete_song_in_cursor(struct VerboseArgs *vargs)
 {
-  char *args = (char*)malloc(8 * sizeof(char));
-  int i = vargs->playlist->cursor;
+  int i = get_playlist_cursor_item_index(vargs);
   
-  if(i < 1 || i > vargs->playlist->length)
+  if(i < 0 || i >= vargs->playlist->length)
 	return;
 	
-  snprintf(args, sizeof(args), "%i", vargs->playlist->id[i - 1]);
-  cmd_del(1, &args, vargs->conn);
-  free(args);
+  mpd_run_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
+}
+
+// if any is deleted then return 1
+static void
+playlist_delete_song_in_batch(struct VerboseArgs *vargs)
+{
+  int i;
+
+  // delete in descended order won't screw things up
+  for(i = vargs->playlist->length - 1; i >= 0; i--)
+	if(vargs->playlist->meta[i].selected)
+		mpd_run_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
+}
+
+static void
+playlist_delete_song(struct VerboseArgs *vargs)
+{
+  if(is_playlist_selected(vargs))
+	playlist_delete_song_in_batch(vargs);
+  else
+	playlist_delete_song_in_cursor(vargs);
 }
 
 static void
@@ -1234,17 +1312,25 @@ playlist_redraw_screen(struct VerboseArgs *vargs)
   for(i = vargs->playlist->begin - 1; i < vargs->playlist->begin
 		+ height - 1 && i < vargs->playlist->length; i++)
 	{
-	  id = vargs->playlist->id[i];
-	  title = vargs->playlist->pretty_title[i];
-	  artist = vargs->playlist->artist[i];
+	  id = vargs->playlist->meta[i].id;
+	  title = vargs->playlist->meta[i].pretty_title;
+	  artist = vargs->playlist->meta[i].artist;
 
+	  // cursor in
 	  if(i + 1 == vargs->playlist->cursor)
 		{
 		  print_list_item(win, line++, 2, id, title, artist);
 		  continue;
 		}
-	  
-	  if(vargs->playlist->id[i] == vargs->playlist->current)
+
+	  // selected
+	  if(vargs->playlist->meta[i].selected)
+		{
+		  print_list_item(win, line++, 9, id, title, artist);
+		  continue;
+		}
+		
+	  if(vargs->playlist->meta[i].id == vargs->playlist->current)
 		{
 		  print_list_item(win, line++, 1, id, title, artist);
 		}
@@ -1317,19 +1403,20 @@ playlist_update(struct VerboseArgs *vargs)
   while ((song = mpd_recv_song(vargs->conn)) != NULL
 		 && i < MAX_PLAYLIST_STORE_LENGTH)
 	{
-	  pretty_copy(vargs->playlist->title[i],
+	  pretty_copy(vargs->playlist->meta[i].title,
 					get_song_tag(song, MPD_TAG_TITLE),
-					sizeof(vargs->playlist->title[0]), -1);
-	  pretty_copy(vargs->playlist->pretty_title[i],
+					512, -1);
+	  pretty_copy(vargs->playlist->meta[i].pretty_title,
 					get_song_tag(song, MPD_TAG_TITLE),
-					sizeof(vargs->playlist->pretty_title[0]), 26);
-	  pretty_copy(vargs->playlist->artist[i],
+					128, 26);
+	  pretty_copy(vargs->playlist->meta[i].artist,
 					get_song_tag(song, MPD_TAG_ARTIST),
-					sizeof(vargs->playlist->title[0]), 20);	  
-	  pretty_copy(vargs->playlist->album[i],
+					128, 20);	  
+	  pretty_copy(vargs->playlist->meta[i].album,
 					get_song_tag(song, MPD_TAG_ALBUM),
-					sizeof(vargs->playlist->title[0]), -1);
-	  vargs->playlist->id[i] = i + 1;
+					128, -1);
+	  vargs->playlist->meta[i].id = i + 1;
+	  vargs->playlist->meta[i].selected = 0;
 	  ++i;
 	  mpd_song_free(song);
 	}
@@ -1345,7 +1432,7 @@ playlist_update(struct VerboseArgs *vargs)
 void
 searchlist_update(struct VerboseArgs* vargs)
 {
-  char (*tag_name)[128], *key = vargs->searchlist->key;
+  char *tag_name, *key = vargs->searchlist->key;
   int i, j, ct = vargs->searchlist->crt_tag_id;
 
   /* we examine and update the playlist (datebase for searching)
@@ -1353,46 +1440,41 @@ searchlist_update(struct VerboseArgs* vargs)
    * was made by other client during searching */
   playlist_update(vargs);
 
-  // now plist is fresh
-  switch(vargs->searchlist->tags[ct])
-	{
-	case MPD_TAG_TITLE:
-	  tag_name = vargs->searchlist->plist->title; break;	  
-	case MPD_TAG_ARTIST:
-	  tag_name = vargs->searchlist->plist->artist; break;
-	case MPD_TAG_ALBUM:
-	  tag_name = vargs->searchlist->plist->album; break;
-	default:
-	  tag_name = NULL;
-	}
-
   int is_substr;
   
   for(i = j = 0; i < vargs->searchlist->plist->length; i++)
 	{
+	  // now plist is fresh
+	  switch(vargs->searchlist->tags[ct])
+		{
+		case MPD_TAG_TITLE:
+		  tag_name = vargs->searchlist->plist->meta[i].title; break;	  
+		case MPD_TAG_ARTIST:
+		  tag_name = vargs->searchlist->plist->meta[i].artist; break;
+		case MPD_TAG_ALBUM:
+		  tag_name = vargs->searchlist->plist->meta[i].album; break;
+		default:
+		  tag_name = NULL;
+		}
+
 	  if(tag_name != NULL)
 		is_substr = is_substring_ignorecase
-		  (tag_name[i], key) != NULL;
+		  (tag_name, key) != NULL;
 	  else
 		{
 		  is_substr = is_substring_ignorecase
-			(vargs->searchlist->plist->title[i], key) != NULL ||
+			(vargs->searchlist->plist->meta[i].title, key) != NULL ||
 			is_substring_ignorecase
-			(vargs->searchlist->plist->album[i], key) != NULL ||
+			(vargs->searchlist->plist->meta[i].album, key) != NULL ||
 			is_substring_ignorecase
-			(vargs->searchlist->plist->artist[i], key) != NULL;
+			(vargs->searchlist->plist->meta[i].artist, key) != NULL;
 		}
 
 	  if(is_substr)
 		{
-		  strcpy(vargs->searchlist->plist->title[j],
-				 vargs->searchlist->plist->title[i]);
-		  strcpy(vargs->searchlist->plist->artist[j],
-				 vargs->searchlist->plist->artist[i]);
-		  strcpy(vargs->searchlist->plist->album[j],
-				 vargs->searchlist->plist->album[i]);
-		  strcpy(vargs->searchlist->plist->pretty_title[j], vargs->searchlist->plist->pretty_title[i]);
-		  vargs->searchlist->plist->id[j] = vargs->searchlist->plist->id[i];
+		  memmove(vargs->searchlist->plist->meta + j,
+				  vargs->searchlist->plist->meta + i,
+				 sizeof(struct MetaInfo) / sizeof(char));
 		  j ++;
 		}
 	}
@@ -1633,6 +1715,10 @@ void playlist_keymap_template(struct VerboseArgs *vargs, int key)
 	  break;
 	case 'J':
 	  song_move_down(vargs);
+	  break;
+	case 'm':
+	  toggle_select(vargs);
+	  break;
 	  
 	default:
 	  fundamental_keymap_template(vargs, key);
@@ -1648,6 +1734,7 @@ dirlist_keymap_template(struct VerboseArgs *vargs, int key)
 	case 'U':;
 	case 'J':;
 	case 'K':;
+	case 'm':;
 	case 'v': break; // key be masked
 
 	case '\n':
@@ -1701,6 +1788,10 @@ searchlist_picking_keymap(struct VerboseArgs *vargs)
 
   switch(key)
 	{
+	case 'U':;
+	case 'J':;
+	case 'K':;
+	case 'm':;
 	case 'i':;
 	case '\t':;
 	case 'l': break; // these keys are masked
@@ -2133,6 +2224,8 @@ color_init(void)
   my_color_pairs[6] = COLOR_PAIR(7) | A_BOLD;
   init_pair(8, 0, COLOR_BLACK);
   my_color_pairs[7] = COLOR_PAIR(8) | A_BOLD;
+  init_pair(9, COLOR_YELLOW, COLOR_WHITE);
+  my_color_pairs[8] = COLOR_PAIR(9) | A_BOLD;
   use_default_colors();
 }
 

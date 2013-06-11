@@ -63,20 +63,26 @@ struct VisualizerArgs
   int16_t buff[BUFFER_SIZE];
 };
 
+struct MetaInfo
+{
+  char album[128];
+  char artist[128];
+  char title[512];
+  char pretty_title[128];
+  
+  int id;
+  int selected;
+};
+
 struct PlaylistArgs
 {
-  char album[MAX_PLAYLIST_STORE_LENGTH][128];
-  char artist[MAX_PLAYLIST_STORE_LENGTH][128];
-  char title[MAX_PLAYLIST_STORE_LENGTH][128];
-  char pretty_title[MAX_PLAYLIST_STORE_LENGTH][128];
-  int id[MAX_PLAYLIST_STORE_LENGTH];
-
+  struct MetaInfo meta[MAX_PLAYLIST_STORE_LENGTH];
   int update_signal;
 
   int length;
   int begin;
-  int current; // current playing song id
   int cursor;
+  int current; // current playing song id
 
   struct WinMode wmode; // windows in this mode
 };
