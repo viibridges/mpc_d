@@ -71,6 +71,8 @@ struct PlaylistArgs
   char pretty_title[MAX_PLAYLIST_STORE_LENGTH][128];
   int id[MAX_PLAYLIST_STORE_LENGTH];
 
+  int update_signal;
+
   int length;
   int begin;
   int current; // current playing song id
@@ -97,7 +99,8 @@ struct DirlistArgs
 {
   char root_dir[128];
   char crt_dir[512];
-  char filename[MAX_PLAYLIST_STORE_LENGTH][128]; // all items in current dir
+  char filename[MAX_PLAYLIST_STORE_LENGTH][512]; // all items in current dir
+  char prettyname[MAX_PLAYLIST_STORE_LENGTH][128]; // all items in current dir
 
   struct WinMode wmode; // windows in this mode
 

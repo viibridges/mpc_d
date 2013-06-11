@@ -137,11 +137,25 @@ is_dir_exist(char *path)
 	return 0;
 }
 
+static mpd_unused int
+is_path_exist(char *path)
+{
+  struct stat s;
+
+  if (!stat(path, &s) && (s.st_mode & (S_IFDIR | S_IFREG | S_IFLNK)))
+	return 1;
+  else
+	return 0;
+}
+
 static mpd_unused void debug(const char *debug_info)
 {
   WINDOW *win = specific_win(DEBUG_INFO);
-  wprintw(win, debug_info);
-  wrefresh(win);
+  if(debug_info)
+	{
+	  wprintw(win, debug_info);
+	  wrefresh(win);
+	}
 }
 
 static mpd_unused void debug_static(const char *debug_info)
@@ -198,18 +212,86 @@ char *is_substring_ignorecase(const char *main, char *sub)
   int i;
 
   for(i = 0; main[i] && i < 64; i++)
-	lower_main[i] = isalpha(main[i]) ?
-	  (islower(main[i]) ? main[i] : (char)tolower(main[i])) : main[i];
+  	lower_main[i] = isalpha(main[i]) ?
+  	  (islower(main[i]) ? main[i] : (char)tolower(main[i])) : main[i];
   lower_main[i] = '\0';
 
   for(i = 0; sub[i] && i < 64; i++)
-	lower_sub[i] = isalpha(sub[i]) ?
-	  (islower(sub[i]) ? sub[i] : (char)tolower(sub[i])) : sub[i];
+  	lower_sub[i] = isalpha(sub[i]) ?
+  	  (islower(sub[i]) ? sub[i] : (char)tolower(sub[i])) : sub[i];
   lower_sub[i] = '\0';
 
   return strstr(lower_main, lower_sub);
 }
 
+static char*
+get_abs_crt_path(struct VerboseArgs *vargs, char *temp)
+{
+  snprintf(temp, 512, "%s/%s",
+		   vargs->dirlist->crt_dir,
+		   vargs->dirlist->filename[vargs->dirlist->cursor - 1]);
+
+  return temp;
+}
+
+static int
+is_path_valid_format(char *path)
+{
+  #define MUSIC_FORMAT_NUM 6
+
+  char valid_format[][MUSIC_FORMAT_NUM] = {
+	"mp3", "flac", "wav", "wma", "ape", "ogg"
+  };
+
+  char *path_suffix = strrchr(path, '.');
+
+  int i;
+  
+  if(path_suffix)
+	{
+	  for(i = 0; i < MUSIC_FORMAT_NUM; i++)
+		if(is_substring_ignorecase(path_suffix, valid_format[i]))
+		  return 1;
+	}
+  else
+	return 0;
+
+  return 0;
+}
+
+static char*
+crt_mpd_relative_path(struct VerboseArgs *vargs)
+{
+  char *root, *crt;
+  char temp[512];
+  
+  root = vargs->dirlist->root_dir;
+  crt = get_abs_crt_path(vargs, temp);
+  
+  while(*root && *crt && *root++ == *crt++);
+
+  if(!*root) // current directory is under the root directory
+	return crt + 1;
+  else
+	return NULL;
+}
+
+static void
+append_target(struct VerboseArgs *vargs, char *path)
+{
+	struct mpd_connection *conn = vargs->conn; 
+	
+	if (!mpd_command_list_begin(conn, false))
+	  return;
+
+	mpd_send_add(conn, path);
+
+	if (!mpd_command_list_end(conn))
+	  return;
+
+	if (!mpd_response_finish(conn))
+	  return;
+}
 
 /*************************************
  **       FUNCTIONS OF COMMANDS     **
@@ -317,6 +399,45 @@ cmd_Random(struct VerboseArgs* vargs)
   cmd_random(0, NULL, vargs->conn);
 }
 
+// current cursor song move up
+static void
+song_in_cursor_move_to(struct VerboseArgs *vargs, int offset)
+{
+  int from = vargs->playlist->cursor - 1;
+  int to = from + offset;
+
+  // check whether new position valid
+  if(to < 0 || to >= vargs->playlist->length)
+	return;
+  
+  // now check from
+  if(from < 0 || from >= vargs->playlist->length)
+	return;
+
+  // no problem
+  mpd_run_move(vargs->conn, vargs->playlist->id[from] - 1,
+			   vargs->playlist->id[to] - 1);
+
+  // update the cursor also
+  vargs->playlist->cursor += offset;
+  
+  // inform them to update the playlist
+  vargs->playlist->update_signal = 1;
+}
+
+static void
+song_move_up(struct VerboseArgs * vargs)
+{
+  song_in_cursor_move_to(vargs, -1);
+}
+
+static void
+song_move_down(struct VerboseArgs * vargs)
+{
+  song_in_cursor_move_to(vargs, +1);
+}
+
+
 static void
 playlist_scroll(struct VerboseArgs *vargs, int lines)
 {
@@ -420,11 +541,9 @@ static void
 enter_selected_dir(struct VerboseArgs* vargs)
 {
   char temp[512];
-  
-  snprintf(temp, 512, "%s/%s",
-		   vargs->dirlist->crt_dir,
-		   vargs->dirlist->filename[vargs->dirlist->cursor - 1]);
 
+  get_abs_crt_path(vargs, temp);
+  
   if(is_dir_exist(temp))
 	{
 	  strcpy(vargs->dirlist->crt_dir, temp);
@@ -442,13 +561,38 @@ exit_current_dir(struct VerboseArgs* vargs)
 
   p = strrchr(vargs->dirlist->crt_dir, '/');
 
-  if(p)
+  // prehibit exiting from root directory
+  if(p - vargs->dirlist->crt_dir < (int)strlen(vargs->dirlist->root_dir))
+	return;
+
+  if(p && p != vargs->dirlist->crt_dir)
 	{
 	  *p = '\0';
+
 	  vargs->dirlist->begin = 1;
 	  vargs->dirlist->cursor = 1;
 	  vargs->dirlist->update_signal = 1;
 	}
+}
+
+static void
+append_to_playlist(struct VerboseArgs *vargs)
+{
+  char *path, absp[512];
+
+  /* check if path exist */
+  get_abs_crt_path(vargs, absp);
+  if(!is_path_exist(absp))
+	return;
+
+  /* check if a nondir file of valid format */
+  if(!is_dir_exist(absp) && !is_path_valid_format(absp))
+	return;
+  
+  path = crt_mpd_relative_path(vargs);
+
+  if(path)
+	append_target(vargs, path);
 }
 
 /* this funciton cloned from playlist_scroll */
@@ -1122,7 +1266,7 @@ dirlist_redraw_screen(struct VerboseArgs *vargs)
   for(i = vargs->dirlist->begin - 1; i < vargs->dirlist->begin
 		+ height - 1 && i < vargs->dirlist->length; i++)
 	{
-	  filename = vargs->dirlist->filename[i];
+	  filename = vargs->dirlist->prettyname[i];
 
 	  if(i + 1 == vargs->dirlist->cursor)
 		print_list_item(win, line++, 2, i + 1, filename, NULL);
@@ -1275,7 +1419,8 @@ dirlist_update(struct VerboseArgs* vargs)
 		{
 		  if(dir->d_name[0] != '.')
 			{
-			  pretty_copy(vargs->dirlist->filename[i], dir->d_name, 128, 60);
+			  strncpy(vargs->dirlist->filename[i], dir->d_name, 128);
+			  pretty_copy(vargs->dirlist->prettyname[i], dir->d_name, 128, 60);
 			  i++;
 			}
 		}
@@ -1305,8 +1450,10 @@ playlist_update_checking(struct VerboseArgs *vargs)
 	  signal_all_wins();
 	}
 
-  if(vargs->playlist->length != queue_len)
+  if(vargs->playlist->update_signal == 1 ||
+	 vargs->playlist->length != queue_len)
 	{
+	  vargs->playlist->update_signal = 0;
 	  playlist_update(vargs);
 	  signal_all_wins();
 	}
@@ -1475,10 +1622,17 @@ void playlist_keymap_template(struct VerboseArgs *vargs, int key)
 	  playlist_scroll_to(vargs, vargs->playlist->length / 2);
 	  break;
 	case 'D':
-	  playlist_delete_song(vargs); break;
+	  playlist_delete_song(vargs);
+	  break;
 	case '\t':
 	  switch_to_main_menu(vargs);
 	  break;
+	case 'U':
+	case 'K':
+	  song_move_up(vargs);
+	  break;
+	case 'J':
+	  song_move_down(vargs);
 	  
 	default:
 	  fundamental_keymap_template(vargs, key);
@@ -1491,12 +1645,17 @@ dirlist_keymap_template(struct VerboseArgs *vargs, int key)
   // filter those different with the template
   switch(key)
 	{
+	case 'U':;
+	case 'J':;
+	case 'K':;
 	case 'v': break; // key be masked
 
 	case '\n':
 	  enter_selected_dir(vargs);break;
 	case 127:
 	  exit_current_dir(vargs);break;
+	case 'a':
+	  append_to_playlist(vargs);break;
 	  
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;
