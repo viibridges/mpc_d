@@ -16,8 +16,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#define DIE(...) do { fprintf(stderr, __VA_ARGS__); return -1; } while(0)
-
 static struct WindowUnit *wchain; // array stores all subwindows
 static struct WinMode *being_mode; // pointer to current used window set
 static int my_color_pairs[9];
@@ -88,6 +86,33 @@ color_print(WINDOW *win, int color_scheme, const char *str)
 /*************************************
  **    SYSTEM  AND  MISCELLANY      **
  *************************************/
+
+static mpd_unused void debug(const char *debug_info)
+{
+  WINDOW *win = specific_win(DEBUG_INFO);
+  if(debug_info)
+	{
+	  wprintw(win, debug_info);
+	  wrefresh(win);
+	}
+}
+
+static mpd_unused void debug_static(const char *debug_info)
+{
+  static int t = 1;
+  WINDOW *win = specific_win(DEBUG_INFO);
+  wprintw(win, "[%i] ", t++);
+  wprintw(win, debug_info);
+  wrefresh(win);
+}
+
+static mpd_unused void debug_int(const int num)
+{
+  WINDOW *win = specific_win(DEBUG_INFO);
+  wprintw(win, "%d", num);
+  wrefresh(win);
+}
+
 static void
 printErrorAndExit(struct mpd_connection *conn)
 {
@@ -97,8 +122,8 @@ printErrorAndExit(struct mpd_connection *conn)
 
 	message = mpd_connection_get_error_message(conn);
 
-	fprintf(stderr, "error: %s\n", message);
-	mpd_connection_free(conn);
+	debug(message);
+	
 	exit(EXIT_FAILURE);
 }
 
@@ -154,32 +179,6 @@ is_path_exist(char *path)
 	return 1;
   else
 	return 0;
-}
-
-static mpd_unused void debug(const char *debug_info)
-{
-  WINDOW *win = specific_win(DEBUG_INFO);
-  if(debug_info)
-	{
-	  wprintw(win, debug_info);
-	  wrefresh(win);
-	}
-}
-
-static mpd_unused void debug_static(const char *debug_info)
-{
-  static int t = 1;
-  WINDOW *win = specific_win(DEBUG_INFO);
-  wprintw(win, "[%i] ", t++);
-  wprintw(win, debug_info);
-  wrefresh(win);
-}
-
-static mpd_unused void debug_int(const int num)
-{
-  WINDOW *win = specific_win(DEBUG_INFO);
-  wprintw(win, "%d", num);
-  wrefresh(win);
 }
 
 // return -1 when cursor is hiden
@@ -328,15 +327,15 @@ append_target(struct VerboseArgs *vargs, char *path)
 	struct mpd_connection *conn = vargs->conn; 
 	
 	if (!mpd_command_list_begin(conn, false))
-	  return;
+	  return printErrorAndExit(conn);
 
-	mpd_send_add(conn, path);
+	mpd_run_add(conn, path);
 
 	if (!mpd_command_list_end(conn))
-	  return;
+	  return printErrorAndExit(conn);
 
 	if (!mpd_response_finish(conn))
-	  return;
+	  return printErrorAndExit(conn);
 }
 
 /*************************************
@@ -392,11 +391,9 @@ cmd_volup(struct VerboseArgs *vargs)
   if(volume > 100)
 	volume = 100;
 
-  if (!mpd_send_set_volume(conn, volume))
+  if (!mpd_run_set_volume(conn, volume))
 	printErrorAndExit(conn);
 
-  my_finishCommand(conn);
-  
   return 1;
 }
   
@@ -878,9 +875,7 @@ playlist_delete_song_in_cursor(struct VerboseArgs *vargs)
   if(i < 0 || i >= vargs->playlist->length)
 	return;
 	
-  mpd_send_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
-
-  my_finishCommand(vargs->conn);
+  mpd_run_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
 }
 
 // if any is deleted then return 1
@@ -892,10 +887,7 @@ playlist_delete_song_in_batch(struct VerboseArgs *vargs)
   // delete in descended order won't screw things up
   for(i = vargs->playlist->length - 1; i >= 0; i--)
 	if(vargs->playlist->meta[i].selected)
-	  {
-		mpd_send_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
-		my_finishCommand(vargs->conn);
-	  }
+	  mpd_run_delete(vargs->conn, vargs->playlist->meta[i].id - 1);
 }
 
 static void
@@ -1684,7 +1676,7 @@ tapelist_update(struct VerboseArgs* vargs)
 	int i = 0;
 
 	if (!mpd_send_list_meta(vargs->conn, ""))
-	  return;
+	  return printErrorAndExit(vargs->conn);
 	
 	while((entity = mpd_recv_entity(vargs->conn)) != NULL && i < 128)
 	  {
