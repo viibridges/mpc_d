@@ -1,9 +1,6 @@
 #include "tapelist.h"
 #include "utils.h"
 
-extern struct Tapelist *tapelist;
-extern struct mpd_connection *conn;
-
 void
 tapelist_redraw_screen(void)
 {

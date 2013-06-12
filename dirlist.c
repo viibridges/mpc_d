@@ -2,9 +2,6 @@
 #include "windows.h"
 #include "utils.h"
 
-extern struct Dirlist *dirlist;
-extern struct mpd_connection *conn;
-
 int
 is_path_valid_format(char *path)
 {

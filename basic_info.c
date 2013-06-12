@@ -2,8 +2,6 @@
 #include "searchlist.h"
 #include "utils.h"
 
-extern struct mpd_connection *conn;
-
 void
 basic_state_checking(void)
 {
@@ -78,8 +76,6 @@ print_extra_info(void)
   else {
 	wprintw(win, "Volume: n/a   ");
   }
-
-  extern struct Searchlist *searchlist;
 
   mvwprintw(win, 0, 14, "Search: ");
   color_print(win, 6,

@@ -2,9 +2,6 @@
 #include "utils.h"
 #include "basic_info.h"
 
-extern struct Searchlist *searchlist;
-extern struct mpd_connection *conn;
-
 void
 searchlist_update(void)
 {

@@ -27,3 +27,5 @@ int quit_signal;
 // the larger the longer, the scope is between
 // INTERVAL_MIN_UNIT and  INTERVAL_MAX_UNIT
 int interval_level;
+
+struct mpd_connection *conn;

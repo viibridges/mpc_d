@@ -9,13 +9,6 @@
 #include "tapelist.h"
 #include "visualizer.h"
 
-extern struct mpd_connection *conn;
-extern struct BasicInfo *basic_info;    
-extern struct Playlist *playlist;
-extern struct Searchlist *searchlist;
-extern struct Dirlist *dirlist;  
-extern struct Tapelist *tapelist;  
-
 void
 cmd_seek_second(int perc)
 {

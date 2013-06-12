@@ -9,14 +9,6 @@
 #include "tapelist.h"
 #include "visualizer.h"
 
-struct mpd_connection *conn;
-struct BasicInfo *basic_info;    
-struct Playlist *playlist;
-struct Searchlist *searchlist;
-struct Dirlist *dirlist;  
-struct Tapelist *tapelist;  
-struct Visualizer *visualizer;
-
 int
 main(int argc, char **args)
 {

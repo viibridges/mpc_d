@@ -2,9 +2,6 @@
 #include "basic_info.h"
 #include "utils.h"
 
-extern struct mpd_connection *conn;
-extern struct Playlist *playlist;
-
 void
 playlist_simple_bar(void)
 {

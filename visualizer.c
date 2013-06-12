@@ -1,9 +1,6 @@
 #include "visualizer.h"
 #include "windows.h"
 
-extern struct mpd_connection *conn;
-extern struct Visualizer *visualizer;
-
 /** Music Visualizer **/
 void
 get_fifo_id(void)
@@ -17,7 +14,7 @@ get_fifo_id(void)
   visualizer->fifo_id = id;
 }
 
-mpd_unused int
+int
 get_fifo_output_id(void)
 {
 	struct mpd_output *output;
@@ -46,7 +43,7 @@ get_fifo_output_id(void)
 }
 
 
-mpd_unused void
+void
 fifo_output_update(void)
 {
   int fifo_output_id = get_fifo_output_id();

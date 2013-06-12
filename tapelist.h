@@ -17,6 +17,8 @@ struct Tapelist
   int cursor;
 };
 
+struct Tapelist *tapelist;  
+
 void tapelist_redraw_screen(void);
 void tapelist_update_checking(void);
 void tapelist_update(void);

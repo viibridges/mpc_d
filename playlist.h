@@ -28,6 +28,8 @@ struct Playlist
   struct WinMode wmode; // windows in this mode
 };
 
+struct Playlist *playlist;
+
 void playlist_simple_bar(void);
 void playlist_up_state_bar(void);
 void playlist_down_state_bar(void);

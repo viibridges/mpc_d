@@ -8,12 +8,6 @@
 #include "visualizer.h"
 #include "commands.h"
 
-extern struct BasicInfo *basic_info;    
-extern struct Playlist *playlist;
-extern struct Searchlist *searchlist;
-extern struct Dirlist *dirlist;  
-extern struct Tapelist *tapelist;  
-
 void fundamental_keymap_template(int key)
 {
   switch(key)

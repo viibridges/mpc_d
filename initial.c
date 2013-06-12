@@ -10,14 +10,6 @@
 
 #include <ncursesw/ncurses.h>
 
-extern struct mpd_connection *conn;
-extern struct BasicInfo *basic_info;    
-extern struct Playlist *playlist;
-extern struct Searchlist *searchlist;
-extern struct Dirlist *dirlist;  
-extern struct Tapelist *tapelist;  
-extern struct Visualizer *visualizer;
-
 struct mpd_connection* setup_connection(void)
 {
 	struct mpd_connection *conn;

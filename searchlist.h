@@ -19,6 +19,8 @@ struct Searchlist
   struct WinMode wmode; // windows in this mode
 };
 
+struct Searchlist *searchlist;
+
 void searchlist_update(void);
 void searchlist_update_checking(void);
 void search_prompt(void);

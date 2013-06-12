@@ -20,6 +20,8 @@ struct Dirlist
   int cursor;
 };
 
+struct Dirlist *dirlist;
+
 char* get_abs_crt_path(void);
 int is_path_valid_format(char *path);
 char* get_mpd_crt_path(void);
