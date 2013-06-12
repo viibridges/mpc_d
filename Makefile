@@ -5,11 +5,6 @@ CFLAGS = -std=gnu99 -Wall -g
 BIN = mpc
 OBJECTS = basic_info.o commands.o dirlist.o initial.o keyboards.o playlist.o searchlist.o tapelist.o utils.o visualizer.o windows.o
 
-SOURCE = basic_info.c commands.c dirlist.c initial.c keyboards.c main.c playlist.c searchlist.c tapelist.c utils.c visualizer.c windows.c
-HEAD = basic_info.h commands.h dirlist.h global.h initial.h keyboards.h playlist.h searchlist.h tapelist.h utils.h visualizer.h windows.h
-
-
-
 #main: $(HEAD) $(SOURCE)
 #	$(CC) $(SOURCE) -o $(BIN) $(CLIBS) $(CFLAGS)
 
@@ -54,3 +49,6 @@ utils.o: utils.c utils.h
 
 clean:
 	rm *.o -f $(BIN)
+
+run:
+	@./$(BIN)

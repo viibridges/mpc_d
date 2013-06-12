@@ -190,9 +190,9 @@ song_in_cursor_move_to(int offset)
 			   playlist->meta[to].id - 1);
 
   // inform them to update the playlist
-  //playlist->update_signal = 1;
+  playlist->update_signal = 1;
 
-  swap_playlist_items(from, to);
+  //swap_playlist_items(from, to);
 }
 
 void
@@ -234,70 +234,44 @@ toggle_select()
 }
 
 void
-playlist_scroll(int lines)
-{
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  // mid_pos is the relative position of cursor in the screen
-  const int mid_pos = height / 2 - 1;
-
-  playlist->cursor += lines;
-	
-  if(playlist->cursor > playlist->length)
-	playlist->cursor = playlist->length;
-  else if(playlist->cursor < 1)
-	playlist->cursor = 1;
-
-  playlist->begin = playlist->cursor - mid_pos;
-
-  /* as mid_pos maight have round-off error, the right hand side
-   * playlist_height - mid_pos compensates it.
-   * always keep:
-   *		begin = cursor - mid_pos    (previous instruction)
-   * while:
-   *		length - cursor = height - mid_pos - 1 (condition)
-   *		begin = length - height + 1            (body)
-   *
-   * Basic Math :) */
-  if(playlist->length - playlist->cursor < height - mid_pos)
-	playlist->begin = playlist->length - height + 1;
-
-  if(playlist->cursor < mid_pos)
-	playlist->begin = 1;
-
-  // this expression should always be false
-  if(playlist->begin < 1)
-	playlist->begin = 1;
-}
-
-void
 playlist_scroll_to(int line)
 {
+  int height = wchain[PLAYLIST].win->_maxy + 1;
   playlist->cursor = 0;
-  playlist_scroll(line);
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, line);
 }
 
 void
 playlist_scroll_down_line()
 {
-  playlist_scroll(+1);
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, +1);
 }
 
 void
 playlist_scroll_up_line()
 {
-  playlist_scroll(-1);
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, -1);
 }
 
 void
 playlist_scroll_up_page()
 {
-  playlist_scroll(-15);
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, -15);
 }
 
 void
 playlist_scroll_down_page()
 {
-  playlist_scroll(+15);
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, +15);
 }
 
 void
@@ -381,140 +355,89 @@ append_to_playlist()
   path = get_mpd_crt_path();
 
   if(path)
-	append_target(path);
-}
-
-void
-append_target(char *path)
-{
-  if (!mpd_command_list_begin(conn, false))
-	printErrorAndExit(conn);
-
-  mpd_run_add(conn, path);
-
-  if (!mpd_command_list_end(conn))
-	printErrorAndExit(conn);
-
-  if (!mpd_response_finish(conn))
-	printErrorAndExit(conn);
-}
-
-/* this funciton cloned from playlist_scroll */
-void
-dirlist_scroll(int lines)
-{
-  int height = wchain[DIRLIST].win->_maxy + 1;
-  // mid_pos is the relative position of cursor in the screen
-  const int mid_pos = height / 2 - 1;
-
-  dirlist->cursor += lines;
-	
-  if(dirlist->cursor > dirlist->length)
-	dirlist->cursor = dirlist->length;
-  else if(dirlist->cursor < 1)
-	dirlist->cursor = 1;
-
-  dirlist->begin = dirlist->cursor - mid_pos;
-
-  if(dirlist->length - dirlist->cursor < height - mid_pos)
-	dirlist->begin = dirlist->length - height + 1;
-
-  if(dirlist->cursor < mid_pos)
-	dirlist->begin = 1;
-
-  // this expression should always be false
-  if(dirlist->begin < 1)
-	dirlist->begin = 1;
+	mpd_run_add(conn, path);
 }
 
 void
 dirlist_scroll_to(int line)
 {
+  int height = wchain[DIRLIST].win->_maxy + 1;
   dirlist->cursor = 0;
-  dirlist_scroll(line);
+  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
+						  dirlist->length, height, line);
 }
 
 void
 dirlist_scroll_down_line()
 {
-  dirlist_scroll(+1);
+  int height = wchain[DIRLIST].win->_maxy + 1;
+  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
+						  dirlist->length, height, +1);
 }
 
 void
 dirlist_scroll_up_line()
 {
-  dirlist_scroll(-1);
+  int height = wchain[DIRLIST].win->_maxy + 1;
+  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
+						  dirlist->length, height, -1);  
 }
 
 void
 dirlist_scroll_up_page()
 {
-  dirlist_scroll(-15);
+  int height = wchain[DIRLIST].win->_maxy + 1;
+  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
+						  dirlist->length, height, -15);  
 }
 
 void
 dirlist_scroll_down_page()
 {
-  dirlist_scroll(+15);
-}
-
-/* this funciton cloned from playlist_scroll */
-void
-tapelist_scroll(int lines)
-{
-  int height = wchain[TAPELIST].win->_maxy + 1;
-  // mid_pos is the relative position of cursor in the screen
-  const int mid_pos = height / 2 - 1;
-
-  tapelist->cursor += lines;
-	
-  if(tapelist->cursor > tapelist->length)
-	tapelist->cursor = tapelist->length;
-  else if(tapelist->cursor < 1)
-	tapelist->cursor = 1;
-
-  tapelist->begin = tapelist->cursor - mid_pos;
-
-  if(tapelist->length - tapelist->cursor < height - mid_pos)
-	tapelist->begin = tapelist->length - height + 1;
-
-  if(tapelist->cursor < mid_pos)
-	tapelist->begin = 1;
-
-  // this expression should always be false
-  if(tapelist->begin < 1)
-	tapelist->begin = 1;
+  int height = wchain[DIRLIST].win->_maxy + 1;
+  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
+						  dirlist->length, height, +15);  
 }
 
 void
 tapelist_scroll_to(int line)
 {
+  int height = wchain[TAPELIST].win->_maxy + 1;
   tapelist->cursor = 0;
-  tapelist_scroll(line);
+  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
+						  tapelist->length, height, line);
 }
 
 void
 tapelist_scroll_down_line()
 {
-  tapelist_scroll(+1);
+  int height = wchain[TAPELIST].win->_maxy + 1;
+  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
+						  tapelist->length, height, +1);
 }
 
 void
 tapelist_scroll_up_line()
 {
-  tapelist_scroll(-1);
+  int height = wchain[TAPELIST].win->_maxy + 1;
+  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
+						  tapelist->length, height, -1);
 }
 
 void
 tapelist_scroll_up_page()
 {
-  tapelist_scroll(-15);
+  int height = wchain[TAPELIST].win->_maxy + 1;
+  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
+						  tapelist->length, height, -15);  
 }
 
 void
 tapelist_scroll_down_page()
 {
-  tapelist_scroll(+15);
+  int height = wchain[TAPELIST].win->_maxy + 1;
+  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
+						  tapelist->length, height, +15);  
 }
 
 void
@@ -570,6 +493,11 @@ playlist_delete_song()
 	playlist_delete_song_in_batch();
   else
 	playlist_delete_song_in_cursor();
+
+  /* easest way to realign the playlist */
+  playlist_update();
+  playlist_scroll_up_line();
+  //playlist_scroll_down_line();
 }
 
 void

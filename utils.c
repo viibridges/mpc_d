@@ -173,3 +173,40 @@ pretty_copy(char *string, const char * tag, int size, int width)
   string[i] = '\0';
 }
 
+/* this style of scrolling keeps the cursor in
+   the middle of the list while scrolling the
+   whole list itself */
+void scroll_line_shift_style
+(int *cursor, int *begin, const int total, const int height, const int lines)
+{
+  // mid_pos is the relative position of cursor in the screen
+  const int mid_pos = height / 2 - 1;
+
+  *cursor += lines;
+	
+  if(*cursor > total)
+	*cursor = total;
+  else if(*cursor < 1)
+	*cursor = 1;
+
+  *begin = *cursor - mid_pos;
+
+  /* as mid_pos maight have round-off error, the right hand side
+   * list_height - mid_pos compensates it.
+   * always keep:
+   *		begin = cursor - mid_pos    (previous instruction)
+   * while:
+   *		total - cursor = height - mid_pos - 1 (condition)
+   *		begin = total - height + 1            (body)
+   *
+   * Basic Math :) */
+  if(total - *cursor < height - mid_pos)
+	*begin = total - height + 1;
+
+  if(*cursor < mid_pos)
+	*begin = 1;
+
+  // this expression should always be false
+  if(*begin < 1)
+	*begin = 1;
+}

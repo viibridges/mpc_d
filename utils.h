@@ -14,3 +14,6 @@ const char * get_song_format(const struct mpd_song *song);
 const char * get_song_tag(const struct mpd_song *song, enum mpd_tag_type type);
 char *is_substring_ignorecase(const char *main, char *sub);
 void pretty_copy(char *string, const char * tag, int size, int width);
+void scroll_line_shift_style
+(int *cursor, int *begin, const int total, const int height, const int lines);
+
