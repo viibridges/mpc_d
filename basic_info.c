@@ -79,8 +79,8 @@ print_extra_info(void)
 
   mvwprintw(win, 0, 14, "Search: ");
   color_print(win, 6,
-			  mpd_tag_name(playlist->tags
-						   [playlist->crt_tag_id]));
+			  mpd_tag_name(songlist->tags
+						   [songlist->crt_tag_id]));
   wprintw(win, "  ");
 
   if (mpd_status_get_error(status) != NULL)

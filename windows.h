@@ -14,13 +14,13 @@ enum window_id
 	VERBOSE_PROC_BAR,		 // time bar for basic mode
 	VISUALIZER,				 // visaulizer: vu meter
 	HELPER,					 // help page
-	SIMPLE_PROC_BAR,		 // time bar for playlist mode
-	PLIST_UP_STATE_BAR,		 // implies scroll up
-	PLAYLIST,				 // playlist
-	PLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
+	SIMPLE_PROC_BAR,		 // time bar for songlist mode
+	SLIST_UP_STATE_BAR,		 // implies scroll up
+	SONGLIST,				 // songlist
+	SLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
 	DIRLIST,				 // window list item in current directory
-	DIRHELPER,              // dirlist instruction 
-	TAPELIST,                // window list all playlists
+	DIRHELPER,               // dirlist instruction 
+	TAPELIST,                // window list all songlists
 	TAPEHELPER,              // tapelist instruction 
 	SEARCH_INPUT,			 // search prompt area
 	DEBUG_INFO,				 // for debug perpuse only

@@ -15,9 +15,9 @@ struct MetaInfo
   int selected;
 };
 
-struct Playlist
+struct Songlist
 {
-  struct MetaInfo meta[MAX_PLAYLIST_STORE_LENGTH];
+  struct MetaInfo meta[MAX_SONGLIST_STORE_LENGTH];
   int update_signal;
 
   // search mode parameters
@@ -34,17 +34,17 @@ struct Playlist
   struct WinMode wmode; // windows in this mode
 };
 
-struct Playlist *playlist;
+struct Songlist *songlist;
 
-void playlist_simple_bar(void);
-void playlist_up_state_bar(void);
-void playlist_down_state_bar(void);
-void playlist_redraw_screen(void);
-void playlist_update(void);
-void playlist_update_checking(void);
-int get_playlist_cursor_item_index(void);
-int is_playlist_selected(void);
-void swap_playlist_items(int i, int j);
+void songlist_simple_bar(void);
+void songlist_up_state_bar(void);
+void songlist_down_state_bar(void);
+void songlist_redraw_screen(void);
+void songlist_update(void);
+void songlist_update_checking(void);
+int get_songlist_cursor_item_index(void);
+int is_songlist_selected(void);
+void swap_songlist_items(int i, int j);
 
 /** Search Mode Stuffs **/
 void searchmode_update(void);

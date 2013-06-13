@@ -45,24 +45,24 @@ dynamic_initial(void)
   basic_info =
 	(struct BasicInfo*) malloc(sizeof(struct BasicInfo));
   
-  /** playlist arguments */
-  playlist =
-	(struct Playlist*) malloc(sizeof(struct Playlist));
-  playlist->begin = 1;
-  playlist->length = 0;
-  playlist->current = 0;
-  playlist->cursor = 1;
+  /** songlist arguments */
+  songlist =
+	(struct Songlist*) malloc(sizeof(struct Songlist));
+  songlist->begin = 1;
+  songlist->length = 0;
+  songlist->current = 0;
+  songlist->cursor = 1;
 
-  playlist->tags[0] = MPD_TAG_NAME;
-  playlist->tags[1] = MPD_TAG_TITLE;
-  playlist->tags[2] = MPD_TAG_ARTIST;
-  playlist->tags[3] = MPD_TAG_ALBUM;
-  playlist->crt_tag_id = 0;
-  playlist->key[0] = '\0';
+  songlist->tags[0] = MPD_TAG_NAME;
+  songlist->tags[1] = MPD_TAG_TITLE;
+  songlist->tags[2] = MPD_TAG_ARTIST;
+  songlist->tags[3] = MPD_TAG_ALBUM;
+  songlist->crt_tag_id = 0;
+  songlist->key[0] = '\0';
    
   /** it's turn out to be good that updating
-	  the playlist in the first place **/
-  playlist_update();
+	  the songlist in the first place **/
+  songlist_update();
 
   /** dirlist arguments **/
   // TODO add this automatically according to the mpd setting
@@ -101,7 +101,7 @@ void
 dynamic_destroy(void)
 {
   winmod_free();
-  free(playlist);
+  free(songlist);
   free(dirlist);
   free(tapelist);
   free(visualizer);
@@ -117,10 +117,10 @@ wchain_init(void)
 	  &print_basic_bar,			 // VERBOSE_PROC_BAR 
 	  &print_visualizer,		 // VISUALIZER
 	  &print_basic_help,		 // HELPER
-	  &playlist_simple_bar,		 // SIMPLE_PROC_BAR  
-	  &playlist_up_state_bar,    // PLIST_UP_STATE_BAR
-	  &playlist_redraw_screen,	 // PLAYLIST
-	  &playlist_down_state_bar,  // PLIST_DOWN_STATE_BAR
+	  &songlist_simple_bar,		 // SIMPLE_PROC_BAR  
+	  &songlist_up_state_bar,    // SLIST_UP_STATE_BAR
+	  &songlist_redraw_screen,	 // SONGLIST
+	  &songlist_down_state_bar,  // SLIST_DOWN_STATE_BAR
 	  &dirlist_redraw_screen,    // DIRLIST
 	  &dirlist_helper,           // DIRHELPER
 	  &tapelist_redraw_screen,   // TAPELIST
@@ -137,9 +137,9 @@ wchain_init(void)
 	  NULL,		                	 // VISUALIZER
 	  NULL,		                	 // HELPER
 	  NULL,		                	 // SIMPLE_PROC_BAR  
-	  NULL,                     	 // PLIST_UP_STATE_BAR
-	  &playlist_update_checking,	 // PLAYLIST
-	  NULL,                          // PLIST_DOWN_STATE_BAR
+	  NULL,                     	 // SLIST_UP_STATE_BAR
+	  &songlist_update_checking,	 // SONGLIST
+	  NULL,                          // SLIST_DOWN_STATE_BAR
 	  &dirlist_update_checking,      // DIRLIST
 	  NULL,                          // DIRHELPER
 	  &tapelist_update_checking,     // TAPELIST
@@ -192,9 +192,9 @@ wchain_size_update(void)
 	  {1, 72, 3, 0},				// VISUALIZER
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
-	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
-	  {height - 8, 73, 5, 0},	    // PLAYLIST
-	  {1, width, height - 3, 0},	// PLIST_DOWN_STATE_BAR
+	  {1, 42, 4, 0},				// SLIST_UP_STATE_BAR
+	  {height - 8, 73, 5, 0},	    // SONGLIST
+	  {1, width, height - 3, 0},	// SLIST_DOWN_STATE_BAR
 	  {height - 8, 36, 6, 41},	    // DIRLIST
 	  {height - 6, 36, 3, 0},       // DIRHELPER
 	  {height - 8, 36, 6, 41},	    // TAPELIST
@@ -231,18 +231,18 @@ winmod_init(void)
   basic_info->wmode.wins[4] = &wchain[HELPER];
   basic_info->wmode.listen_keyboard = &basic_keymap;
 
-  // playlist wmode
-  playlist->wmode.size = 7;
-  playlist->wmode.wins = (struct WindowUnit**)
-	malloc(playlist->wmode.size * sizeof(struct WindowUnit*));
-  playlist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
-  playlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
-  playlist->wmode.wins[2] = &wchain[PLIST_UP_STATE_BAR];
-  playlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
-  playlist->wmode.wins[4] = &wchain[BASIC_INFO];
-  playlist->wmode.wins[5] = &wchain[PLAYLIST];
-  playlist->wmode.wins[6] = &wchain[SEARCH_INPUT];  
-  playlist->wmode.listen_keyboard = &playlist_keymap;
+  // songlist wmode
+  songlist->wmode.size = 7;
+  songlist->wmode.wins = (struct WindowUnit**)
+	malloc(songlist->wmode.size * sizeof(struct WindowUnit*));
+  songlist->wmode.wins[0] = &wchain[SLIST_DOWN_STATE_BAR];
+  songlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  songlist->wmode.wins[2] = &wchain[SLIST_UP_STATE_BAR];
+  songlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  songlist->wmode.wins[4] = &wchain[BASIC_INFO];
+  songlist->wmode.wins[5] = &wchain[SONGLIST];
+  songlist->wmode.wins[6] = &wchain[SEARCH_INPUT];  
+  songlist->wmode.listen_keyboard = &songlist_keymap;
 
   // dirlist wmode
   dirlist->wmode.size = 5;
@@ -271,7 +271,7 @@ void
 winmod_free(void)
 {
   free(basic_info->wmode.wins);
-  free(playlist->wmode.wins);
+  free(songlist->wmode.wins);
   free(dirlist->wmode.wins);
   free(tapelist->wmode.wins);
 }

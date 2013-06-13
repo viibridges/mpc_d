@@ -8,8 +8,8 @@ struct Dirlist
 {
   char root_dir[128];
   char crt_dir[512];
-  char filename[MAX_PLAYLIST_STORE_LENGTH][512]; // all items in current dir
-  char prettyname[MAX_PLAYLIST_STORE_LENGTH][128]; // all items in current dir
+  char filename[MAX_SONGLIST_STORE_LENGTH][512]; // all items in current dir
+  char prettyname[MAX_SONGLIST_STORE_LENGTH][128]; // all items in current dir
 
   struct WinMode wmode; // windows in this mode
 

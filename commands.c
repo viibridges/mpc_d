@@ -166,25 +166,25 @@ cmd_Random()
 void
 song_in_cursor_move_to(int offset)
 {
-  int from = get_playlist_cursor_item_index();
+  int from = get_songlist_cursor_item_index();
   int to = from + offset;
 
   // check whether new position valid
-  if(to < 0 || to >= playlist->length)
+  if(to < 0 || to >= songlist->length)
 	return;
   
   // now check from
-  if(from < 0 || from >= playlist->length)
+  if(from < 0 || from >= songlist->length)
 	return;
 
   // no problem
-  mpd_run_move(conn, playlist->meta[from].id - 1,
-			   playlist->meta[to].id - 1);
+  mpd_run_move(conn, songlist->meta[from].id - 1,
+			   songlist->meta[to].id - 1);
 
-  // inform them to update the playlist
-  playlist->update_signal = 1;
+  // inform them to update the songlist
+  songlist->update_signal = 1;
 
-  //swap_playlist_items(from, to);
+  //swap_songlist_items(from, to);
 }
 
 void
@@ -193,7 +193,7 @@ song_move_up()
   song_in_cursor_move_to(-1);
 
   // scroll up cursor also
-  playlist_scroll_up_line();
+  songlist_scroll_up_line();
 }
 
 void
@@ -202,81 +202,81 @@ song_move_down()
   song_in_cursor_move_to(+1);
 
   // scroll down cursor also
-  playlist_scroll_down_line();
+  songlist_scroll_down_line();
 }
 
 void
 toggle_select_item(int id)
 {
-  if(id < 0 || id >= playlist->length)
+  if(id < 0 || id >= songlist->length)
 	return;
   else
-	playlist->meta[id].selected ^= 1;
+	songlist->meta[id].selected ^= 1;
 }
 
 void
 toggle_select()
 {
-  int id = get_playlist_cursor_item_index();
+  int id = get_songlist_cursor_item_index();
 
   toggle_select_item(id);
 
   // move cursor forward by one step
-  playlist_scroll_down_line();
+  songlist_scroll_down_line();
 }
 
 void
-playlist_scroll_to(int line)
+songlist_scroll_to(int line)
 {
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  playlist->cursor = 0;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, line);
+  int height = wchain[SONGLIST].win->_maxy + 1;
+  songlist->cursor = 0;
+  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
+						  songlist->length, height, line);
 }
 
 void
-playlist_scroll_down_line()
+songlist_scroll_down_line()
 {
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, +1);
+  int height = wchain[SONGLIST].win->_maxy + 1;
+  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
+						  songlist->length, height, +1);
 }
 
 void
-playlist_scroll_up_line()
+songlist_scroll_up_line()
 {
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, -1);
+  int height = wchain[SONGLIST].win->_maxy + 1;
+  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
+						  songlist->length, height, -1);
 }
 
 void
-playlist_scroll_up_page()
+songlist_scroll_up_page()
 {
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, -15);
+  int height = wchain[SONGLIST].win->_maxy + 1;
+  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
+						  songlist->length, height, -15);
 }
 
 void
-playlist_scroll_down_page()
+songlist_scroll_down_page()
 {
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, +15);
+  int height = wchain[SONGLIST].win->_maxy + 1;
+  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
+						  songlist->length, height, +15);
 }
 
 void
-playlist_play_current()
+songlist_play_current()
 {
-  int song = get_playlist_cursor_item_index();
+  int song = get_songlist_cursor_item_index();
   
   if(song > -1)
 	mpd_run_play_pos(conn, song);
 }
 
 void
-playlist_scroll_to_current()
+songlist_scroll_to_current()
 {
   struct mpd_status *status;
   int song_id;
@@ -284,14 +284,14 @@ playlist_scroll_to_current()
   song_id = mpd_status_get_song_pos(status) + 1;
   mpd_status_free(status);
 
-  playlist_scroll_to(song_id);
+  songlist_scroll_to(song_id);
 }
 
 void
-playlist_cursor_hide()
+songlist_cursor_hide()
 {
   // because the minimum visible position is 1
-  playlist->cursor = -1;
+  songlist->cursor = -1;
 }
 
 void
@@ -331,7 +331,7 @@ exit_current_dir()
 }
 
 void
-append_to_playlist()
+append_to_songlist()
 {
   char *path, *absp;
 
@@ -437,7 +437,7 @@ cmd_Next()
 {
   mpd_run_next(conn);
 
-  playlist_scroll_to_current();
+  songlist_scroll_to_current();
 }
 
 void
@@ -445,50 +445,50 @@ cmd_Prev()
 {
   mpd_run_previous(conn);
   
-  playlist_scroll_to_current();
+  songlist_scroll_to_current();
 }
 
 void
 change_searching_scope()
 {
-  playlist->crt_tag_id ++;
-  playlist->crt_tag_id %= 4;	  
+  songlist->crt_tag_id ++;
+  songlist->crt_tag_id %= 4;	  
 }
 
 void
-playlist_delete_song_in_cursor()
+songlist_delete_song_in_cursor()
 {
-  int i = get_playlist_cursor_item_index();
+  int i = get_songlist_cursor_item_index();
   
-  if(i < 0 || i >= playlist->length)
+  if(i < 0 || i >= songlist->length)
 	return;
 	
-  mpd_run_delete(conn, playlist->meta[i].id - 1);
+  mpd_run_delete(conn, songlist->meta[i].id - 1);
 }
 
 // if any is deleted then return 1
 void
-playlist_delete_song_in_batch()
+songlist_delete_song_in_batch()
 {
   int i;
 
   // delete in descended order won't screw things up
-  for(i = playlist->length - 1; i >= 0; i--)
-	if(playlist->meta[i].selected)
-	  mpd_run_delete(conn, playlist->meta[i].id - 1);
+  for(i = songlist->length - 1; i >= 0; i--)
+	if(songlist->meta[i].selected)
+	  mpd_run_delete(conn, songlist->meta[i].id - 1);
 }
 
 void
-playlist_delete_song()
+songlist_delete_song()
 {
-  if(is_playlist_selected())
-	playlist_delete_song_in_batch();
+  if(is_songlist_selected())
+	songlist_delete_song_in_batch();
   else
-	playlist_delete_song_in_cursor();
+	songlist_delete_song_in_cursor();
 
-  /* easest way to realign the playlist */
-  playlist_update();
-  playlist_scroll_to(playlist->cursor);
+  /* easest way to realign the songlist */
+  songlist_update();
+  songlist_scroll_to(songlist->cursor);
 }
 
 void
@@ -500,11 +500,11 @@ switch_to_main_menu()
 }
 
 void
-switch_to_playlist_menu()
+switch_to_songlist_menu()
 {
   clean_screen();
 
-  wmode_update(&playlist->wmode);
+  wmode_update(&songlist->wmode);
 }
 
 void
@@ -541,19 +541,19 @@ turnon_search_mode(void)
   // show up the input window
   wchain[SEARCH_INPUT].visible = 1;
   
-  playlist->key[0] = '\0';
-  playlist->picking_mode = 0;
-  //playlist->wmode.listen_keyboard = &searchmode_keymap;
-  playlist_cursor_hide();
+  songlist->key[0] = '\0';
+  songlist->picking_mode = 0;
+  //songlist->wmode.listen_keyboard = &searchmode_keymap;
+  songlist_cursor_hide();
 
   clean_window(VERBOSE_PROC_BAR);
   clean_window(VISUALIZER);
 
   // switch the keyboard and update_checking() rountine
-  playlist->wmode.listen_keyboard = &searchmode_keymap;
-  wchain[PLAYLIST].update_checking = &searchmode_update_checking;
+  songlist->wmode.listen_keyboard = &searchmode_keymap;
+  wchain[SONGLIST].update_checking = &searchmode_update_checking;
 
-  wmode_update(&playlist->wmode);
+  wmode_update(&songlist->wmode);
 }
 
 void
@@ -562,13 +562,13 @@ turnoff_search_mode(void)
   // turn off the input window
   wchain[SEARCH_INPUT].visible = 0;
   
-  playlist->key[0] = '\0';
-  playlist_update();
-  playlist_scroll_to_current();
+  songlist->key[0] = '\0';
+  songlist_update();
+  songlist_scroll_to_current();
 
   clean_window(SEARCH_INPUT);
 
   // switch the keboard and update_checking() back
-  playlist->wmode.listen_keyboard = &playlist_keymap;
-  wchain[PLAYLIST].update_checking = &playlist_update_checking;
+  songlist->wmode.listen_keyboard = &songlist_keymap;
+  wchain[SONGLIST].update_checking = &songlist_update_checking;
 }

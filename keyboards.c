@@ -47,13 +47,13 @@ void fundamental_keymap_template(int key)
 	case 'S':
 	  change_searching_scope(); break;
 	case '\t':
-	  switch_to_playlist_menu();
+	  switch_to_songlist_menu();
 	  break;
 	case '1':
 	  switch_to_main_menu();
 	  break;
 	case '2':
-	  switch_to_playlist_menu();
+	  switch_to_songlist_menu();
 	  break;
 	case '3':
 	  switch_to_dirlist_menu();
@@ -72,7 +72,7 @@ void fundamental_keymap_template(int key)
 	}
 }
 
-void playlist_keymap_template(int key)
+void songlist_keymap_template(int key)
 {
   // filter those different with the template
   switch(key)
@@ -82,34 +82,34 @@ void playlist_keymap_template(int key)
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;
 	case 'j':
-	  playlist_scroll_down_line();
+	  songlist_scroll_down_line();
 	  break;
 	case 16: ; // ctrl-p
 	case KEY_UP:;
 	case 'k':
-	  playlist_scroll_up_line();break;
+	  songlist_scroll_up_line();break;
 	case '\n':
-	  playlist_play_current();break;
+	  songlist_play_current();break;
 	case 'b':
-	  playlist_scroll_up_page();break;
+	  songlist_scroll_up_page();break;
 	case ' ':
-	  playlist_scroll_down_page();break;
+	  songlist_scroll_down_page();break;
 	case 'i':;
 	case 12: ; // ctrl-l
 	case 'l':  // cursor goto current playing place
-	  playlist_scroll_to_current();
+	  songlist_scroll_to_current();
 	  break;
 	case 'g':  // cursor goto the beginning
-	  playlist_scroll_to(1);
+	  songlist_scroll_to(1);
 	  break;
 	case 'G':  // cursor goto the end
-	  playlist_scroll_to(playlist->length);
+	  songlist_scroll_to(songlist->length);
 	  break;
 	case 'c':  // cursor goto the center
-	  playlist_scroll_to(playlist->length / 2);
+	  songlist_scroll_to(songlist->length / 2);
 	  break;
 	case 'D':
-	  playlist_delete_song();
+	  songlist_delete_song();
 	  break;
 	case '\t':
 	  switch_to_main_menu();
@@ -147,7 +147,7 @@ dirlist_keymap_template(int key)
 	case 127:
 	  exit_current_dir();break;
 	case 'a':
-	  append_to_playlist();break;
+	  append_to_songlist();break;
 	  
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;
@@ -252,7 +252,7 @@ searchmode_picking_keymap(void)
 	case 'l': break; // these keys are masked
 	  
 	case '\n':
-	  playlist_play_current();
+	  songlist_play_current();
 	  turnoff_search_mode();
 	  break;
 
@@ -266,21 +266,21 @@ searchmode_picking_keymap(void)
 	case '/':  // search on
 	  // switch to the basic keymap for searching
 	  // we only change being_mode->listen_keyboard instead of
-	  // wchain[PLAYLIST]->key_map, that's doesn't matter,
+	  // wchain[SONGLIST]->key_map, that's doesn't matter,
 	  // the latter was fixed and any changes could lead to
 	  // unpredictable behaviors.
 	  being_mode->listen_keyboard = &searchmode_keymap; 
-	  playlist->picking_mode = 0;
+	  songlist->picking_mode = 0;
 
-	  playlist_cursor_hide();
-	  signal_win(PLAYLIST);
+	  songlist_cursor_hide();
+	  signal_win(SONGLIST);
 	  signal_win(SEARCH_INPUT);
 	  break;
 
 	case '\\':
 	  turnoff_search_mode(); break;
 	default:
-	  playlist_keymap_template(key);
+	  songlist_keymap_template(key);
 	}
 
   signal_all_wins();
@@ -303,7 +303,7 @@ basic_keymap(void)
 }
 
 void
-playlist_keymap(void)
+songlist_keymap(void)
 {
   int key = getch();
 
@@ -312,7 +312,7 @@ playlist_keymap(void)
   else
 	return;
 
-  playlist_keymap_template(key);
+  songlist_keymap_template(key);
 
   signal_all_wins();  
 }
@@ -358,7 +358,7 @@ searchmode_keymap(void)
   else
 	return;
 
-  i = strlen(playlist->key);
+  i = strlen(songlist->key);
   
   switch(key)
 	{
@@ -371,12 +371,12 @@ searchmode_keymap(void)
 		}
 
 	  being_mode->listen_keyboard = &searchmode_picking_keymap;
-	  playlist->picking_mode = 1;
+	  songlist->picking_mode = 1;
 
-	  playlist_scroll_to(1);
+	  songlist_scroll_to(1);
 
-	  playlist->update_signal = 1;	  
-	  signal_win(PLAYLIST);
+	  songlist->update_signal = 1;	  
+	  signal_win(SONGLIST);
 	  signal_win(SEARCH_INPUT);
 	  break;
 	case '\\':;
@@ -390,29 +390,29 @@ searchmode_keymap(void)
 		  break;
 		}
 	  
-	  if(!isascii(playlist->key[i - 1]))
-		playlist->key[i - 3] = '\0';
+	  if(!isascii(songlist->key[i - 1]))
+		songlist->key[i - 3] = '\0';
 	  else
-		playlist->key[i - 1] = '\0';
+		songlist->key[i - 1] = '\0';
 	  
-	  playlist->update_signal = 1;
-	  signal_win(PLAYLIST);
+	  songlist->update_signal = 1;
+	  signal_win(SONGLIST);
 	  signal_win(SEARCH_INPUT);
 	  break;
 	default:
 	  if(!isascii(key))
 		{
-		  playlist->key[i++] = (char)key;
-		  playlist->key[i++] = getch();
-		  playlist->key[i++] = getch();
+		  songlist->key[i++] = (char)key;
+		  songlist->key[i++] = getch();
+		  songlist->key[i++] = getch();
 		}
 	  else
-		playlist->key[i++] = (char)key;
-	  playlist->key[i] = '\0';
+		songlist->key[i++] = (char)key;
+	  songlist->key[i] = '\0';
 	  
-	  playlist->update_signal = 1;
+	  songlist->update_signal = 1;
 	  signal_win(SEARCH_INPUT);
-	  signal_win(PLAYLIST);
+	  signal_win(SONGLIST);
 	}
 }
 
