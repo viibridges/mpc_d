@@ -4,7 +4,7 @@
 #ifndef LKAJSDOIFNAOCW9O8IFJ
 #define LKAJSDOIFNAOCW9O8IFJ
 
-struct Dirlist
+struct Directory
 {
   char root_dir[128];
   char crt_dir[512];
@@ -20,14 +20,14 @@ struct Dirlist
   int cursor;
 };
 
-struct Dirlist *dirlist;
+struct Directory *directory;
 
 char* get_abs_crt_path(void);
 int is_path_valid_format(char *path);
 char* get_mpd_crt_path(void);
-void dirlist_redraw_screen(void);
-void dirlist_helper(void);
-void dirlist_update(void);
-void dirlist_update_checking(void);
+void directory_redraw_screen(void);
+void directory_helper(void);
+void directory_update(void);
+void directory_update_checking(void);
 
 #endif

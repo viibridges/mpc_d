@@ -33,8 +33,8 @@ get_abs_crt_path(void)
   static char temp[512];
 
   snprintf(temp, 512, "%s/%s",
-		   dirlist->crt_dir,
-		   dirlist->filename[dirlist->cursor - 1]);
+		   directory->crt_dir,
+		   directory->filename[directory->cursor - 1]);
 
   return temp;
 }
@@ -44,7 +44,7 @@ get_mpd_crt_path(void)
 {
   static char *root, *crt;
   
-  root = dirlist->root_dir;
+  root = directory->root_dir;
   crt = get_abs_crt_path();
   
   while(*root && *crt && *root++ == *crt++);
@@ -56,19 +56,19 @@ get_mpd_crt_path(void)
 }
 
 void
-dirlist_redraw_screen(void)
+directory_redraw_screen(void)
 {
-  int line = 0, i, height = wchain[DIRLIST].win->_maxy + 1;
+  int line = 0, i, height = wchain[DIRECTORY].win->_maxy + 1;
 
-  WINDOW *win = specific_win(DIRLIST);  
+  WINDOW *win = specific_win(DIRECTORY);  
 
   char *filename;
-  for(i = dirlist->begin - 1; i < dirlist->begin
-		+ height - 1 && i < dirlist->length; i++)
+  for(i = directory->begin - 1; i < directory->begin
+		+ height - 1 && i < directory->length; i++)
 	{
-	  filename = dirlist->prettyname[i];
+	  filename = directory->prettyname[i];
 
-	  if(i + 1 == dirlist->cursor)
+	  if(i + 1 == directory->cursor)
 		print_list_item(win, line++, 2, i + 1, filename, NULL);
 	  else
 		print_list_item(win, line++, 0, i + 1, filename, NULL);
@@ -76,7 +76,7 @@ dirlist_redraw_screen(void)
 }
 
 void
-dirlist_helper(void)
+directory_helper(void)
 {
   WINDOW *win = specific_win(DIRHELPER);
 
@@ -92,12 +92,12 @@ dirlist_helper(void)
 }
 
 void
-dirlist_update(void)
+directory_update(void)
 {
   DIR *d;
   struct dirent *dir;
 
-  d = opendir(dirlist->crt_dir);
+  d = opendir(directory->crt_dir);
   
   if(d)
 	{
@@ -110,25 +110,25 @@ dirlist_update(void)
 		{
 		  if(dir->d_name[0] != '.')
 			{
-			  strncpy(dirlist->filename[i], dir->d_name, 128);
-			  pretty_copy(dirlist->prettyname[i], dir->d_name, 128, 60);
+			  strncpy(directory->filename[i], dir->d_name, 128);
+			  pretty_copy(directory->prettyname[i], dir->d_name, 128, 60);
 			  i++;
 			}
 		}
 
-	  dirlist->length = i;
+	  directory->length = i;
 
 	  closedir(d);
 	}
 }
 
-void dirlist_update_checking(void)
+void directory_update_checking(void)
 {
   // TODO, when modification happened then update
-  if(dirlist->update_signal)
+  if(directory->update_signal)
 	{
-	  dirlist_update();
-	  dirlist->update_signal = 0;
+	  directory_update();
+	  directory->update_signal = 0;
 	  signal_all_wins();
 	}
 }

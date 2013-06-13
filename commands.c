@@ -301,11 +301,11 @@ enter_selected_dir()
   
   if(is_dir_exist(temp))
 	{
-	  strcpy(dirlist->crt_dir, temp);
+	  strcpy(directory->crt_dir, temp);
 
-	  dirlist->begin = 1;
-	  dirlist->cursor = 1;
-	  dirlist->update_signal = 1;
+	  directory->begin = 1;
+	  directory->cursor = 1;
+	  directory->update_signal = 1;
 	}
 }
 
@@ -314,19 +314,19 @@ exit_current_dir()
 {
   char *p;
 
-  p = strrchr(dirlist->crt_dir, '/');
+  p = strrchr(directory->crt_dir, '/');
 
   // prehibit exiting from root directory
-  if(p - dirlist->crt_dir < (int)strlen(dirlist->root_dir))
+  if(p - directory->crt_dir < (int)strlen(directory->root_dir))
 	return;
 
-  if(p && p != dirlist->crt_dir)
+  if(p && p != directory->crt_dir)
 	{
 	  *p = '\0';
 
-	  dirlist->begin = 1;
-	  dirlist->cursor = 1;
-	  dirlist->update_signal = 1;
+	  directory->begin = 1;
+	  directory->cursor = 1;
+	  directory->update_signal = 1;
 	}
 }
 
@@ -351,44 +351,44 @@ append_to_songlist()
 }
 
 void
-dirlist_scroll_to(int line)
+directory_scroll_to(int line)
 {
-  int height = wchain[DIRLIST].win->_maxy + 1;
-  dirlist->cursor = 0;
-  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
-						  dirlist->length, height, line);
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  directory->cursor = 0;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, line);
 }
 
 void
-dirlist_scroll_down_line()
+directory_scroll_down_line()
 {
-  int height = wchain[DIRLIST].win->_maxy + 1;
-  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
-						  dirlist->length, height, +1);
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, +1);
 }
 
 void
-dirlist_scroll_up_line()
+directory_scroll_up_line()
 {
-  int height = wchain[DIRLIST].win->_maxy + 1;
-  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
-						  dirlist->length, height, -1);  
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, -1);  
 }
 
 void
-dirlist_scroll_up_page()
+directory_scroll_up_page()
 {
-  int height = wchain[DIRLIST].win->_maxy + 1;
-  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
-						  dirlist->length, height, -15);  
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, -15);  
 }
 
 void
-dirlist_scroll_down_page()
+directory_scroll_down_page()
 {
-  int height = wchain[DIRLIST].win->_maxy + 1;
-  scroll_line_shift_style(&dirlist->cursor, &dirlist->begin,
-						  dirlist->length, height, +15);  
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, +15);  
 }
 
 void
@@ -508,11 +508,11 @@ switch_to_songlist_menu()
 }
 
 void
-switch_to_dirlist_menu()
+switch_to_directory_menu()
 {
   clean_screen();
 
-  wmode_update(&dirlist->wmode);
+  wmode_update(&directory->wmode);
 }
 
 void

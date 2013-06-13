@@ -64,17 +64,17 @@ dynamic_initial(void)
 	  the songlist in the first place **/
   songlist_update();
 
-  /** dirlist arguments **/
+  /** directory arguments **/
   // TODO add this automatically according to the mpd setting
-  dirlist =
-	(struct Dirlist*) malloc(sizeof(struct Dirlist));
+  directory =
+	(struct Directory*) malloc(sizeof(struct Directory));
 
-  dirlist->begin = 1;
-  dirlist->length = 0;
-  dirlist->cursor = 1;
-  strncpy(dirlist->root_dir, "/home/ted/Music", 128);
-  strncpy(dirlist->crt_dir, dirlist->root_dir, 512);
-  dirlist_update();
+  directory->begin = 1;
+  directory->length = 0;
+  directory->cursor = 1;
+  strncpy(directory->root_dir, "/home/ted/Music", 128);
+  strncpy(directory->crt_dir, directory->root_dir, 512);
+  directory_update();
 
   /** tapelist arguments **/
   tapelist =
@@ -102,7 +102,7 @@ dynamic_destroy(void)
 {
   winmod_free();
   free(songlist);
-  free(dirlist);
+  free(directory);
   free(tapelist);
   free(visualizer);
 }
@@ -121,8 +121,8 @@ wchain_init(void)
 	  &songlist_up_state_bar,    // SLIST_UP_STATE_BAR
 	  &songlist_redraw_screen,	 // SONGLIST
 	  &songlist_down_state_bar,  // SLIST_DOWN_STATE_BAR
-	  &dirlist_redraw_screen,    // DIRLIST
-	  &dirlist_helper,           // DIRHELPER
+	  &directory_redraw_screen,    // DIRECTORY
+	  &directory_helper,           // DIRHELPER
 	  &tapelist_redraw_screen,   // TAPELIST
 	  &tapelist_helper,          // TAPEHELPER
 	  &search_prompt,			 // SEARCH_INPUT
@@ -140,7 +140,7 @@ wchain_init(void)
 	  NULL,                     	 // SLIST_UP_STATE_BAR
 	  &songlist_update_checking,	 // SONGLIST
 	  NULL,                          // SLIST_DOWN_STATE_BAR
-	  &dirlist_update_checking,      // DIRLIST
+	  &directory_update_checking,      // DIRECTORY
 	  NULL,                          // DIRHELPER
 	  &tapelist_update_checking,     // TAPELIST
 	  NULL,                          // TAPEHELPER
@@ -195,7 +195,7 @@ wchain_size_update(void)
 	  {1, 42, 4, 0},				// SLIST_UP_STATE_BAR
 	  {height - 8, 73, 5, 0},	    // SONGLIST
 	  {1, width, height - 3, 0},	// SLIST_DOWN_STATE_BAR
-	  {height - 8, 36, 6, 41},	    // DIRLIST
+	  {height - 8, 36, 6, 41},	    // DIRECTORY
 	  {height - 6, 36, 3, 0},       // DIRHELPER
 	  {height - 8, 36, 6, 41},	    // TAPELIST
 	  {height - 6, 36, 3, 0},       // TAPEHELPER
@@ -244,16 +244,16 @@ winmod_init(void)
   songlist->wmode.wins[6] = &wchain[SEARCH_INPUT];  
   songlist->wmode.listen_keyboard = &songlist_keymap;
 
-  // dirlist wmode
-  dirlist->wmode.size = 5;
-  dirlist->wmode.wins = (struct WindowUnit**)
-	malloc(dirlist->wmode.size * sizeof(struct WindowUnit*));
-  dirlist->wmode.wins[0] = &wchain[EXTRA_INFO];  
-  dirlist->wmode.wins[1] = &wchain[DIRLIST];  
-  dirlist->wmode.wins[2] = &wchain[DIRHELPER];  
-  dirlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
-  dirlist->wmode.wins[4] = &wchain[BASIC_INFO];
-  dirlist->wmode.listen_keyboard = &dirlist_keymap;
+  // directory wmode
+  directory->wmode.size = 5;
+  directory->wmode.wins = (struct WindowUnit**)
+	malloc(directory->wmode.size * sizeof(struct WindowUnit*));
+  directory->wmode.wins[0] = &wchain[EXTRA_INFO];  
+  directory->wmode.wins[1] = &wchain[DIRECTORY];  
+  directory->wmode.wins[2] = &wchain[DIRHELPER];  
+  directory->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  directory->wmode.wins[4] = &wchain[BASIC_INFO];
+  directory->wmode.listen_keyboard = &directory_keymap;
 
   // tapelist wmode
   tapelist->wmode.size = 5;
@@ -272,6 +272,6 @@ winmod_free(void)
 {
   free(basic_info->wmode.wins);
   free(songlist->wmode.wins);
-  free(dirlist->wmode.wins);
+  free(directory->wmode.wins);
   free(tapelist->wmode.wins);
 }

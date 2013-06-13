@@ -56,7 +56,7 @@ void fundamental_keymap_template(int key)
 	  switch_to_songlist_menu();
 	  break;
 	case '3':
-	  switch_to_dirlist_menu();
+	  switch_to_directory_menu();
 	  break;
 	case '4':
 	  switch_to_tapelist_menu();
@@ -131,7 +131,7 @@ void songlist_keymap_template(int key)
 }
 
 void
-dirlist_keymap_template(int key)
+directory_keymap_template(int key)
 {
   // filter those different with the template
   switch(key)
@@ -152,23 +152,23 @@ dirlist_keymap_template(int key)
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;
 	case 'j':
-	  dirlist_scroll_down_line();break;
+	  directory_scroll_down_line();break;
 	case 16: ; // ctrl-p
 	case KEY_UP:;
 	case 'k':
-	  dirlist_scroll_up_line();break;
+	  directory_scroll_up_line();break;
 	case 'b':
-	  dirlist_scroll_up_page();break;
+	  directory_scroll_up_page();break;
 	case ' ':
-	  dirlist_scroll_down_page();break;
+	  directory_scroll_down_page();break;
 	case 'g':  // cursor goto the beginning
-	  dirlist_scroll_to(1);
+	  directory_scroll_to(1);
 	  break;
 	case 'G':  // cursor goto the end
-	  dirlist_scroll_to(dirlist->length);
+	  directory_scroll_to(directory->length);
 	  break;
 	case 'c':  // cursor goto the center
-	  dirlist_scroll_to(dirlist->length / 2);
+	  directory_scroll_to(directory->length / 2);
 	  break;
 	case '\t':
 	  switch_to_main_menu();
@@ -318,7 +318,7 @@ songlist_keymap(void)
 }
 
 void
-dirlist_keymap(void)
+directory_keymap(void)
 {
   int key = getch();
 
@@ -327,7 +327,7 @@ dirlist_keymap(void)
   else
 	return;
 
-  dirlist_keymap_template(key);
+  directory_keymap_template(key);
 
   signal_all_wins();  
 }

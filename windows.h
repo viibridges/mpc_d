@@ -18,8 +18,8 @@ enum window_id
 	SLIST_UP_STATE_BAR,		 // implies scroll up
 	SONGLIST,				 // songlist
 	SLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
-	DIRLIST,				 // window list item in current directory
-	DIRHELPER,               // dirlist instruction 
+	DIRECTORY,				 // window list item in current directory
+	DIRHELPER,               // directory instruction 
 	TAPELIST,                // window list all songlists
 	TAPEHELPER,              // tapelist instruction 
 	SEARCH_INPUT,			 // search prompt area
