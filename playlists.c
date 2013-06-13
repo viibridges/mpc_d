@@ -2,19 +2,19 @@
 #include "utils.h"
 
 void
-tapelist_redraw_screen(void)
+playlist_redraw_screen(void)
 {
-  int line = 0, i, height = wchain[TAPELIST].win->_maxy + 1;
+  int line = 0, i, height = wchain[PLAYLIST].win->_maxy + 1;
 
-  WINDOW *win = specific_win(TAPELIST);  
+  WINDOW *win = specific_win(PLAYLIST);  
 
   char *filename;
-  for(i = tapelist->begin - 1; i < tapelist->begin
-		+ height - 1 && i < tapelist->length; i++)
+  for(i = playlist->begin - 1; i < playlist->begin
+		+ height - 1 && i < playlist->length; i++)
 	{
-	  filename = tapelist->tapename[i];
+	  filename = playlist->tapename[i];
 
-	  if(i + 1 == tapelist->cursor)
+	  if(i + 1 == playlist->cursor)
 		print_list_item(win, line++, 2, i + 1, filename, NULL);
 	  else
 		print_list_item(win, line++, 0, i + 1, filename, NULL);
@@ -22,7 +22,7 @@ tapelist_redraw_screen(void)
 }
 
 void
-tapelist_helper(void)
+playlist_helper(void)
 {
   WINDOW *win = specific_win(TAPEHELPER);
 
@@ -35,21 +35,21 @@ tapelist_helper(void)
     [r] Rename Playlist");
 }
 
-void tapelist_update_checking(void)
+void playlist_update_checking(void)
 {
-  if(tapelist->update_signal)
+  if(playlist->update_signal)
 	{
-	  tapelist_update();
-	  tapelist->update_signal = 0;
+	  playlist_update();
+	  playlist->update_signal = 0;
 	  signal_all_wins();
 	}
 }
 
 void
-tapelist_update(void)
+playlist_update(void)
 {
 	struct mpd_entity *entity;
-	const struct mpd_playlist *playlist;
+	const struct mpd_playlist *plist;
 
 	int i = 0;
 
@@ -62,19 +62,19 @@ tapelist_update(void)
 		if(type != MPD_ENTITY_TYPE_PLAYLIST)
 		  continue;
 		
-		playlist = mpd_entity_get_playlist(entity);
-		strncpy(tapelist->tapename[i],
-				mpd_playlist_get_path(playlist), 512);
+		plist = mpd_entity_get_playlist(entity);
+		strncpy(playlist->tapename[i],
+				mpd_playlist_get_path(plist), 512);
 
 		mpd_entity_free(entity);
 
 		i++;
 	  }
 
-	tapelist->length = i;
+	playlist->length = i;
 }
 
-void tapelist_rename(void)
+void playlist_rename(void)
 {
   char *to =
 	popup_input_dialog("Enter a New Name Here:");
@@ -85,16 +85,16 @@ void tapelist_rename(void)
   if(!choice) // action canceled
 	return;
 
-  const char *from = tapelist->tapename[tapelist->cursor - 1];
+  const char *from = playlist->tapename[playlist->cursor - 1];
 	
   mpd_run_rename(conn, from, to);
 
-  tapelist->update_signal = 1;
+  playlist->update_signal = 1;
 }
 
-void tapelist_append(void)
+void playlist_append(void)
 {
-  const char *name = tapelist->tapename[tapelist->cursor - 1];
+  const char *name = playlist->tapename[playlist->cursor - 1];
 
   mpd_run_load(conn, name);
 }

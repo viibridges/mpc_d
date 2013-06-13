@@ -76,14 +76,14 @@ dynamic_initial(void)
   strncpy(directory->crt_dir, directory->root_dir, 512);
   directory_update();
 
-  /** tapelist arguments **/
-  tapelist =
-	(struct Tapelist*) malloc(sizeof(struct Tapelist));
+  /** playlist arguments **/
+  playlist =
+	(struct Playlist*) malloc(sizeof(struct Playlist));
 
-  tapelist->begin = 1;
-  tapelist->length = 0;
-  tapelist->cursor = 1;
-  tapelist_update();
+  playlist->begin = 1;
+  playlist->length = 0;
+  playlist->cursor = 1;
+  playlist_update();
   
   /** the visualizer **/
   visualizer =
@@ -103,7 +103,7 @@ dynamic_destroy(void)
   winmod_free();
   free(songlist);
   free(directory);
-  free(tapelist);
+  free(playlist);
   free(visualizer);
 }
 
@@ -123,8 +123,8 @@ wchain_init(void)
 	  &songlist_down_state_bar,  // SLIST_DOWN_STATE_BAR
 	  &directory_redraw_screen,    // DIRECTORY
 	  &directory_helper,           // DIRHELPER
-	  &tapelist_redraw_screen,   // TAPELIST
-	  &tapelist_helper,          // TAPEHELPER
+	  &playlist_redraw_screen,   // PLAYLIST
+	  &playlist_helper,          // TAPEHELPER
 	  &search_prompt,			 // SEARCH_INPUT
 	  NULL						 // DEBUG_INFO  
 	};
@@ -142,7 +142,7 @@ wchain_init(void)
 	  NULL,                          // SLIST_DOWN_STATE_BAR
 	  &directory_update_checking,      // DIRECTORY
 	  NULL,                          // DIRHELPER
-	  &tapelist_update_checking,     // TAPELIST
+	  &playlist_update_checking,     // PLAYLIST
 	  NULL,                          // TAPEHELPER
 	  NULL,			                 // SEARCH_INPUT
 	  NULL						     // DEBUG_INFO  
@@ -197,7 +197,7 @@ wchain_size_update(void)
 	  {1, width, height - 3, 0},	// SLIST_DOWN_STATE_BAR
 	  {height - 8, 36, 6, 41},	    // DIRECTORY
 	  {height - 6, 36, 3, 0},       // DIRHELPER
-	  {height - 8, 36, 6, 41},	    // TAPELIST
+	  {height - 8, 36, 6, 41},	    // PLAYLIST
 	  {height - 6, 36, 3, 0},       // TAPEHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
@@ -255,16 +255,16 @@ winmod_init(void)
   directory->wmode.wins[4] = &wchain[BASIC_INFO];
   directory->wmode.listen_keyboard = &directory_keymap;
 
-  // tapelist wmode
-  tapelist->wmode.size = 5;
-  tapelist->wmode.wins = (struct WindowUnit**)
-	malloc(tapelist->wmode.size * sizeof(struct WindowUnit*));
-  tapelist->wmode.wins[0] = &wchain[TAPEHELPER];
-  tapelist->wmode.wins[1] = &wchain[EXTRA_INFO];  
-  tapelist->wmode.wins[2] = &wchain[TAPELIST];  
-  tapelist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
-  tapelist->wmode.wins[4] = &wchain[BASIC_INFO];
-  tapelist->wmode.listen_keyboard = &tapelist_keymap;
+  // playlist wmode
+  playlist->wmode.size = 5;
+  playlist->wmode.wins = (struct WindowUnit**)
+	malloc(playlist->wmode.size * sizeof(struct WindowUnit*));
+  playlist->wmode.wins[0] = &wchain[TAPEHELPER];
+  playlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  playlist->wmode.wins[2] = &wchain[PLAYLIST];  
+  playlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  playlist->wmode.wins[4] = &wchain[BASIC_INFO];
+  playlist->wmode.listen_keyboard = &playlist_keymap;
 }
 
 void
@@ -273,5 +273,5 @@ winmod_free(void)
   free(basic_info->wmode.wins);
   free(songlist->wmode.wins);
   free(directory->wmode.wins);
-  free(tapelist->wmode.wins);
+  free(playlist->wmode.wins);
 }

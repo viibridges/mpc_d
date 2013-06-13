@@ -20,8 +20,8 @@ enum window_id
 	SLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
 	DIRECTORY,				 // window list item in current directory
 	DIRHELPER,               // directory instruction 
-	TAPELIST,                // window list all songlists
-	TAPEHELPER,              // tapelist instruction 
+	PLAYLIST,                // window list all songlists
+	TAPEHELPER,              // playlist instruction 
 	SEARCH_INPUT,			 // search prompt area
 	DEBUG_INFO,				 // for debug perpuse only
 	WIN_NUM                  // number of windows

@@ -59,7 +59,7 @@ void fundamental_keymap_template(int key)
 	  switch_to_directory_menu();
 	  break;
 	case '4':
-	  switch_to_tapelist_menu();
+	  switch_to_playlist_menu();
 	  break;
 	case 'v':
 	  toggle_visualizer();
@@ -180,7 +180,7 @@ directory_keymap_template(int key)
 }
 
 void
-tapelist_keymap_template(int key)
+playlist_keymap_template(int key)
 {
   // filter those different with the template
   switch(key)
@@ -192,33 +192,33 @@ tapelist_keymap_template(int key)
 	case 'v': break; // key be masked
 
 	case 'r':
-	  tapelist_rename();
+	  playlist_rename();
 	  break;
 	case 'a':
-	  tapelist_append();
+	  playlist_append();
 	  break;
 	  
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;
 	case 'j':
-	  tapelist_scroll_down_line();
+	  playlist_scroll_down_line();
 	  break;
 	case 16: ; // ctrl-p
 	case KEY_UP:;
 	case 'k':
-	  tapelist_scroll_up_line();break;
+	  playlist_scroll_up_line();break;
 	case 'b':
-	  tapelist_scroll_up_page();break;
+	  playlist_scroll_up_page();break;
 	case ' ':
-	  tapelist_scroll_down_page();break;
+	  playlist_scroll_down_page();break;
 	case 'g':  // cursor goto the beginning
-	  tapelist_scroll_to(1);
+	  playlist_scroll_to(1);
 	  break;
 	case 'G':  // cursor goto the end
-	  tapelist_scroll_to(tapelist->length);
+	  playlist_scroll_to(playlist->length);
 	  break;
 	case 'c':  // cursor goto the center
-	  tapelist_scroll_to(tapelist->length / 2);
+	  playlist_scroll_to(playlist->length / 2);
 	  break;
 	case '\t':
 	  switch_to_main_menu();
@@ -333,7 +333,7 @@ directory_keymap(void)
 }
 
 void
-tapelist_keymap(void)
+playlist_keymap(void)
 {
   int key = getch();
 
@@ -342,7 +342,7 @@ tapelist_keymap(void)
   else
 	return;
 
-  tapelist_keymap_template(key);
+  playlist_keymap_template(key);
 
   signal_all_wins();  
 }

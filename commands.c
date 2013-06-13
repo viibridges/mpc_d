@@ -392,44 +392,44 @@ directory_scroll_down_page()
 }
 
 void
-tapelist_scroll_to(int line)
+playlist_scroll_to(int line)
 {
-  int height = wchain[TAPELIST].win->_maxy + 1;
-  tapelist->cursor = 0;
-  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
-						  tapelist->length, height, line);
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  playlist->cursor = 0;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, line);
 }
 
 void
-tapelist_scroll_down_line()
+playlist_scroll_down_line()
 {
-  int height = wchain[TAPELIST].win->_maxy + 1;
-  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
-						  tapelist->length, height, +1);
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, +1);
 }
 
 void
-tapelist_scroll_up_line()
+playlist_scroll_up_line()
 {
-  int height = wchain[TAPELIST].win->_maxy + 1;
-  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
-						  tapelist->length, height, -1);
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, -1);
 }
 
 void
-tapelist_scroll_up_page()
+playlist_scroll_up_page()
 {
-  int height = wchain[TAPELIST].win->_maxy + 1;
-  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
-						  tapelist->length, height, -15);  
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, -15);  
 }
 
 void
-tapelist_scroll_down_page()
+playlist_scroll_down_page()
 {
-  int height = wchain[TAPELIST].win->_maxy + 1;
-  scroll_line_shift_style(&tapelist->cursor, &tapelist->begin,
-						  tapelist->length, height, +15);  
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, +15);  
 }
 
 void
@@ -516,11 +516,11 @@ switch_to_directory_menu()
 }
 
 void
-switch_to_tapelist_menu()
+switch_to_playlist_menu()
 {
   clean_screen();
 
-  wmode_update(&tapelist->wmode);
+  wmode_update(&playlist->wmode);
 }
 
 void

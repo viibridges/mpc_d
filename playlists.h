@@ -4,7 +4,7 @@
 #ifndef LFKJNCAEFLJPOUzlSKJF
 #define LFKJNCAEFLJPOUzlSKJF
 
-struct Tapelist
+struct Playlist
 {
   char tapename[128][512];
 
@@ -17,13 +17,13 @@ struct Tapelist
   int cursor;
 };
 
-struct Tapelist *tapelist;  
+struct Playlist *playlist;  
 
-void tapelist_redraw_screen(void);
-void tapelist_update_checking(void);
-void tapelist_update(void);
-void tapelist_helper(void);
-void tapelist_rename(void);
-void tapelist_append(void);
+void playlist_redraw_screen(void);
+void playlist_update_checking(void);
+void playlist_update(void);
+void playlist_helper(void);
+void playlist_rename(void);
+void playlist_append(void);
 
 #endif
