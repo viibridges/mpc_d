@@ -94,7 +94,7 @@ dynamic_initial(void)
   
   /** windows set initialization **/
   winmod_init();
-  wmode_update(&basic_info->wmode);
+  being_mode_update(&basic_info->wmode);
 }
 
 void

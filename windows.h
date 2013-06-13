@@ -59,7 +59,7 @@ void signal_win(int id);
 void signal_all_wins(void);
 void clean_window(int id);
 void clean_screen(void);
-void wmode_update(struct WinMode *wmode);
+void being_mode_update(struct WinMode *wmode);
 void color_print(WINDOW *win, int color_scheme, const char *str);
 void print_list_item(WINDOW *win, int line, int color, int id,
 					 char *ltext, char *rtext);

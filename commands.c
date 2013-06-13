@@ -496,7 +496,7 @@ switch_to_main_menu()
 {
   clean_screen();
 
-  wmode_update(&basic_info->wmode);
+  being_mode_update(&basic_info->wmode);
 }
 
 void
@@ -504,7 +504,7 @@ switch_to_songlist_menu()
 {
   clean_screen();
 
-  wmode_update(&songlist->wmode);
+  being_mode_update(&songlist->wmode);
 }
 
 void
@@ -512,7 +512,7 @@ switch_to_directory_menu()
 {
   clean_screen();
 
-  wmode_update(&directory->wmode);
+  being_mode_update(&directory->wmode);
 }
 
 void
@@ -520,7 +520,7 @@ switch_to_playlist_menu()
 {
   clean_screen();
 
-  wmode_update(&playlist->wmode);
+  being_mode_update(&playlist->wmode);
 }
 
 void
@@ -553,7 +553,7 @@ turnon_search_mode(void)
   songlist->wmode.listen_keyboard = &searchmode_keymap;
   wchain[SONGLIST].update_checking = &searchmode_update_checking;
 
-  wmode_update(&songlist->wmode);
+  being_mode_update(&songlist->wmode);
 }
 
 void
