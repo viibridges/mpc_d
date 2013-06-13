@@ -1,4 +1,4 @@
-#include "playlist.h"
+#include "songs.h"
 #include "basic_info.h"
 #include "utils.h"
 
@@ -204,3 +204,95 @@ swap_playlist_items(int i, int j)
   memmove(playlist->meta + j, &temp,
 		  sizeof(struct MetaInfo) / sizeof(char));
 }
+
+
+/** search mode staff **/
+void
+searchmode_update(void)
+{
+  char *tag_name, *key = playlist->key;
+  int i, j, ct = playlist->crt_tag_id;
+
+  /* we examine and update the playlist (datebase for searching)
+   * every time, see if any modification (delete or add songs)
+   * was made by other client during searching */
+  playlist_update();
+
+  int is_substr;
+  
+  for(i = j = 0; i < playlist->length; i++)
+	{
+	  // now plist is fresh
+	  switch(playlist->tags[ct])
+		{
+		case MPD_TAG_TITLE:
+		  tag_name = playlist->meta[i].title; break;	  
+		case MPD_TAG_ARTIST:
+		  tag_name = playlist->meta[i].artist; break;
+		case MPD_TAG_ALBUM:
+		  tag_name = playlist->meta[i].album; break;
+		default:
+		  tag_name = NULL;
+		}
+
+	  if(tag_name != NULL)
+		is_substr = is_substring_ignorecase
+		  (tag_name, key) != NULL;
+	  else
+		{
+		  is_substr = is_substring_ignorecase
+			(playlist->meta[i].title, key) != NULL ||
+			is_substring_ignorecase
+			(playlist->meta[i].album, key) != NULL ||
+			is_substring_ignorecase
+			(playlist->meta[i].artist, key) != NULL;
+		}
+
+	  if(is_substr)
+		{
+		  memmove(playlist->meta + j,
+				  playlist->meta + i,
+				 sizeof(struct MetaInfo) / sizeof(char));
+		  j ++;
+		}
+	}
+  playlist->length = j;
+  playlist->begin = 1;
+}
+
+void searchmode_update_checking(void)
+{
+  basic_state_checking();
+
+  if(playlist->update_signal)
+	{
+	  searchmode_update();
+	  playlist->update_signal = 0;
+	  signal_all_wins();
+	}
+}
+
+void
+search_prompt(void)
+{
+  char str[128];
+
+  WINDOW *win = specific_win(SEARCH_INPUT);
+  
+  snprintf(str, sizeof(str), "%s█", playlist->key);
+
+  if(playlist->picking_mode)
+	color_print(win, 0, "Search: ");
+  else
+	color_print(win, 5, "Search: ");
+  
+  if(playlist->length == 0)
+	color_print(win, 4, "no entries...");
+  else if(playlist->picking_mode)
+	color_print(win, 0, str);
+  else
+	color_print(win, 6, str);
+
+  wprintw(win, "%*s", 40, " ");
+}
+

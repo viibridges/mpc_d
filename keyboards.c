@@ -1,10 +1,9 @@
 #include "keyboards.h"
 
 #include "basic_info.h"
-#include "playlist.h"
-#include "searchlist.h"
-#include "dirlist.h"
-#include "tapelist.h"
+#include "songs.h"
+#include "directory.h"
+#include "playlists.h"
 #include "visualizer.h"
 #include "commands.h"
 
@@ -230,10 +229,10 @@ tapelist_keymap_template(int key)
 	}
 }
 
-// for picking the song from the searchlist
-// corporate with searchlist_keymap()
+// for picking the song from the searchmode
+// corporate with searchmode_keymap()
 void
-searchlist_picking_keymap(void)
+searchmode_picking_keymap(void)
 {
   int key = getch();
 
@@ -260,21 +259,21 @@ searchlist_picking_keymap(void)
 	case 127:
 	  // push the backspace back to delete the
 	  // last character and force to update the
-	  // searchlist by reemerge the keyboard event.
+	  // searchmode by reemerge the keyboard event.
 	  // and the rest works are the same with a
 	  // normal "continue searching" invoked by '/'
 	  ungetch(127);
 	case '/':  // search on
 	  // switch to the basic keymap for searching
 	  // we only change being_mode->listen_keyboard instead of
-	  // wchain[SEARCHLIST]->key_map, that's doesn't matter,
+	  // wchain[PLAYLIST]->key_map, that's doesn't matter,
 	  // the latter was fixed and any changes could lead to
 	  // unpredictable behaviors.
-	  being_mode->listen_keyboard = &searchlist_keymap; 
-	  searchlist->picking_mode = 0;
+	  being_mode->listen_keyboard = &searchmode_keymap; 
+	  playlist->picking_mode = 0;
 
 	  playlist_cursor_hide();
-	  signal_win(SEARCHLIST);
+	  signal_win(PLAYLIST);
 	  signal_win(SEARCH_INPUT);
 	  break;
 
@@ -350,7 +349,7 @@ tapelist_keymap(void)
 
 // for getting the keyword
 void
-searchlist_keymap(void)
+searchmode_keymap(void)
 {
   int i, key = getch();
 
@@ -359,7 +358,7 @@ searchlist_keymap(void)
   else
 	return;
 
-  i = strlen(searchlist->key);
+  i = strlen(playlist->key);
   
   switch(key)
 	{
@@ -371,13 +370,13 @@ searchlist_keymap(void)
 		  break;
 		}
 
-	  being_mode->listen_keyboard = &searchlist_picking_keymap;
-	  searchlist->picking_mode = 1;
+	  being_mode->listen_keyboard = &searchmode_picking_keymap;
+	  playlist->picking_mode = 1;
 
 	  playlist_scroll_to(1);
 
-	  searchlist->update_signal = 1;	  
-	  signal_win(SEARCHLIST);
+	  playlist->update_signal = 1;	  
+	  signal_win(PLAYLIST);
 	  signal_win(SEARCH_INPUT);
 	  break;
 	case '\\':;
@@ -391,29 +390,29 @@ searchlist_keymap(void)
 		  break;
 		}
 	  
-	  if(!isascii(searchlist->key[i - 1]))
-		searchlist->key[i - 3] = '\0';
+	  if(!isascii(playlist->key[i - 1]))
+		playlist->key[i - 3] = '\0';
 	  else
-		searchlist->key[i - 1] = '\0';
+		playlist->key[i - 1] = '\0';
 	  
-	  searchlist->update_signal = 1;
-	  signal_win(SEARCHLIST);
+	  playlist->update_signal = 1;
+	  signal_win(PLAYLIST);
 	  signal_win(SEARCH_INPUT);
 	  break;
 	default:
 	  if(!isascii(key))
 		{
-		  searchlist->key[i++] = (char)key;
-		  searchlist->key[i++] = getch();
-		  searchlist->key[i++] = getch();
+		  playlist->key[i++] = (char)key;
+		  playlist->key[i++] = getch();
+		  playlist->key[i++] = getch();
 		}
 	  else
-		searchlist->key[i++] = (char)key;
-	  searchlist->key[i] = '\0';
+		playlist->key[i++] = (char)key;
+	  playlist->key[i] = '\0';
 	  
-	  searchlist->update_signal = 1;
+	  playlist->update_signal = 1;
 	  signal_win(SEARCH_INPUT);
-	  signal_win(SEARCHLIST);
+	  signal_win(PLAYLIST);
 	}
 }
 

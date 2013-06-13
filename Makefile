@@ -3,7 +3,7 @@ CLIBS = -lm -lmpdclient -lncursesw
 CFLAGS = -std=gnu99 -Wall -g
 
 BIN = mpc
-OBJECTS = basic_info.o commands.o dirlist.o initial.o keyboards.o playlist.o searchlist.o tapelist.o utils.o visualizer.o windows.o
+OBJECTS = basic_info.o commands.o directory.o initial.o keyboards.o songs.o playlists.o utils.o visualizer.o windows.o
 
 #main: $(HEAD) $(SOURCE)
 #	$(CC) $(SOURCE) -o $(BIN) $(CLIBS) $(CFLAGS)
@@ -23,17 +23,14 @@ commands.o: commands.c commands.h
 visualizer.o: visualizer.c visualizer.h 
 	$(CC) -c visualizer.c -o visualizer.o $(CLIBS) $(CFLAGS)	
 
-tapelist.o: tapelist.c tapelist.h 
-	$(CC) -c tapelist.c -o tapelist.o $(CLIBS) $(CFLAGS)	
+playlists.o: playlists.c playlists.h 
+	$(CC) -c playlists.c -o playlists.o $(CLIBS) $(CFLAGS)	
 
-dirlist.o: dirlist.c dirlist.h 
-	$(CC) -c dirlist.c -o dirlist.o $(CLIBS) $(CFLAGS)	
+directory.o: directory.c directory.h 
+	$(CC) -c directory.c -o directory.o $(CLIBS) $(CFLAGS)	
 
-searchlist.o: searchlist.c searchlist.h 
-	$(CC) -c searchlist.c -o searchlist.o $(CLIBS) $(CFLAGS)	
-
-playlist.o: playlist.c playlist.h 
-	$(CC) -c playlist.c -o playlist.o $(CLIBS) $(CFLAGS)	
+songs.o: songs.c songs.h 
+	$(CC) -c songs.c -o songs.o $(CLIBS) $(CFLAGS)	
 
 basic_info.o: basic_info.c basic_info.h
 	$(CC) -c basic_info.c -o basic_info.o $(CLIBS) $(CFLAGS)	

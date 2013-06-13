@@ -1,10 +1,9 @@
 #include "initial.h"
 #include "utils.h"
 #include "basic_info.h"
-#include "playlist.h"
-#include "searchlist.h"
-#include "dirlist.h"
-#include "tapelist.h"
+#include "songs.h"
+#include "directory.h"
+#include "playlists.h"
 #include "visualizer.h"
 #include "keyboards.h"
 
@@ -53,22 +52,17 @@ dynamic_initial(void)
   playlist->length = 0;
   playlist->current = 0;
   playlist->cursor = 1;
+
+  playlist->tags[0] = MPD_TAG_NAME;
+  playlist->tags[1] = MPD_TAG_TITLE;
+  playlist->tags[2] = MPD_TAG_ARTIST;
+  playlist->tags[3] = MPD_TAG_ALBUM;
+  playlist->crt_tag_id = 0;
+  playlist->key[0] = '\0';
+   
   /** it's turn out to be good that updating
 	  the playlist in the first place **/
   playlist_update();
-
-  /** searchlist arguments */
-  searchlist =
-	(struct Searchlist*) malloc(sizeof(struct Searchlist));
-
-  searchlist->tags[0] = MPD_TAG_NAME;
-  searchlist->tags[1] = MPD_TAG_TITLE;
-  searchlist->tags[2] = MPD_TAG_ARTIST;
-  searchlist->tags[3] = MPD_TAG_ALBUM;
-  searchlist->crt_tag_id = 0;
-
-  searchlist->key[0] = '\0';
-  searchlist->plist = playlist; // windows in this mode
 
   /** dirlist arguments **/
   // TODO add this automatically according to the mpd setting
@@ -100,7 +94,7 @@ dynamic_initial(void)
   
   /** windows set initialization **/
   winmod_init();
-  winmod_update(&basic_info->wmode);
+  wmode_update(&basic_info->wmode);
 }
 
 void
@@ -108,7 +102,6 @@ dynamic_destroy(void)
 {
   winmod_free();
   free(playlist);
-  free(searchlist);
   free(dirlist);
   free(tapelist);
   free(visualizer);
@@ -128,7 +121,6 @@ wchain_init(void)
 	  &playlist_up_state_bar,    // PLIST_UP_STATE_BAR
 	  &playlist_redraw_screen,	 // PLAYLIST
 	  &playlist_down_state_bar,  // PLIST_DOWN_STATE_BAR
-	  &searchlist_redraw_screen, // SEARCHLIST
 	  &dirlist_redraw_screen,    // DIRLIST
 	  &dirlist_helper,           // DIRHELPER
 	  &tapelist_redraw_screen,   // TAPELIST
@@ -148,7 +140,6 @@ wchain_init(void)
 	  NULL,                     	 // PLIST_UP_STATE_BAR
 	  &playlist_update_checking,	 // PLAYLIST
 	  NULL,                          // PLIST_DOWN_STATE_BAR
-	  &searchlist_update_checking,	 // SEARCHLIST
 	  &dirlist_update_checking,      // DIRLIST
 	  NULL,                          // DIRHELPER
 	  &tapelist_update_checking,     // TAPELIST
@@ -176,6 +167,7 @@ wchain_init(void)
   // and some need to hide
   wchain[HELPER].visible = 0;
   wchain[VISUALIZER].visible = 0;
+  wchain[SEARCH_INPUT].visible = 0;
   
   wchain_size_update();
 }
@@ -203,7 +195,6 @@ wchain_size_update(void)
 	  {1, 42, 4, 0},				// PLIST_UP_STATE_BAR
 	  {height - 8, 73, 5, 0},	    // PLAYLIST
 	  {1, width, height - 3, 0},	// PLIST_DOWN_STATE_BAR
-	  {height - 8, 72, 5, 0},	    // SEARCHLIST
 	  {height - 8, 36, 6, 41},	    // DIRLIST
 	  {height - 6, 36, 3, 0},       // DIRHELPER
 	  {height - 8, 36, 6, 41},	    // TAPELIST
@@ -241,7 +232,7 @@ winmod_init(void)
   basic_info->wmode.listen_keyboard = &basic_keymap;
 
   // playlist wmode
-  playlist->wmode.size = 6;
+  playlist->wmode.size = 7;
   playlist->wmode.wins = (struct WindowUnit**)
 	malloc(playlist->wmode.size * sizeof(struct WindowUnit*));
   playlist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
@@ -250,20 +241,8 @@ winmod_init(void)
   playlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
   playlist->wmode.wins[4] = &wchain[BASIC_INFO];
   playlist->wmode.wins[5] = &wchain[PLAYLIST];
+  playlist->wmode.wins[6] = &wchain[SEARCH_INPUT];  
   playlist->wmode.listen_keyboard = &playlist_keymap;
-
-  // searchlist wmode
-  searchlist->wmode.size = 7;
-  searchlist->wmode.wins = (struct WindowUnit**)
-	malloc(searchlist->wmode.size * sizeof(struct WindowUnit*));
-  searchlist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
-  searchlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
-  searchlist->wmode.wins[2] = &wchain[PLIST_UP_STATE_BAR];
-  searchlist->wmode.wins[3] = &wchain[SEARCH_INPUT];  
-  searchlist->wmode.wins[4] = &wchain[SIMPLE_PROC_BAR];
-  searchlist->wmode.wins[5] = &wchain[BASIC_INFO];
-  searchlist->wmode.wins[6] = &wchain[SEARCHLIST];  
-  searchlist->wmode.listen_keyboard = &searchlist_keymap;
 
   // dirlist wmode
   dirlist->wmode.size = 5;
@@ -293,7 +272,6 @@ winmod_free(void)
 {
   free(basic_info->wmode.wins);
   free(playlist->wmode.wins);
-  free(searchlist->wmode.wins);
   free(dirlist->wmode.wins);
   free(tapelist->wmode.wins);
 }

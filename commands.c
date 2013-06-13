@@ -1,12 +1,11 @@
 #include "commands.h"
-#include "windows.h"
 #include "utils.h"
+#include "keyboards.h"
 
 #include "basic_info.h"
-#include "playlist.h"
-#include "searchlist.h"
-#include "dirlist.h"
-#include "tapelist.h"
+#include "songs.h"
+#include "directory.h"
+#include "playlists.h"
 #include "visualizer.h"
 
 void
@@ -452,8 +451,8 @@ cmd_Prev()
 void
 change_searching_scope()
 {
-  searchlist->crt_tag_id ++;
-  searchlist->crt_tag_id %= 4;	  
+  playlist->crt_tag_id ++;
+  playlist->crt_tag_id %= 4;	  
 }
 
 void
@@ -489,8 +488,7 @@ playlist_delete_song()
 
   /* easest way to realign the playlist */
   playlist_update();
-  playlist_scroll_up_line();
-  //playlist_scroll_down_line();
+  playlist_scroll_to(playlist->cursor);
 }
 
 void
@@ -498,7 +496,7 @@ switch_to_main_menu()
 {
   clean_screen();
 
-  winmod_update(&basic_info->wmode);
+  wmode_update(&basic_info->wmode);
 }
 
 void
@@ -506,7 +504,7 @@ switch_to_playlist_menu()
 {
   clean_screen();
 
-  winmod_update(&playlist->wmode);
+  wmode_update(&playlist->wmode);
 }
 
 void
@@ -514,7 +512,7 @@ switch_to_dirlist_menu()
 {
   clean_screen();
 
-  winmod_update(&dirlist->wmode);
+  wmode_update(&dirlist->wmode);
 }
 
 void
@@ -522,7 +520,7 @@ switch_to_tapelist_menu()
 {
   clean_screen();
 
-  winmod_update(&tapelist->wmode);
+  wmode_update(&tapelist->wmode);
 }
 
 void
@@ -540,23 +538,37 @@ toggle_visualizer(void)
 void
 turnon_search_mode(void)
 {
-  searchlist->key[0] = '\0';
-  searchlist->picking_mode = 0;
-  //searchlist->wmode.listen_keyboard = &searchlist_keymap;
+  // show up the input window
+  wchain[SEARCH_INPUT].visible = 1;
+  
+  playlist->key[0] = '\0';
+  playlist->picking_mode = 0;
+  //playlist->wmode.listen_keyboard = &searchmode_keymap;
   playlist_cursor_hide();
 
   clean_window(VERBOSE_PROC_BAR);
-  clean_window(VISUALIZER);  
-  winmod_update(&searchlist->wmode);
+  clean_window(VISUALIZER);
+
+  // switch the keyboard and update_checking() rountine
+  playlist->wmode.listen_keyboard = &searchmode_keymap;
+  wchain[PLAYLIST].update_checking = &searchmode_update_checking;
+
+  wmode_update(&playlist->wmode);
 }
 
 void
 turnoff_search_mode(void)
 {
-  searchlist->key[0] = '\0';
+  // turn off the input window
+  wchain[SEARCH_INPUT].visible = 0;
+  
+  playlist->key[0] = '\0';
   playlist_update();
   playlist_scroll_to_current();
 
   clean_window(SEARCH_INPUT);
-  winmod_update(&playlist->wmode);
+
+  // switch the keboard and update_checking() back
+  playlist->wmode.listen_keyboard = &playlist_keymap;
+  wchain[PLAYLIST].update_checking = &playlist_update_checking;
 }

@@ -3,10 +3,9 @@
 #include "windows.h"
 #include "global.h"
 #include "basic_info.h"
-#include "playlist.h"
-#include "searchlist.h"
-#include "dirlist.h"
-#include "tapelist.h"
+#include "songs.h"
+#include "directory.h"
+#include "playlists.h"
 #include "visualizer.h"
 
 int

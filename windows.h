@@ -18,7 +18,6 @@ enum window_id
 	PLIST_UP_STATE_BAR,		 // implies scroll up
 	PLAYLIST,				 // playlist
 	PLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
-	SEARCHLIST,				 // searchlist
 	DIRLIST,				 // window list item in current directory
 	DIRHELPER,              // dirlist instruction 
 	TAPELIST,                // window list all playlists
@@ -60,7 +59,7 @@ void signal_win(int id);
 void signal_all_wins(void);
 void clean_window(int id);
 void clean_screen(void);
-void winmod_update(struct WinMode *wmode);
+void wmode_update(struct WinMode *wmode);
 void color_print(WINDOW *win, int color_scheme, const char *str);
 void print_list_item(WINDOW *win, int line, int color, int id,
 					 char *ltext, char *rtext);

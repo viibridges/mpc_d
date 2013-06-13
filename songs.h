@@ -20,6 +20,12 @@ struct Playlist
   struct MetaInfo meta[MAX_PLAYLIST_STORE_LENGTH];
   int update_signal;
 
+  // search mode parameters
+  enum mpd_tag_type tags[4]; // searching type
+  char key[128];
+  int crt_tag_id;
+  int picking_mode; // 1 when picking a song
+  
   int length;
   int begin;
   int cursor;
@@ -39,5 +45,10 @@ void playlist_update_checking(void);
 int get_playlist_cursor_item_index(void);
 int is_playlist_selected(void);
 void swap_playlist_items(int i, int j);
+
+/** Search Mode Stuffs **/
+void searchmode_update(void);
+void searchmode_update_checking(void);
+void search_prompt(void);
 
 #endif

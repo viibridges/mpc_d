@@ -1,4 +1,4 @@
-#include "dirlist.h"
+#include "directory.h"
 #include "windows.h"
 #include "utils.h"
 

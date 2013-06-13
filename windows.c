@@ -39,7 +39,7 @@ clean_screen(void)
 }
 
 void
-winmod_update(struct WinMode *wmode)
+wmode_update(struct WinMode *wmode)
 {
   being_mode = wmode;
   signal_all_wins();
