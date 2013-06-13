@@ -20,7 +20,9 @@ enum window_id
 	PLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
 	SEARCHLIST,				 // searchlist
 	DIRLIST,				 // window list item in current directory
+	DIRHELPER,              // dirlist instruction 
 	TAPELIST,                // window list all playlists
+	TAPEHELPER,              // tapelist instruction 
 	SEARCH_INPUT,			 // search prompt area
 	DEBUG_INFO,				 // for debug perpuse only
 	WIN_NUM                  // number of windows
@@ -36,8 +38,9 @@ struct WindowUnit
   
   WINDOW *win;
 
-  // each window has its own redraw routine
+  // each window has its own redraw routine and check routine
   void (*redraw_routine)(void);
+  void (*update_checking)(void);
 };
 
 struct WinMode
@@ -45,7 +48,6 @@ struct WinMode
   int size;
   struct WindowUnit **wins;
 
-  void (*update_checking)(void);
   void (*listen_keyboard)(void);
 };
 
@@ -58,15 +60,18 @@ void signal_win(int id);
 void signal_all_wins(void);
 void clean_window(int id);
 void clean_screen(void);
-void winset_update(struct WinMode *wmode);
+void winmod_update(struct WinMode *wmode);
 void color_print(WINDOW *win, int color_scheme, const char *str);
 void print_list_item(WINDOW *win, int line, int color, int id,
 					 char *ltext, char *rtext);
 
+char* popup_dialog(const char *prompt);
+  
 void debug(const char *debug_info);
 void debug_static(const char *debug_info);
 void debug_int(const int num);
 
+void screen_update_checking(void);
 void screen_redraw(void);
 
 #endif

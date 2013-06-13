@@ -76,6 +76,22 @@ dirlist_redraw_screen(void)
 }
 
 void
+dirlist_helper(void)
+{
+  WINDOW *win = specific_win(DIRHELPER);
+
+  wprintw(win,  "\n\
+  Key Options:\n\
+  ----------------------\n\
+    [k] Move Cursor Up\n\
+    [j] Move Cursor Down\n\
+    [a] Append Current\n\
+    [r] Rename Playlist");
+
+  //wborder(win, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+
+void
 dirlist_update(void)
 {
   DIR *d;

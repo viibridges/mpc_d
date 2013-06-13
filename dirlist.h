@@ -26,6 +26,7 @@ char* get_abs_crt_path(void);
 int is_path_valid_format(char *path);
 char* get_mpd_crt_path(void);
 void dirlist_redraw_screen(void);
+void dirlist_helper(void);
 void dirlist_update(void);
 void dirlist_update_checking(void);
 

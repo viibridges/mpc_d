@@ -21,6 +21,20 @@ tapelist_redraw_screen(void)
 	}
 }
 
+void
+tapelist_helper(void)
+{
+  WINDOW *win = specific_win(TAPEHELPER);
+
+  wprintw(win,  "\n\
+  Key Options:\n\
+  ----------------------\n\
+    [k] Move Cursor Up\n\
+    [j] Move Cursor Down\n\
+    [a] Append Current\n\
+    [r] Rename Playlist");
+}
+
 void tapelist_update_checking(void)
 {
   if(tapelist->update_signal)
@@ -60,3 +74,10 @@ tapelist_update(void)
 	tapelist->length = i;
 }
 
+void tapelist_rename(void)
+{
+  char *input =
+	popup_dialog("Enter a New Name Here:");
+
+  debug(input);
+}

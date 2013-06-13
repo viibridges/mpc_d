@@ -498,7 +498,7 @@ switch_to_main_menu()
 {
   clean_screen();
 
-  winset_update(&basic_info->wmode);
+  winmod_update(&basic_info->wmode);
 }
 
 void
@@ -506,7 +506,7 @@ switch_to_playlist_menu()
 {
   clean_screen();
 
-  winset_update(&playlist->wmode);
+  winmod_update(&playlist->wmode);
 }
 
 void
@@ -514,7 +514,7 @@ switch_to_dirlist_menu()
 {
   clean_screen();
 
-  winset_update(&dirlist->wmode);
+  winmod_update(&dirlist->wmode);
 }
 
 void
@@ -522,7 +522,7 @@ switch_to_tapelist_menu()
 {
   clean_screen();
 
-  winset_update(&tapelist->wmode);
+  winmod_update(&tapelist->wmode);
 }
 
 void
@@ -547,7 +547,7 @@ turnon_search_mode(void)
 
   clean_window(VERBOSE_PROC_BAR);
   clean_window(VISUALIZER);  
-  winset_update(&searchlist->wmode);
+  winmod_update(&searchlist->wmode);
 }
 
 void
@@ -558,5 +558,5 @@ turnoff_search_mode(void)
   playlist_scroll_to_current();
 
   clean_window(SEARCH_INPUT);
-  winset_update(&playlist->wmode);
+  winmod_update(&playlist->wmode);
 }

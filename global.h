@@ -14,6 +14,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#ifndef LKJSDFAOIJCSAF
+#define LKJSDFAOIJCSAF
+
 #define SEEK_UNIT 3
 #define VOLUME_UNIT 3
 #define INTERVAL_MIN_UNIT 20000
@@ -29,3 +32,5 @@ int quit_signal;
 int interval_level;
 
 struct mpd_connection *conn;
+
+#endif

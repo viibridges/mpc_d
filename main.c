@@ -36,7 +36,7 @@ main(int argc, char **args)
 
 	  if(quit_signal) break;
 
-	  being_mode->update_checking();
+	  screen_update_checking();
 	  wchain_size_update();
 	  screen_redraw();
 

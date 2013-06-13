@@ -39,7 +39,7 @@ clean_screen(void)
 }
 
 void
-winset_update(struct WinMode *wmode)
+winmod_update(struct WinMode *wmode)
 {
   being_mode = wmode;
   signal_all_wins();
@@ -62,18 +62,59 @@ void
 print_list_item(WINDOW *win, int line, int color, int id,
 					char *ltext, char *rtext)
 {
-  const int ltext_left = 6;
-  const int rtext_left = 43;
+  int ltext_left = 6, rtext_left = 43;
   const int width = win->_maxx - 8;
 
   wattron(win, my_color_pairs[color - 1]);
 
   mvwprintw(win, line, 0, "%*c", width, ' ');
-  id ? mvwprintw(win, line, 0, "%3i.", id) : 1;
+
+  if(id > 0)
+	mvwprintw(win, line, 0, "%3i.", id);
+  else
+	ltext_left = 2;
+  
   ltext ? mvwprintw(win, line, ltext_left, "%s", ltext) : 1;
   rtext ? mvwprintw(win, line, rtext_left, "%s", rtext) : 1;
   
   wattroff(win, my_color_pairs[color - 1]);
+}
+
+char* popup_dialog(const char *prompt)
+{
+  static char ret[512];
+  
+  // first do some measurements
+  int width = stdscr->_maxx / 2;
+  int height = stdscr->_maxy / 2;
+  int x = stdscr->_maxx / 2 - width / 2;
+  int y = stdscr->_maxy / 2 - height / 2;
+
+  WINDOW *dialog = newwin(height, width, y, x);
+  wmove(dialog, 2, 2);
+  wprintw(dialog, prompt); // hope the prompt won't be too long
+  wmove(dialog, 4, 4);
+  wborder(dialog, 0, 0, 0, 0, 0, 0, 0, 0);
+
+  wrefresh(dialog);
+  
+  notimeout(dialog, TRUE); // block the wgetch()
+  echo();
+  curs_set(1);
+  
+  wscanw(dialog, "%s", ret);
+
+  noecho();
+  curs_set(0);
+
+  // destroy the window
+  werase(dialog);
+  wrefresh(dialog);
+  delwin(dialog);
+
+  signal_all_wins();
+
+  return ret;
 }
 
 void debug(const char *debug_info)
@@ -140,11 +181,24 @@ screen_redraw(void)
   struct WindowUnit **wunit = being_mode->wins;
   for(i = 0; i < being_mode->size; i++)
 	{
-	  if(wunit[i]->visible && wunit[i]->redraw_signal)
+	  if(wunit[i]->visible && wunit[i]->redraw_signal
+		 && wunit[i]->redraw_routine)
 		{
 		  wunit[i]->redraw_routine();
 		  wrefresh(wunit[i]->win);
 		}
 	  wunit[i]->redraw_signal = wunit[i]->flash | 0;
+	}
+}
+
+void
+screen_update_checking(void)
+{
+  int i;
+  struct WindowUnit **wunit = being_mode->wins;
+  for(i = 0; i < being_mode->size; i++)
+	{
+	  if(wunit[i]->visible && wunit[i]->update_checking)
+		wunit[i]->update_checking();
 	}
 }

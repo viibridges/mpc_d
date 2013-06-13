@@ -192,6 +192,9 @@ tapelist_keymap_template(int key)
 	case 'm':;
 	case 'v': break; // key be masked
 
+	case 'r':
+	  tapelist_rename();
+	  
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;
 	case 'j':

@@ -99,14 +99,14 @@ dynamic_initial(void)
   get_fifo_id();
   
   /** windows set initialization **/
-  winset_init();
-  winset_update(&basic_info->wmode);
+  winmod_init();
+  winmod_update(&basic_info->wmode);
 }
 
 void
 dynamic_destroy(void)
 {
-  winset_free();
+  winmod_free();
   free(playlist);
   free(searchlist);
   free(dirlist);
@@ -117,7 +117,7 @@ dynamic_destroy(void)
 void
 wchain_init(void)
 {
-  void (*func[WIN_NUM])() =
+  void (*redraw_func[WIN_NUM])() =
 	{
 	  &print_basic_song_info,    // BASIC_INFO       
 	  &print_extra_info,		 // EXTRA_INFO       
@@ -130,9 +130,31 @@ wchain_init(void)
 	  &playlist_down_state_bar,  // PLIST_DOWN_STATE_BAR
 	  &playlist_redraw_screen,	 // SEARCHLIST
 	  &dirlist_redraw_screen,    // DIRLIST
+	  &dirlist_helper,           // DIRHELPER
 	  &tapelist_redraw_screen,   // TAPELIST
+	  &tapelist_helper,          // TAPEHELPER
 	  &search_prompt,			 // SEARCH_INPUT
 	  NULL						 // DEBUG_INFO  
+	};
+
+  void (*checking_func[WIN_NUM])() =
+	{
+	  &basic_state_checking,    	 // BASIC_INFO       
+	  NULL,		                	 // EXTRA_INFO       
+	  NULL,			            	 // VERBOSE_PROC_BAR 
+	  NULL,		                	 // VISUALIZER
+	  NULL,		                	 // HELPER
+	  NULL,		                	 // SIMPLE_PROC_BAR  
+	  NULL,                     	 // PLIST_UP_STATE_BAR
+	  &playlist_update_checking,	 // PLAYLIST
+	  NULL,                          // PLIST_DOWN_STATE_BAR
+	  &searchlist_update_checking,	 // SEARCHLIST
+	  &dirlist_update_checking,      // DIRLIST
+	  NULL,                          // DIRHELPER
+	  &tapelist_update_checking,     // TAPELIST
+	  NULL,                          // TAPEHELPER
+	  NULL,			                 // SEARCH_INPUT
+	  NULL						     // DEBUG_INFO  
 	};
   
   int i;
@@ -140,7 +162,8 @@ wchain_init(void)
   for(i = 0; i < WIN_NUM; i++)
 	{
 	  wchain[i].win = newwin(0, 0, 0, 0);// we're gonna change soon
-	  wchain[i].redraw_routine = func[i];
+	  wchain[i].redraw_routine = redraw_func[i];
+	  wchain[i].update_checking = checking_func[i];
 	  wchain[i].visible = 1;
 	  wchain[i].flash = 0;
 	}
@@ -186,8 +209,10 @@ wchain_size_update(void)
 	  {height - 8, 73, 5, 0},	    // PLAYLIST
 	  {1, width, height - 3, 0},	// PLIST_DOWN_STATE_BAR
 	  {height - 8, 72, 5, 0},	    // SEARCHLIST
-	  {height - 8, 72, 5, 0},	    // DIRLIST
-	  {height - 8, 72, 5, 0},	    // TAPELIST
+	  {height - 8, 36, 6, 41},	    // DIRLIST
+	  {height - 6, 36, 3, 0},       // DIRHELPER
+	  {height - 8, 36, 6, 41},	    // TAPELIST
+	  {height - 6, 36, 3, 0},       // TAPEHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
 	}; 
@@ -207,7 +232,7 @@ wchain_free(void)
 }
 	
 void
-winset_init(void)
+winmod_init(void)
 {
   // for basic mode (main menu)
   basic_info->wmode.size = 5;
@@ -218,7 +243,6 @@ winset_init(void)
   basic_info->wmode.wins[2] = &wchain[VERBOSE_PROC_BAR];
   basic_info->wmode.wins[3] = &wchain[VISUALIZER];
   basic_info->wmode.wins[4] = &wchain[HELPER];
-  basic_info->wmode.update_checking = &basic_state_checking;
   basic_info->wmode.listen_keyboard = &basic_keymap;
 
   // playlist wmode
@@ -231,7 +255,6 @@ winset_init(void)
   playlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
   playlist->wmode.wins[4] = &wchain[BASIC_INFO];
   playlist->wmode.wins[5] = &wchain[PLAYLIST];
-  playlist->wmode.update_checking = &playlist_update_checking;
   playlist->wmode.listen_keyboard = &playlist_keymap;
 
   // searchlist wmode
@@ -245,38 +268,33 @@ winset_init(void)
   searchlist->wmode.wins[4] = &wchain[SIMPLE_PROC_BAR];
   searchlist->wmode.wins[5] = &wchain[BASIC_INFO];
   searchlist->wmode.wins[6] = &wchain[SEARCHLIST];  
-  searchlist->wmode.update_checking = &searchlist_update_checking;
   searchlist->wmode.listen_keyboard = &searchlist_keymap;
 
   // dirlist wmode
-  dirlist->wmode.size = 6;
+  dirlist->wmode.size = 5;
   dirlist->wmode.wins = (struct WindowUnit**)
 	malloc(dirlist->wmode.size * sizeof(struct WindowUnit*));
-  dirlist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
-  dirlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
-  dirlist->wmode.wins[2] = &wchain[PLIST_UP_STATE_BAR];
-  dirlist->wmode.wins[3] = &wchain[DIRLIST];  
-  dirlist->wmode.wins[4] = &wchain[SIMPLE_PROC_BAR];
-  dirlist->wmode.wins[5] = &wchain[BASIC_INFO];
-  dirlist->wmode.update_checking = &dirlist_update_checking;
+  dirlist->wmode.wins[0] = &wchain[EXTRA_INFO];  
+  dirlist->wmode.wins[1] = &wchain[DIRLIST];  
+  dirlist->wmode.wins[2] = &wchain[DIRHELPER];  
+  dirlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  dirlist->wmode.wins[4] = &wchain[BASIC_INFO];
   dirlist->wmode.listen_keyboard = &dirlist_keymap;
 
   // tapelist wmode
-  tapelist->wmode.size = 6;
+  tapelist->wmode.size = 5;
   tapelist->wmode.wins = (struct WindowUnit**)
 	malloc(tapelist->wmode.size * sizeof(struct WindowUnit*));
-  tapelist->wmode.wins[0] = &wchain[PLIST_DOWN_STATE_BAR];
+  tapelist->wmode.wins[0] = &wchain[TAPEHELPER];
   tapelist->wmode.wins[1] = &wchain[EXTRA_INFO];  
-  tapelist->wmode.wins[2] = &wchain[PLIST_UP_STATE_BAR];
-  tapelist->wmode.wins[3] = &wchain[TAPELIST];  
-  tapelist->wmode.wins[4] = &wchain[SIMPLE_PROC_BAR];
-  tapelist->wmode.wins[5] = &wchain[BASIC_INFO];
-  tapelist->wmode.update_checking = &tapelist_update_checking;
+  tapelist->wmode.wins[2] = &wchain[TAPELIST];  
+  tapelist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  tapelist->wmode.wins[4] = &wchain[BASIC_INFO];
   tapelist->wmode.listen_keyboard = &tapelist_keymap;
 }
 
 void
-winset_free(void)
+winmod_free(void)
 {
   free(basic_info->wmode.wins);
   free(playlist->wmode.wins);
