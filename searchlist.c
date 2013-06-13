@@ -55,6 +55,46 @@ searchlist_update(void)
   searchlist->plist->begin = 1;
 }
 
+void searchlist_redraw_screen(void)
+{
+  int line = 0, i, height = wchain[SEARCHLIST].win->_maxy + 1;
+
+  WINDOW *win = specific_win(SEARCHLIST);  
+
+  int id;
+  char *title, *artist;
+  for(i = searchlist->plist->begin - 1; i < searchlist->plist->begin
+		+ height - 1 && i < searchlist->plist->length; i++)
+	{
+	  id = searchlist->plist->meta[i].id;
+	  title = searchlist->plist->meta[i].pretty_title;
+	  artist = searchlist->plist->meta[i].artist;
+
+	  // cursor in
+	  if(i + 1 == searchlist->plist->cursor)
+		{
+		  print_list_item(win, line++, 2, id, title, artist);
+		  continue;
+		}
+
+	  // selected
+	  if(searchlist->plist->meta[i].selected)
+		{
+		  print_list_item(win, line++, 9, id, title, artist);
+		  continue;
+		}
+		
+	  if(searchlist->plist->meta[i].id == searchlist->plist->current)
+		{
+		  print_list_item(win, line++, 1, id, title, artist);
+		}
+	  else
+		{
+		  print_list_item(win, line++, 0, id, title, artist);
+		}
+	}
+}
+
 void searchlist_update_checking(void)
 {
   struct mpd_status *status;

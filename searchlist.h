@@ -23,6 +23,7 @@ struct Searchlist *searchlist;
 
 void searchlist_update(void);
 void searchlist_update_checking(void);
+void searchlist_redraw_screen(void);
 void search_prompt(void);
 
 #endif

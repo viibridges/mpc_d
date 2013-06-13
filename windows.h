@@ -65,11 +65,13 @@ void color_print(WINDOW *win, int color_scheme, const char *str);
 void print_list_item(WINDOW *win, int line, int color, int id,
 					 char *ltext, char *rtext);
 
-char* popup_dialog(const char *prompt);
-  
+char* popup_input_dialog(const char *prompt);
+int popup_confirm_dialog(const char *prompt);
+
 void debug(const char *debug_info);
 void debug_static(const char *debug_info);
 void debug_int(const int num);
+void outline_all_windows(void);
 
 void screen_update_checking(void);
 void screen_redraw(void);

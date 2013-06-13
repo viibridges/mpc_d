@@ -128,7 +128,7 @@ wchain_init(void)
 	  &playlist_up_state_bar,    // PLIST_UP_STATE_BAR
 	  &playlist_redraw_screen,	 // PLAYLIST
 	  &playlist_down_state_bar,  // PLIST_DOWN_STATE_BAR
-	  &playlist_redraw_screen,	 // SEARCHLIST
+	  &searchlist_redraw_screen, // SEARCHLIST
 	  &dirlist_redraw_screen,    // DIRLIST
 	  &dirlist_helper,           // DIRHELPER
 	  &tapelist_redraw_screen,   // TAPELIST
@@ -177,11 +177,6 @@ wchain_init(void)
   wchain[HELPER].visible = 0;
   wchain[VISUALIZER].visible = 0;
   
-  // we share the inventory window among searchlist and playlist
-  // the way we achieve this is repoint the searchlist window unit
-  // to the playlist's.
-  wchain[SEARCHLIST] = wchain[PLAYLIST];
-
   wchain_size_update();
 }
 

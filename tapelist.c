@@ -76,8 +76,25 @@ tapelist_update(void)
 
 void tapelist_rename(void)
 {
-  char *input =
-	popup_dialog("Enter a New Name Here:");
+  char *to =
+	popup_input_dialog("Enter a New Name Here:");
 
-  debug(input);
+  int choice =
+	popup_confirm_dialog("Do You Really Mean That?");
+
+  if(!choice) // action canceled
+	return;
+
+  const char *from = tapelist->tapename[tapelist->cursor - 1];
+	
+  mpd_run_rename(conn, from, to);
+
+  tapelist->update_signal = 1;
+}
+
+void tapelist_append(void)
+{
+  const char *name = tapelist->tapename[tapelist->cursor - 1];
+
+  mpd_run_load(conn, name);
 }

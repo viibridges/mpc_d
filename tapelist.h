@@ -24,5 +24,6 @@ void tapelist_update_checking(void);
 void tapelist_update(void);
 void tapelist_helper(void);
 void tapelist_rename(void);
+void tapelist_append(void);
 
 #endif

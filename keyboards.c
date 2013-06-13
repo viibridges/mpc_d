@@ -194,6 +194,10 @@ tapelist_keymap_template(int key)
 
 	case 'r':
 	  tapelist_rename();
+	  break;
+	case 'a':
+	  tapelist_append();
+	  break;
 	  
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;

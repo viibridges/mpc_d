@@ -62,31 +62,27 @@ void
 print_list_item(WINDOW *win, int line, int color, int id,
 					char *ltext, char *rtext)
 {
-  int ltext_left = 6, rtext_left = 43;
+  const int ltext_left = 6, rtext_left = 43;
   const int width = win->_maxx - 8;
 
   wattron(win, my_color_pairs[color - 1]);
 
   mvwprintw(win, line, 0, "%*c", width, ' ');
 
-  if(id > 0)
-	mvwprintw(win, line, 0, "%3i.", id);
-  else
-	ltext_left = 2;
-  
+  id > 0 ? mvwprintw(win, line, 0, "%3i.", id) : 1;
   ltext ? mvwprintw(win, line, ltext_left, "%s", ltext) : 1;
   rtext ? mvwprintw(win, line, rtext_left, "%s", rtext) : 1;
   
   wattroff(win, my_color_pairs[color - 1]);
 }
 
-char* popup_dialog(const char *prompt)
+char* popup_input_dialog(const char *prompt)
 {
   static char ret[512];
   
   // first do some measurements
   int width = stdscr->_maxx / 2;
-  int height = stdscr->_maxy / 2;
+  int height = 8;
   int x = stdscr->_maxx / 2 - width / 2;
   int y = stdscr->_maxy / 2 - height / 2;
 
@@ -117,6 +113,64 @@ char* popup_dialog(const char *prompt)
   return ret;
 }
 
+/* return 1(yes) or 0(no) */
+int popup_confirm_dialog(const char *prompt)
+{
+  int ret = 1;
+  
+  // first do some measurements
+  int width = stdscr->_maxx / 2;
+  int height = 7;
+  int x = stdscr->_maxx / 2 - width / 2;
+  int y = stdscr->_maxy / 2 - height / 2;
+
+  WINDOW *dialog = newwin(height, width, y, x);
+  wmove(dialog, 2, 2);
+  wprintw(dialog, prompt); // hope the prompt won't be too long
+  
+  wborder(dialog, 0, 0, 0, 0, 0, 0, 0, 0);
+
+  int offset = width / 4;
+  
+  wmove(dialog, 4, offset);
+  color_print(dialog, ret ? 2 : 0, "YES");
+  wmove(dialog, 4, width - offset - 3);
+  color_print(dialog, ret ? 0 : 2, "NO ");
+  wrefresh(dialog);
+  
+  notimeout(dialog, TRUE); // block the wgetch()
+
+  
+  int key;
+  while((key = wgetch(dialog)) != '\n')
+	{
+	  switch(key)
+		{
+		case '\t':
+		  ret = !ret;
+		  break;
+		default:
+		  break;
+		}
+
+	  wmove(dialog, 4, offset);
+	  color_print(dialog, ret ? 2 : 0, "YES ");
+	  wmove(dialog, 4, width - offset - 3);
+	  color_print(dialog, ret ? 0 : 2, " NO ");
+	  wrefresh(dialog);
+	}
+
+  // destroy the window
+  werase(dialog);
+  wrefresh(dialog);
+  delwin(dialog);
+
+  signal_all_wins();
+
+  return ret;
+
+}
+
 void debug(const char *debug_info)
 {
   WINDOW *win = specific_win(DEBUG_INFO);
@@ -141,6 +195,21 @@ void debug_int(const int num)
   WINDOW *win = specific_win(DEBUG_INFO);
   wprintw(win, "%d", num);
   wrefresh(win);
+}
+
+/* draw border for all window, this is for debugging
+   purpose */
+void outline_all_windows(void)
+{
+  int i;
+  for(i = 0; i < WIN_NUM; i++)
+	{
+	  werase(wchain[i].win);
+	  wborder(wchain[i].win, 0, 0, 0, 0, 0, 0, 0, 0);
+	  wrefresh(wchain[i].win);
+	}
+
+  getchar();
 }
 
 void
