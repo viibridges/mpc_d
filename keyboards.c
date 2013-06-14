@@ -253,9 +253,6 @@ searchmode_picking_keymap(void)
 
   switch(key)
 	{
-	case 'U':;
-	case 'J':;
-	case 'K':;
 	case 'm':;
 	case 'i':;
 	case '\t':;
