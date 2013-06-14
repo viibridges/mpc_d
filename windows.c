@@ -175,18 +175,15 @@ int popup_confirm_dialog(const char *prompt, int dflt)
 	{
 	  switch(key)
 		{
-		case KEY_LEFT:;
-		case KEY_RIGHT:;
+		case KEY_LEFT: case KEY_RIGHT:
 		case '\t':
 		  ret = !ret;
 		  break;
-		case 'y':
-		case 'Y':
+		case 'y': case 'Y':
 		  ret = 1;
 		  out = 1;
 		  break;
-		case 'n':;
-		case 'N':
+		case 'n': case 'N':
 		  ret = 0;
 		  out = 1;
 		  break;
@@ -297,7 +294,7 @@ screen_redraw(void)
 		  wunit[i]->redraw_routine();
 		  wrefresh(wunit[i]->win);
 		}
-	  wunit[i]->redraw_signal = wunit[i]->flash | 0;
+	  wunit[i]->redraw_signal = wunit[i]->flash;
 	}
 }
 
