@@ -1,0 +1,741 @@
+
+basic_info.c,137
+basic_state_checking(8,110
+print_basic_help(51,1184
+print_extra_info(65,1737
+print_basic_song_info(98,2513
+print_basic_bar(195,5043
+
+commands.c,1512
+cmd_seek_second(20,426
+cmd_forward(43,919
+cmd_backward(49,973
+cmd_volup(55,1028
+cmd_voldown(75,1333
+cmd_Repeat(97,1664
+cmd_Single(112,1982
+cmd_Toggle(130,2258
+cmd_Playback(145,2477
+cmd_Random(160,2685
+song_in_cursor_move_to(175,2934
+song_move_up(199,3423
+song_move_down(208,3535
+toggle_select_item(217,3653
+toggle_select(226,3780
+playlist_scroll(237,3947
+playlist_scroll_to(273,4944
+playlist_scroll_down_line(280,5032
+playlist_scroll_up_line(286,5093
+playlist_scroll_up_page(292,5152
+playlist_scroll_down_page(298,5212
+playlist_play_current(304,5274
+playlist_scroll_to_current(313,5405
+playlist_cursor_hide(325,5624
+enter_selected_dir(332,5729
+exit_current_dir(349,5953
+append_to_playlist(370,6277
+dirlist_scroll(391,6657
+dirlist_scroll_to(418,7300
+dirlist_scroll_down_line(425,7385
+dirlist_scroll_up_line(431,7444
+dirlist_scroll_up_page(437,7501
+dirlist_scroll_down_page(443,7559
+tapelist_scroll(450,7667
+tapelist_scroll_to(477,8329
+tapelist_scroll_down_line(484,8417
+tapelist_scroll_up_line(490,8478
+tapelist_scroll_up_page(496,8537
+tapelist_scroll_down_page(502,8597
+cmd_Next(508,8659
+cmd_Prev(516,8735
+change_searching_scope(524,8817
+playlist_delete_song_in_cursor(531,8915
+playlist_delete_song_in_batch(543,9138
+playlist_delete_song(554,9371
+switch_to_main_menu(563,9509
+switch_to_playlist_menu(571,9597
+switch_to_dirlist_menu(579,9687
+switch_to_tapelist_menu(587,9775
+toggle_visualizer(595,9865
+turnon_search_mode(607,10042
+turnoff_search_mode(620,10326
+
+dirlist.c,234
+get_abs_crt_path(9,137
+is_path_valid_format(19,291
+  #define MUSIC_FORMAT_NUM 21,326
+crt_mpd_relative_path(44,683
+append_target(61,971
+dirlist_redraw_screen(78,1291
+dirlist_update(98,1744
+void dirlist_update_checking(128,2178
+
+initial.c,215
+struct mpd_connection* setup_connection(21,490
+dynamic_initial(38,800
+dynamic_destroy(115,2766
+wchain_init(126,2908
+wchain_size_update(175,4364
+wchain_free(212,5416
+winmod_init(218,5461
+winmod_free(287,8471
+
+keyboards.c,313
+void fundamental_keymap_template(17,368
+void playlist_keymap_template(82,1427
+dirlist_keymap_template(141,2559
+tapelist_keymap_template(190,3495
+searchlist_picking_keymap(235,4398
+basic_keymap(290,5565
+playlist_keymap(306,5776
+dirlist_keymap(321,5942
+tapelist_keymap(336,6106
+searchlist_keymap(352,6299
+
+main.c,326
+struct mpd_connection *conn;conn12,219
+struct BasicInfo *basic_info;basic_info13,248
+struct Playlist *playlist;playlist14,282
+struct Searchlist *searchlist;searchlist15,309
+struct Dirlist *dirlist;dirlist16,340
+struct Tapelist *tapelist;tapelist17,367
+struct Visualizer *visualizer;visualizer18,396
+main(21,432
+
+playlist.c,289
+playlist_simple_bar(9,142
+playlist_up_state_bar(35,861
+playlist_down_state_bar(44,1024
+playlist_redraw_screen(62,1482
+playlist_update(103,2317
+playlist_update_checking(141,3182
+int get_playlist_cursor_item_index(175,3942
+is_playlist_selected(185,4106
+swap_playlist_items(197,4251
+
+searchlist.c,89
+searchlist_update(9,148
+void searchlist_update_checking(61,1462
+search_prompt(82,1867
+
+tapelist.c,92
+tapelist_redraw_screen(8,118
+void tapelist_update_checking(27,572
+tapelist_update(38,730
+
+utils.c,297
+printErrorAndExit(7,143
+smart_sleep(27,574
+void my_finishCommand(43,828
+getStatus(49,964
+init_mpd_status(58,1136
+is_dir_exist(76,1488
+is_path_exist(87,1617
+get_song_format(98,1778
+get_song_tag(108,2027
+char *is_substring_ignorecase(is_substring_ignorecase128,2423
+pretty_copy(147,2912
+
+visualizer.c,174
+get_fifo_id(9,151
+get_fifo_output_id(21,381
+fifo_output_update(50,849
+print_uv_meter(63,1076
+draw_sound_wave(116,2001
+#define DELAY 152,2791
+print_visualizer(162,3007
+
+windows.c,296
+specific_win(4,30
+void signal_win(11,125
+void signal_all_wins(16,186
+clean_window(24,315
+clean_screen(31,400
+winmod_update(42,560
+color_print(49,651
+print_list_item(62,917
+void debug(79,1412
+void debug_static(89,1564
+void debug_int(98,1748
+color_init(106,1874
+screen_redraw(137,2852
+
+../../mpd/libmpdclient-2.7/src/async.c,632
+closesocket(47,1714
+#define MSG_DONTWAIT 54,1786
+struct mpd_async 57,1817
+	int fd;58,1836
+	struct mpd_error_info error;60,1846
+	struct mpd_buffer input;62,1877
+	struct mpd_buffer output;64,1904
+mpd_async_new(68,1954
+mpd_async_free(88,2234
+mpd_async_get_error(98,2392
+mpd_async_get_error_message(106,2513
+mpd_async_get_system_error(114,2652
+mpd_async_copy_error(123,2822
+mpd_async_get_fd(132,2989
+mpd_async_events(141,3132
+ignore_errno(167,3710
+mpd_async_read(177,3854
+mpd_async_write(214,4582
+mpd_async_io(244,5139
+mpd_async_send_command_v(279,5852
+mpd_async_send_command(334,6943
+mpd_async_recv_line(350,7229
+
+../../mpd/libmpdclient-2.7/src/capabilities.c,141
+mpd_send_allowed_commands(36,1513
+mpd_send_disallowed_commands(42,1640
+mpd_send_list_url_schemes(48,1773
+mpd_send_list_tag_types(54,1903
+
+../../mpd/libmpdclient-2.7/src/cmessage.c,261
+mpd_send_subscribe(39,1571
+mpd_run_subscribe(45,1722
+mpd_send_unsubscribe(53,1923
+mpd_run_unsubscribe(59,2078
+mpd_send_send_message(67,2283
+mpd_run_send_message(75,2475
+mpd_send_read_messages(84,2713
+mpd_recv_message(90,2857
+mpd_send_channels(131,3769
+
+../../mpd/libmpdclient-2.7/src/connection.c,427
+#define MPD_WELCOME_MESSAGE	49,1926
+mpd_parse_welcome(52,1977
+mpd_connection_sync_error(88,2897
+mpd_connection_new(99,3244
+mpd_connection_new_async(187,5520
+void mpd_connection_free(221,6351
+mpd_connection_get_settings(242,6836
+mpd_connection_set_timeout(250,6975
+mpd_connection_get_fd(260,7198
+mpd_connection_get_async(266,7330
+mpd_connection_get_server_version(272,7439
+mpd_connection_cmp_server_version(278,7552
+
+../../mpd/libmpdclient-2.7/src/coutput.c,179
+mpd_send_outputs(38,1570
+mpd_recv_output(44,1702
+mpd_send_enable_output(76,2373
+mpd_run_enable_output(82,2530
+mpd_send_disable_output(90,2740
+mpd_run_disable_output(96,2899
+
+../../mpd/libmpdclient-2.7/src/cplaylist.c,665
+	UNSIGNEDLEN 39,1594
+	UNSIGNEDLEN = (sizeof(39,1594
+	UNSIGNEDLEN = (sizeof(unsigned)39,1594
+	UNSIGNEDLEN = (sizeof(unsigned) * CHAR_BIT 39,1594
+mpd_send_list_playlists(43,1661
+mpd_send_list_playlist(49,1791
+mpd_send_list_playlist_meta(55,1943
+mpd_send_playlist_clear(61,2104
+mpd_run_playlist_clear(67,2258
+mpd_send_playlist_add(75,2463
+mpd_run_playlist_add(82,2645
+mpd_send_playlist_move(91,2877
+mpd_send_playlist_delete(104,3260
+mpd_run_playlist_delete(115,3533
+mpd_send_save(124,3762
+mpd_run_save(130,3897
+mpd_send_load(138,4082
+mpd_run_load(144,4217
+mpd_send_rename(152,4402
+mpd_run_rename(159,4563
+mpd_send_rm(168,4780
+mpd_run_rm(174,4911
+
+../../mpd/libmpdclient-2.7/src/cstats.c,71
+mpd_send_stats(42,1601
+mpd_recv_stats(48,1728
+mpd_run_stats(83,2467
+
+../../mpd/libmpdclient-2.7/src/cstatus.c,74
+mpd_send_status(41,1599
+mpd_recv_status(47,1730
+mpd_run_status(75,2288
+
+../../mpd/libmpdclient-2.7/src/database.c,213
+mpd_send_list_all(40,1594
+mpd_send_list_all_meta(46,1734
+mpd_send_list_meta(52,1883
+mpd_send_update(58,2023
+mpd_send_rescan(64,2162
+mpd_recv_update_id(70,2305
+mpd_run_update(85,2570
+mpd_run_rescan(98,2852
+
+../../mpd/libmpdclient-2.7/src/directory.c,234
+struct mpd_directory 42,1762
+	char *path;path47,1869
+mpd_directory_new(52,1927
+void mpd_directory_free(74,2311
+mpd_directory_dup(84,2501
+mpd_directory_get_path(93,2683
+mpd_directory_begin(102,2861
+mpd_directory_feed(118,3168
+
+../../mpd/libmpdclient-2.7/src/entity.c,493
+struct mpd_entity 41,1748
+	enum mpd_entity_type type;45,1807
+		struct mpd_directory *directory;directory56,2053
+		struct mpd_song *song;song61,2149
+		struct mpd_playlist *playlistFile;playlistFile66,2239
+	} info;67,2276
+mpd_entity_free(71,2294
+mpd_entity_get_type(96,2750
+mpd_entity_get_directory(104,2885
+mpd_entity_get_song(113,3082
+mpd_entity_get_playlist(122,3268
+mpd_entity_feed_first(131,3454
+mpd_entity_begin(156,4213
+mpd_entity_feed(176,4523
+mpd_recv_entity(208,5201
+
+../../mpd/libmpdclient-2.7/src/error.c,244
+mpd_connection_get_error(35,1499
+mpd_connection_get_error_message(41,1615
+mpd_connection_get_server_error(47,1767
+mpd_connection_get_server_error_location(55,1942
+mpd_connection_get_system_error(63,2117
+mpd_connection_clear_error(71,2288
+
+../../mpd/libmpdclient-2.7/src/example.c,59
+handle_error(47,1869
+print_tag(57,2095
+int main(67,2320
+
+../../mpd/libmpdclient-2.7/src/fd_util.c,106
+fd_mask_flags(51,1757
+fd_set_cloexec(67,1990
+fd_set_nonblock(83,2295
+socket_cloexec_nonblock(102,2553
+
+../../mpd/libmpdclient-2.7/src/idle.c,315
+static const char *const idle_names[idle_names45,1837
+mpd_idle_name(61,2044
+mpd_idle_name_parse(71,2226
+mpd_idle_parse_pair(83,2427
+mpd_recv_idle(94,2615
+mpd_send_idle(139,3686
+mpd_send_idle_mask(145,3797
+mpd_send_noidle(177,4588
+mpd_run_idle(187,4854
+mpd_run_idle_mask(202,5129
+mpd_run_noidle(218,5445
+
+../../mpd/libmpdclient-2.7/src/ierror.c,220
+mpd_error_deinit(39,1553
+mpd_error_message(48,1724
+mpd_error_message_n(61,2020
+mpd_error_printf(78,2425
+mpd_error_system_message(94,2699
+mpd_error_errno(117,3222
+mpd_error_entity(125,3357
+mpd_error_copy(135,3594
+
+../../mpd/libmpdclient-2.7/src/iso8601.c,135
+gmtime_r(36,1513
+timezone_offset(50,1767
+timegm_emulation(78,2359
+iso8601_datetime_parse(88,2485
+iso8601_datetime_format(140,3654
+
+../../mpd/libmpdclient-2.7/src/list.c,62
+mpd_command_list_begin(41,1727
+mpd_command_list_end(70,2404
+
+../../mpd/libmpdclient-2.7/src/message.c,228
+struct mpd_message 37,1541
+	char *channel;channel38,1562
+	char *text;text40,1579
+mpd_message_begin(44,1617
+mpd_message_feed(64,1936
+mpd_message_free(80,2229
+mpd_message_get_channel(90,2383
+mpd_message_get_text(98,2513
+
+../../mpd/libmpdclient-2.7/src/mixer.c,57
+mpd_send_set_volume(36,1525
+mpd_run_set_volume(42,1667
+
+../../mpd/libmpdclient-2.7/src/output.c,264
+struct mpd_output 40,1723
+	unsigned id;41,1743
+	char *name;name42,1757
+	bool enabled;43,1770
+mpd_output_begin(47,1809
+mpd_output_feed(69,2147
+mpd_output_free(86,2537
+mpd_output_get_id(96,2684
+mpd_output_get_name(104,2799
+mpd_output_get_enabled(112,2910
+
+../../mpd/libmpdclient-2.7/src/parser.c,612
+struct mpd_parser 36,1524
+	enum mpd_parser_result result;41,1630
+		bool discrete;45,1679
+			enum mpd_server_error server;48,1708
+			unsigned at;49,1741
+			const char *message;message50,1757
+		} error;51,1781
+			const char *name,name54,1804
+			const char *name, *value;value54,1804
+		} pair;55,1833
+	} u;56,1843
+mpd_parser_new(60,1873
+mpd_parser_free(74,2074
+set_result(80,2174
+mpd_parser_feed(95,2499
+mpd_parser_is_discrete(162,3887
+mpd_parser_get_server_error(170,4046
+mpd_parser_get_at(178,4199
+mpd_parser_get_message(186,4342
+mpd_parser_get_name(194,4495
+mpd_parser_get_value(202,4640
+
+../../mpd/libmpdclient-2.7/src/password.c,53
+mpd_send_password(37,1530
+mpd_run_password(43,1681
+
+../../mpd/libmpdclient-2.7/src/player.c,1021
+mpd_send_current_song(40,1588
+mpd_run_current_song(46,1727
+mpd_send_play(66,2072
+mpd_run_play(72,2183
+mpd_send_play_pos(79,2342
+mpd_run_play_pos(85,2484
+mpd_send_play_id(93,2682
+mpd_run_play_id(99,2813
+mpd_send_stop(107,3007
+mpd_run_stop(113,3118
+mpd_send_toggle_pause(120,3277
+mpd_run_toggle_pause(126,3397
+mpd_send_pause(134,3574
+mpd_run_pause(140,3702
+mpd_send_next(147,3880
+mpd_run_next(153,3991
+mpd_send_previous(160,4150
+mpd_run_previous(166,4269
+mpd_send_seek_pos(173,4436
+mpd_run_seek_pos(180,4597
+mpd_send_seek_id(189,4812
+mpd_run_seek_id(195,4959
+mpd_send_repeat(204,5176
+mpd_run_repeat(210,5306
+mpd_send_random(218,5488
+mpd_run_random(224,5618
+mpd_send_single(232,5800
+mpd_run_single(238,5930
+mpd_send_consume(246,6112
+mpd_run_consume(252,6244
+mpd_send_crossfade(260,6428
+mpd_run_crossfade(266,6574
+mpd_send_mixrampdb(274,6772
+mpd_run_mixrampdb(280,6907
+mpd_send_mixrampdelay(288,7092
+mpd_run_mixrampdelay(294,7243
+mpd_send_clearerror(302,7444
+mpd_run_clearerror(308,7567
+
+../../mpd/libmpdclient-2.7/src/playlist.c,294
+struct mpd_playlist 43,1782
+	char *path;path44,1804
+	time_t last_modified;50,1912
+mpd_playlist_new(54,1968
+mpd_playlist_free(77,2347
+mpd_playlist_dup(87,2524
+mpd_playlist_get_path(96,2699
+mpd_playlist_get_last_modified(104,2822
+mpd_playlist_begin(110,2950
+mpd_playlist_feed(126,3254
+
+../../mpd/libmpdclient-2.7/src/queue.c,1271
+mpd_send_list_queue_meta(44,1673
+mpd_send_list_queue_range_meta(50,1803
+mpd_send_get_queue_song_pos(57,1991
+mpd_run_get_queue_song_pos(63,2154
+mpd_send_get_queue_song_id(82,2517
+mpd_run_get_queue_song_id(88,2675
+mpd_send_queue_changes_meta(107,3034
+mpd_send_queue_changes_brief(114,3195
+mpd_recv_queue_change_brief(121,3363
+mpd_send_add(154,4098
+mpd_run_add(160,4231
+mpd_send_add_id(168,4412
+mpd_send_add_id_to(174,4550
+mpd_recv_song_id(181,4708
+mpd_run_add_id(196,4955
+mpd_run_add_id_to(213,5232
+mpd_send_delete(231,5535
+mpd_run_delete(237,5667
+mpd_send_delete_range(245,5851
+mpd_run_delete_range(252,6022
+mpd_send_delete_id(261,6248
+mpd_run_delete_id(267,6383
+mpd_send_shuffle(275,6571
+mpd_run_shuffle(281,6688
+mpd_send_shuffle_range(289,6855
+mpd_run_shuffle_range(295,7020
+mpd_send_clear(304,7249
+mpd_run_clear(310,7362
+mpd_send_move(318,7525
+mpd_run_move(324,7673
+mpd_send_move_id(332,7872
+mpd_run_move_id(338,8025
+mpd_send_move_range(346,8230
+mpd_run_move_range(353,8414
+mpd_send_swap(362,8651
+mpd_run_swap(368,8803
+mpd_send_swap_id(376,9006
+mpd_run_swap_id(382,9159
+mpd_send_prio(390,9364
+mpd_run_prio(397,9534
+mpd_send_prio_range(406,9754
+mpd_run_prio_range(413,9942
+mpd_send_prio_id(422,10186
+mpd_run_prio_id(429,10345
+
+../../mpd/libmpdclient-2.7/src/quote.c,31
+escape(37,1540
+quote(59,1812
+
+../../mpd/libmpdclient-2.7/src/rdirectory.c,28
+mpd_recv_directory(36,1527
+
+../../mpd/libmpdclient-2.7/src/recv.c,106
+mpd_recv_pair(40,1600
+mpd_recv_pair_named(155,4789
+mpd_return_pair(170,5060
+mpd_enqueue_pair(182,5345
+
+../../mpd/libmpdclient-2.7/src/resolver.c,422
+#    define MPD_HAVE_GAI51,1806
+struct resolver 55,1848
+		TYPE_ZERO,57,1874
+		TYPE_ZERO, TYPE_ONE,57,1874
+		TYPE_ZERO, TYPE_ONE, TYPE_ANY57,1874
+	} type;58,1906
+	struct addrinfo *ai;ai62,1954
+	const struct addrinfo *next;next63,1976
+	struct sockaddr_in sin;65,2012
+	struct resolver_address current;69,2052
+	struct sockaddr_un saun;72,2101
+resolver_new(77,2156
+resolver_free(167,4159
+resolver_next(177,4344
+
+../../mpd/libmpdclient-2.7/src/response.c,56
+mpd_response_finish(40,1712
+mpd_response_next(71,2523
+
+../../mpd/libmpdclient-2.7/src/rplaylist.c,27
+mpd_recv_playlist(36,1525
+
+../../mpd/libmpdclient-2.7/src/run.c,23
+mpd_run_check(38,1570
+
+../../mpd/libmpdclient-2.7/src/search.c,447
+mpd_search_init(45,1823
+mpd_search_db_songs(70,2356
+mpd_search_add_db_songs(77,2507
+mpd_search_queue_songs(84,2668
+mpd_search_db_tags(91,2838
+mpd_count_db_songs(129,3684
+mpd_sanitize_arg(154,4195
+mpd_search_add_constraint(182,4654
+mpd_search_add_uri_constraint(229,5727
+mpd_search_add_tag_constraint(237,5931
+mpd_search_add_any_tag_constraint(258,6443
+mpd_search_commit(266,6644
+mpd_search_cancel(292,7181
+mpd_recv_pair_tag(303,7385
+
+../../mpd/libmpdclient-2.7/src/send.c,656
+	INTLEN 41,1605
+	INTLEN = (sizeof(41,1605
+	INTLEN = (sizeof(int)41,1605
+	INTLEN = (sizeof(int) * CHAR_BIT 41,1605
+	LONGLONGLEN 42,1653
+	LONGLONGLEN = (sizeof(42,1653
+	LONGLONGLEN = (sizeof(long 42,1653
+	LONGLONGLEN = (sizeof(long long)42,1653
+	LONGLONGLEN = (sizeof(long long) * CHAR_BIT 42,1653
+send_check(49,1792
+mpd_send_command(68,2179
+mpd_send_command2(103,2908
+mpd_send_int_command(122,3261
+mpd_send_int2_command(132,3510
+mpd_send_int3_command(144,3872
+mpd_send_float_command(157,4335
+mpd_send_s_u_command(167,4590
+mpd_send_range_command(178,4878
+mpd_send_range_u_command(188,5179
+mpd_send_ll_command(201,5581
+mpd_flush(215,5928
+
+../../mpd/libmpdclient-2.7/src/settings.c,457
+struct mpd_settings 36,1520
+	char *host;host37,1542
+	unsigned port,39,1556
+	unsigned port, timeout_ms;39,1556
+	char *password;password41,1585
+mpd_parse_host_password(54,1894
+mpd_check_host(85,2505
+mpd_check_port(104,2904
+mpd_default_timeout_ms(116,3086
+mpd_settings_new(130,3360
+mpd_settings_free(172,4271
+mpd_settings_get_host(180,4405
+mpd_settings_get_port(186,4502
+mpd_settings_get_timeout_ms(192,4599
+mpd_settings_get_password(198,4712
+
+../../mpd/libmpdclient-2.7/src/socket.c,203
+#  define MSG_DONTWAIT 53,1832
+ignore_errno(57,1877
+mpd_socket_global_init(69,2056
+mpd_socket_wait(91,2463
+mpd_socket_wait_connected(114,2873
+mpd_socket_connect(136,3229
+mpd_socket_close(201,4654
+
+../../mpd/libmpdclient-2.7/src/song.c,955
+struct mpd_tag_value 45,1822
+	struct mpd_tag_value *next;next46,1845
+	char *value;value48,1875
+struct mpd_song 51,1893
+	char *uri;uri52,1911
+	struct mpd_tag_value tags[tags54,1924
+	unsigned duration;59,2033
+	unsigned start;65,2135
+	unsigned end;72,2298
+	time_t last_modified;78,2408
+	unsigned pos;83,2490
+	unsigned id;88,2558
+	bool finished;96,2740
+mpd_song_new(101,2792
+void mpd_song_free(136,3330
+mpd_song_dup(169,3869
+mpd_song_get_uri(213,4648
+mpd_song_add_tag(226,4875
+mpd_song_clear_tag(266,5578
+mpd_song_get_tag(289,6087
+mpd_song_set_duration(310,6422
+mpd_song_get_duration(316,6528
+mpd_song_get_start(322,6617
+mpd_song_get_end(328,6700
+mpd_song_set_last_modified(334,6782
+mpd_song_get_last_modified(340,6888
+mpd_song_set_pos(346,6983
+mpd_song_get_pos(352,7069
+mpd_song_set_id(358,7151
+mpd_song_get_id(364,7233
+mpd_song_begin(370,7319
+mpd_song_parse_range(385,7607
+mpd_song_feed(417,8195
+mpd_recv_song(458,9228
+
+../../mpd/libmpdclient-2.7/src/stats.c,672
+struct mpd_stats 40,1722
+	unsigned number_of_artists;41,1741
+	unsigned number_of_albums;42,1770
+	unsigned number_of_songs;43,1798
+	unsigned long uptime;44,1825
+	unsigned long db_update_time;45,1848
+	unsigned long play_time;46,1879
+	unsigned long db_play_time;47,1905
+mpd_stats_begin(51,1957
+mpd_stats_feed(69,2289
+void mpd_stats_free(87,3029
+mpd_stats_get_number_of_artists(94,3128
+mpd_stats_get_number_of_albums(102,3265
+mpd_stats_get_number_of_songs(110,3400
+unsigned long mpd_stats_get_uptime(117,3524
+unsigned long mpd_stats_get_db_update_time(124,3644
+unsigned long mpd_stats_get_play_time(131,3780
+unsigned long mpd_stats_get_db_play_time(138,3906
+
+../../mpd/libmpdclient-2.7/src/status.c,1581
+struct mpd_status 43,1784
+	int volume;45,1875
+	bool repeat;48,1924
+	bool random;51,1968
+	bool single;54,2017
+	bool consume;57,2067
+	unsigned queue_length;60,2120
+	unsigned queue_version;66,2231
+	enum mpd_state state;69,2294
+	unsigned crossfade;72,2355
+	float mixrampdb;75,2409
+	float mixrampdelay;78,2467
+	int song_pos;85,2673
+	int song_id;88,2736
+	int next_song_pos;91,2816
+	int next_song_id;94,2883
+	unsigned elapsed_time;100,2993
+	unsigned elapsed_ms;106,3113
+	unsigned total_time;109,3199
+	unsigned kbit_rate;112,3255
+	struct mpd_audio_format audio_format;115,3310
+	unsigned update_id;118,3399
+	char *error;error121,3443
+mpd_status_begin(125,3481
+parse_ms(162,4351
+parse_mpd_state(183,4626
+parse_audio_format(196,4882
+mpd_status_feed(213,5266
+void mpd_status_free(276,7669
+int mpd_status_get_volume(281,7779
+mpd_status_get_repeat(287,7872
+mpd_status_get_random(293,7961
+mpd_status_get_single(299,8050
+mpd_status_get_consume(305,8139
+mpd_status_get_queue_length(311,8234
+mpd_status_get_queue_version(317,8339
+mpd_status_get_state(323,8452
+mpd_status_get_crossfade(329,8543
+mpd_status_get_mixrampdb(335,8639
+mpd_status_get_mixrampdelay(341,8735
+mpd_status_get_song_pos(347,8835
+mpd_status_get_song_id(353,8927
+mpd_status_get_next_song_pos(359,9017
+mpd_status_get_next_song_id(365,9119
+mpd_status_get_elapsed_time(371,9224
+mpd_status_get_elapsed_ms(377,9329
+mpd_status_get_total_time(383,9430
+mpd_status_get_kbit_rate(389,9531
+mpd_status_get_audio_format(395,9653
+mpd_status_get_update_id(405,9883
+mpd_status_get_error(411,9986
+
+../../mpd/libmpdclient-2.7/src/sticker.c,301
+mpd_send_sticker_set(41,1621
+mpd_run_sticker_set(49,1856
+mpd_send_sticker_delete(58,2133
+mpd_run_sticker_delete(71,2442
+mpd_send_sticker_get(80,2702
+mpd_send_sticker_list(93,3009
+mpd_send_sticker_find(104,3264
+mpd_parse_sticker(119,3611
+mpd_recv_sticker(132,3832
+mpd_return_sticker(159,4383
+
+../../mpd/libmpdclient-2.7/src/sync.c,186
+ignore_errno(40,1585
+mpd_sync_poll(50,1730
+mpd_sync_io(94,2649
+mpd_sync_send_command_v(105,2847
+mpd_sync_send_command(132,3297
+mpd_sync_flush(146,3566
+mpd_sync_recv_line(171,4027
+
+../../mpd/libmpdclient-2.7/src/tag.c,220
+static const char *const mpd_tag_type_names[mpd_tag_type_names39,1699
+mpd_tag_name(61,2151
+mpd_tag_name_parse(70,2299
+ignore_case_char_equals(86,2673
+ignore_case_string_equals(92,2778
+mpd_tag_name_iparse(109,3010
