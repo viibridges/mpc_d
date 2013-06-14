@@ -64,8 +64,9 @@ void color_print(WINDOW *win, int color_scheme, const char *str);
 void print_list_item(WINDOW *win, int line, int color, int id,
 					 char *ltext, char *rtext);
 
+void popup_simple_dialog(const char *message);
 char* popup_input_dialog(const char *prompt);
-int popup_confirm_dialog(const char *prompt);
+int popup_confirm_dialog(const char *prompt, int dflt);
 
 void debug(const char *debug_info);
 void debug_static(const char *debug_info);

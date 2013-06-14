@@ -1,4 +1,5 @@
 #include "windows.h"
+#include "utils.h"
 
 WINDOW*
 specific_win(int win_id)
@@ -76,6 +77,32 @@ print_list_item(WINDOW *win, int line, int color, int id,
   wattroff(win, my_color_pairs[color - 1]);
 }
 
+void popup_simple_dialog(const char *message)
+{
+  // first do some measurements
+  int width = strlen(message) + 6;
+  width = width > 70 ? 70 : width;
+  int height = 5;
+  int x = stdscr->_maxx / 2 - width / 2;
+  int y = stdscr->_maxy / 2 - height / 2;
+
+  WINDOW *dialog = newwin(height, width, y, x);
+  wmove(dialog, 2, 3);
+  wprintw(dialog, message); // hope the prompt won't be too long
+  wborder(dialog, 0, 0, 0, 0, 0, 0, 0, 0);
+
+  wrefresh(dialog);
+
+  sleep(1); // stay awhile
+
+  // destroy the window
+  werase(dialog);
+  wrefresh(dialog);
+  delwin(dialog);
+
+  signal_all_wins();
+}
+
 char* popup_input_dialog(const char *prompt)
 {
   static char ret[512];
@@ -98,8 +125,10 @@ char* popup_input_dialog(const char *prompt)
   echo();
   curs_set(1);
   
-  wscanw(dialog, "%s", ret);
-
+  if(wscanw(dialog, "%128[^\n]%*c", ret) == ERR)
+	if(*ret)
+	  ErrorAndExit("char array overflows.");
+	
   noecho();
   curs_set(0);
 
@@ -114,9 +143,9 @@ char* popup_input_dialog(const char *prompt)
 }
 
 /* return 1(yes) or 0(no) */
-int popup_confirm_dialog(const char *prompt)
+int popup_confirm_dialog(const char *prompt, int dflt)
 {
-  int ret = 1;
+  int ret = dflt;
   
   // first do some measurements
   int width = stdscr->_maxx / 2;
@@ -140,12 +169,14 @@ int popup_confirm_dialog(const char *prompt)
   
   notimeout(dialog, TRUE); // block the wgetch()
 
-  
+  keypad(dialog, TRUE);
   int key;
   while((key = wgetch(dialog)) != '\n')
 	{
 	  switch(key)
 		{
+		case KEY_LEFT:;
+		case KEY_RIGHT:;
 		case '\t':
 		  ret = !ret;
 		  break;

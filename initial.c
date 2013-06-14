@@ -48,6 +48,9 @@ dynamic_initial(void)
   /** songlist arguments */
   songlist =
 	(struct Songlist*) malloc(sizeof(struct Songlist));
+  songlist->update_signal = 0;
+  songlist->total = 0;
+  
   songlist->begin = 1;
   songlist->length = 0;
   songlist->current = 0;
@@ -68,7 +71,8 @@ dynamic_initial(void)
   // TODO add this automatically according to the mpd setting
   directory =
 	(struct Directory*) malloc(sizeof(struct Directory));
-
+  directory->update_signal = 0;
+  
   directory->begin = 1;
   directory->length = 0;
   directory->cursor = 1;
@@ -79,7 +83,8 @@ dynamic_initial(void)
   /** playlist arguments **/
   playlist =
 	(struct Playlist*) malloc(sizeof(struct Playlist));
-
+  playlist->update_signal = 0;
+  
   playlist->begin = 1;
   playlist->length = 0;
   playlist->cursor = 1;
@@ -95,6 +100,7 @@ dynamic_initial(void)
   /** windows set initialization **/
   winmod_init();
   being_mode_update(&basic_info->wmode);
+  //being_mode_update(&songlist->wmode);
 }
 
 void
@@ -121,8 +127,8 @@ wchain_init(void)
 	  &songlist_up_state_bar,    // SLIST_UP_STATE_BAR
 	  &songlist_redraw_screen,	 // SONGLIST
 	  &songlist_down_state_bar,  // SLIST_DOWN_STATE_BAR
-	  &directory_redraw_screen,    // DIRECTORY
-	  &directory_helper,           // DIRHELPER
+	  &directory_redraw_screen,  // DIRECTORY
+	  &directory_helper,         // DIRHELPER
 	  &playlist_redraw_screen,   // PLAYLIST
 	  &playlist_helper,          // TAPEHELPER
 	  &search_prompt,			 // SEARCH_INPUT
@@ -140,7 +146,7 @@ wchain_init(void)
 	  NULL,                     	 // SLIST_UP_STATE_BAR
 	  &songlist_update_checking,	 // SONGLIST
 	  NULL,                          // SLIST_DOWN_STATE_BAR
-	  &directory_update_checking,      // DIRECTORY
+	  &directory_update_checking,    // DIRECTORY
 	  NULL,                          // DIRHELPER
 	  &playlist_update_checking,     // PLAYLIST
 	  NULL,                          // TAPEHELPER

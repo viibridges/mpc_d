@@ -1,6 +1,5 @@
 #include "commands.h"
 #include "utils.h"
-#include "keyboards.h"
 
 #include "basic_info.h"
 #include "songs.h"
@@ -267,12 +266,12 @@ songlist_scroll_down_page()
 }
 
 void
-songlist_play_current()
+songlist_play_cursor()
 {
-  int song = get_songlist_cursor_item_index();
+  int id = get_songlist_cursor_item_index();
   
-  if(song > -1)
-	mpd_run_play_pos(conn, song);
+  if(id > -1)
+	mpd_run_play_pos(conn, songlist->meta[id].id - 1);
 }
 
 void
@@ -535,40 +534,3 @@ toggle_visualizer(void)
 	wchain[VISUALIZER].visible = 1;
 }
 
-void
-turnon_search_mode(void)
-{
-  // show up the input window
-  wchain[SEARCH_INPUT].visible = 1;
-  
-  songlist->key[0] = '\0';
-  songlist->picking_mode = 0;
-  //songlist->wmode.listen_keyboard = &searchmode_keymap;
-  songlist_cursor_hide();
-
-  clean_window(VERBOSE_PROC_BAR);
-  clean_window(VISUALIZER);
-
-  // switch the keyboard and update_checking() rountine
-  songlist->wmode.listen_keyboard = &searchmode_keymap;
-  wchain[SONGLIST].update_checking = &searchmode_update_checking;
-
-  being_mode_update(&songlist->wmode);
-}
-
-void
-turnoff_search_mode(void)
-{
-  // turn off the input window
-  wchain[SEARCH_INPUT].visible = 0;
-  
-  songlist->key[0] = '\0';
-  songlist_update();
-  songlist_scroll_to_current();
-
-  clean_window(SEARCH_INPUT);
-
-  // switch the keboard and update_checking() back
-  songlist->wmode.listen_keyboard = &songlist_keymap;
-  wchain[SONGLIST].update_checking = &songlist_update_checking;
-}

@@ -89,7 +89,7 @@ void songlist_keymap_template(int key)
 	case 'k':
 	  songlist_scroll_up_line();break;
 	case '\n':
-	  songlist_play_current();break;
+	  songlist_play_cursor();break;
 	case 'b':
 	  songlist_scroll_up_page();break;
 	case ' ':
@@ -136,10 +136,6 @@ directory_keymap_template(int key)
   // filter those different with the template
   switch(key)
 	{
-	case 'U':;
-	case 'J':;
-	case 'K':;
-	case 'm':;
 	case 'v': break; // key be masked
 
 	case '\n':
@@ -185,17 +181,22 @@ playlist_keymap_template(int key)
   // filter those different with the template
   switch(key)
 	{
-	case 'U':;
-	case 'J':;
-	case 'K':;
-	case 'm':;
 	case 'v': break; // key be masked
 
 	case 'r':
 	  playlist_rename();
 	  break;
-	case 'a':
-	  playlist_append();
+	case 'l':
+	  playlist_load();
+	  break;
+	case 's':
+	  playlist_save();
+	  break;
+	case 'd':
+	  playlist_delete();
+	  break;
+	case 'c':
+	  songlist_clear();
 	  break;
 	  
 	case 14: ; // ctrl-n
@@ -216,9 +217,6 @@ playlist_keymap_template(int key)
 	  break;
 	case 'G':  // cursor goto the end
 	  playlist_scroll_to(playlist->length);
-	  break;
-	case 'c':  // cursor goto the center
-	  playlist_scroll_to(playlist->length / 2);
 	  break;
 	case '\t':
 	  switch_to_main_menu();
@@ -252,7 +250,7 @@ searchmode_picking_keymap(void)
 	case 'l': break; // these keys are masked
 	  
 	case '\n':
-	  songlist_play_current();
+	  songlist_play_cursor();
 	  turnoff_search_mode();
 	  break;
 

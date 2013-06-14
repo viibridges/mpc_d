@@ -1,5 +1,7 @@
 #include "songs.h"
 #include "basic_info.h"
+#include "keyboards.h"
+#include "commands.h"
 #include "utils.h"
 
 void
@@ -126,10 +128,7 @@ songlist_update(void)
 	  mpd_song_free(song);
 	}
 
-  if(i < MAX_SONGLIST_STORE_LENGTH)
-  	songlist->length = i;
-  else
-  	songlist->length = MAX_SONGLIST_STORE_LENGTH;
+  songlist->length = i;
 
   my_finishCommand(conn);
 }
@@ -154,12 +153,13 @@ songlist_update_checking(void)
 	}
 
   if(songlist->update_signal == 1 ||
-	 songlist->length != queue_len)
-	{
-	  songlist->update_signal = 0;
-	  songlist_update();
-	  signal_all_wins();
-	}
+  	 songlist->total != queue_len)
+  	{
+  	  songlist->update_signal = 0;
+	  songlist->total = queue_len;
+  	  songlist_update();
+  	  signal_all_wins();
+  	}
 
   /** for some unexcepted cases songlist->begin
 	  may be greater than songlist->length;
@@ -207,6 +207,44 @@ swap_songlist_items(int i, int j)
 
 
 /** search mode staff **/
+void
+turnon_search_mode(void)
+{
+  // show up the input window
+  wchain[SEARCH_INPUT].visible = 1;
+  
+  songlist->key[0] = '\0';
+  songlist->picking_mode = 0;
+  //songlist->wmode.listen_keyboard = &searchmode_keymap;
+  songlist_cursor_hide();
+
+  clean_window(VERBOSE_PROC_BAR);
+  clean_window(VISUALIZER);
+
+  // switch the keyboard and update_checking() rountine
+  songlist->wmode.listen_keyboard = &searchmode_keymap;
+  wchain[SONGLIST].update_checking = &searchmode_update_checking;
+
+  being_mode_update(&songlist->wmode);
+}
+
+void
+turnoff_search_mode(void)
+{
+  // turn off the input window
+  wchain[SEARCH_INPUT].visible = 0;
+  
+  songlist->key[0] = '\0';
+  songlist_update();
+  songlist_scroll_to_current();
+
+  clean_window(SEARCH_INPUT);
+
+  // switch the keboard and update_checking() back
+  songlist->wmode.listen_keyboard = &songlist_keymap;
+  wchain[SONGLIST].update_checking = &songlist_update_checking;
+}
+
 void
 searchmode_update(void)
 {
@@ -295,3 +333,12 @@ search_prompt(void)
   wprintw(win, "%*s", 40, " ");
 }
 
+void songlist_clear(void)
+{
+  int c =
+	popup_confirm_dialog("Clear Confirm:", 0);
+
+  if(!c) return;
+  
+  mpd_run_clear(conn);
+}

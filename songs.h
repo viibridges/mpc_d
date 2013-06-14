@@ -24,7 +24,10 @@ struct Songlist
   enum mpd_tag_type tags[4]; // searching type
   char key[128];
   int crt_tag_id;
-  int picking_mode; // 1 when picking a song
+  int picking_mode; // 1 when picking song
+
+  int total; // total number of song, maybe out of the range
+             // that Songlist can manage
   
   int length;
   int begin;
@@ -47,8 +50,12 @@ int is_songlist_selected(void);
 void swap_songlist_items(int i, int j);
 
 /** Search Mode Stuffs **/
+void turnon_search_mode(void);
+void turnoff_search_mode(void);
 void searchmode_update(void);
 void searchmode_update_checking(void);
 void search_prompt(void);
+
+void songlist_clear(void);
 
 #endif

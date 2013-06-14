@@ -3,6 +3,7 @@
 /*************************************
  **    SYSTEM  AND  MISCELLANY      **
  *************************************/
+void ErrorAndExit(const char *message);
 void printErrorAndExit(struct mpd_connection *conn);
 void smart_sleep(void);
 void my_finishCommand(struct mpd_connection *conn);

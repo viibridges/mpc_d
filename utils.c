@@ -3,20 +3,27 @@
 /*************************************
  **    SYSTEM  AND  MISCELLANY      **
  *************************************/
+void ErrorAndExit(const char *message)
+{
+  endwin();
+  fprintf(stderr, "Error: %s\n", message);
+  exit(EXIT_FAILURE);
+}
+
 void
 printErrorAndExit(struct mpd_connection *conn)
 {
-	const char *message;
+  const char *message;
 
-	assert(mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS);
+  assert(mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS);
 
-	message = mpd_connection_get_error_message(conn);
+  message = mpd_connection_get_error_message(conn);
 
-	endwin();
+  endwin();
 	
-	fprintf(stderr, "Error: %s\n", message);
+  fprintf(stderr, "Error: %s\n", message);
 	
-	exit(EXIT_FAILURE);
+  exit(EXIT_FAILURE);
 }
 
 /* the principle is that: if the keyboard events
