@@ -204,7 +204,7 @@ wchain_size_update(void)
 	  {height - 8, 36, 6, 41},	    // DIRECTORY
 	  {height - 6, 36, 3, 0},       // DIRHELPER
 	  {height - 8, 36, 6, 41},	    // PLAYLIST
-	  {height - 6, 36, 3, 0},       // TAPEHELPER
+	  {height - 6, 26, 3, 0},       // TAPEHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
 	}; 

@@ -330,26 +330,6 @@ exit_current_dir()
 }
 
 void
-append_to_songlist()
-{
-  char *path, *absp;
-
-  /* check if path exist */
-  absp = get_abs_crt_path();
-  if(!is_path_exist(absp))
-	return;
-
-  /* check if a nondir file of valid format */
-  if(!is_dir_exist(absp) && !is_path_valid_format(absp))
-	return;
-  
-  path = get_mpd_crt_path();
-
-  if(path)
-	mpd_run_add(conn, path);
-}
-
-void
 directory_scroll_to(int line)
 {
   int height = wchain[DIRECTORY].win->_maxy + 1;

@@ -30,4 +30,7 @@ void directory_helper(void);
 void directory_update(void);
 void directory_update_checking(void);
 
+void append_to_songlist(void);
+void replace_songlist(void);
+
 #endif

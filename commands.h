@@ -25,7 +25,6 @@ void songlist_scroll_to_current(void);
 void songlist_cursor_hide(void);
 void enter_selected_dir(void);
 void exit_current_dir(void);
-void append_to_songlist(void);
 void directory_scroll_to(int line);
 void directory_scroll_down_line(void);
 void directory_scroll_up_line(void);

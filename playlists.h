@@ -27,5 +27,6 @@ void playlist_rename(void);
 void playlist_load(void);
 void playlist_save(void);
 void playlist_delete(void);
+void playlist_replace(void);
 
 #endif

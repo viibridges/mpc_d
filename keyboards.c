@@ -56,10 +56,10 @@ void fundamental_keymap_template(int key)
 	  switch_to_songlist_menu();
 	  break;
 	case '3':
-	  switch_to_directory_menu();
+	  switch_to_playlist_menu();
 	  break;
 	case '4':
-	  switch_to_playlist_menu();
+	  switch_to_directory_menu();
 	  break;
 	case 'v':
 	  toggle_visualizer();
@@ -144,6 +144,13 @@ directory_keymap_template(int key)
 	  exit_current_dir();break;
 	case 'a':
 	  append_to_songlist();break;
+	case 'c':
+	  songlist_clear();
+	  break;
+	case 'r':
+	  replace_songlist();
+	  songlist_scroll_to(1);
+	  break;
 	  
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;
@@ -162,9 +169,6 @@ directory_keymap_template(int key)
 	  break;
 	case 'G':  // cursor goto the end
 	  directory_scroll_to(directory->length);
-	  break;
-	case 'c':  // cursor goto the center
-	  directory_scroll_to(directory->length / 2);
 	  break;
 	case '\t':
 	  switch_to_main_menu();
@@ -186,6 +190,7 @@ playlist_keymap_template(int key)
 	case 'r':
 	  playlist_rename();
 	  break;
+	case 'a':;
 	case 'l':
 	  playlist_load();
 	  break;
@@ -197,6 +202,10 @@ playlist_keymap_template(int key)
 	  break;
 	case 'c':
 	  songlist_clear();
+	  break;
+	case 'R':
+	  playlist_replace();
+	  songlist_scroll_to(1);
 	  break;
 	  
 	case 14: ; // ctrl-n

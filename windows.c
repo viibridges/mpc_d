@@ -170,8 +170,8 @@ int popup_confirm_dialog(const char *prompt, int dflt)
   notimeout(dialog, TRUE); // block the wgetch()
 
   keypad(dialog, TRUE);
-  int key;
-  while((key = wgetch(dialog)) != '\n')
+  int key, out = 0;
+  while(!out && (key = wgetch(dialog)) != '\n')
 	{
 	  switch(key)
 		{
@@ -179,6 +179,16 @@ int popup_confirm_dialog(const char *prompt, int dflt)
 		case KEY_RIGHT:;
 		case '\t':
 		  ret = !ret;
+		  break;
+		case 'y':
+		case 'Y':
+		  ret = 1;
+		  out = 1;
+		  break;
+		case 'n':;
+		case 'N':
+		  ret = 0;
+		  out = 1;
 		  break;
 		default:
 		  break;

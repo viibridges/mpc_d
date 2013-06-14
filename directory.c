@@ -55,8 +55,7 @@ get_mpd_crt_path(void)
 	return NULL;
 }
 
-void
-directory_redraw_screen(void)
+void directory_redraw_screen(void)
 {
   int line = 0, i, height = wchain[DIRECTORY].win->_maxy + 1;
 
@@ -80,15 +79,19 @@ directory_helper(void)
 {
   WINDOW *win = specific_win(DIRHELPER);
 
+  color_print(win, 3, "\
+Directories:");
   wprintw(win,  "\n\
-  Key Options:\n\
-  ----------------------\n\
-    [k] Move Cursor Up\n\
-    [j] Move Cursor Down\n\
-    [a] Append Current\n\
-    [r] Rename Playlist");
-
-  //wborder(win, 0, 0, 0, 0, 0, 0, 0, 0);
+----------------------------\n\n\
+    < k > Move Cursor Up...\n\
+    < j > Move Cursor Down.\n\
+    <Ent> Enter Directory..\n\
+    <Bck> Exit  Directory..");
+  color_print(win, 5, "\n\n\
+    [a] Append to Current..\n\
+    [r] Replace Current....");
+  wprintw(win, "\n\n\
+    [c] Clear Current......");
 }
 
 void
@@ -111,7 +114,7 @@ directory_update(void)
 		  if(dir->d_name[0] != '.')
 			{
 			  strncpy(directory->filename[i], dir->d_name, 128);
-			  pretty_copy(directory->prettyname[i], dir->d_name, 128, 60);
+			  pretty_copy(directory->prettyname[i], dir->d_name, 128, 25);
 			  i++;
 			}
 		}
@@ -133,3 +136,58 @@ void directory_update_checking(void)
 	}
 }
 
+void
+append_to_songlist(void)
+{
+  char *path, *absp;
+
+  /* check if path exist */
+  absp = get_abs_crt_path();
+  if(!is_path_exist(absp))
+	return;
+
+  /* check if a nondir file of valid format */
+  if(!is_dir_exist(absp) && !is_path_valid_format(absp))
+	return;
+  
+  path = get_mpd_crt_path();
+
+  if(path)
+	{
+	  mpd_run_add(conn, path);
+	  char message[512];
+	  snprintf(message, sizeof(message), "\"%s\" Has Been Appended.", path);
+	  popup_simple_dialog(message);
+	}	  
+}
+
+void replace_songlist(void)
+{
+  char *path, *absp;
+
+  int choice =
+	popup_confirm_dialog("Replacing Confirm:", 1);
+
+  if(!choice) // action canceled
+	return;
+
+  /* check if path exist */
+  absp = get_abs_crt_path();
+  if(!is_path_exist(absp))
+	return;
+
+  /* check if a nondir file of valid format */
+  if(!is_dir_exist(absp) && !is_path_valid_format(absp))
+	return;
+  
+  path = get_mpd_crt_path();
+
+  if(path)
+	{
+	  mpd_run_clear(conn);	  
+	  mpd_run_add(conn, path);
+	  char message[512];
+	  snprintf(message, sizeof(message), "Replace With \"%s\".", path);
+	  popup_simple_dialog(message);
+	}	  
+}

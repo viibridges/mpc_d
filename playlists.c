@@ -26,18 +26,20 @@ playlist_helper(void)
 {
   WINDOW *win = specific_win(TAPEHELPER);
 
+  color_print(win, 3, "\
+Playlists:");
   wprintw(win,  "\n\
-  Key Options:\n\
-  ----------------------\n\n\
-    <k> Move Cursor Up\n\
-    <j> Move Cursor Down\n");
+-------------------------\n\n\
+    <k> Move Cursor Up...\n\
+    <j> Move Cursor Down.\n");
   color_print(win, 5, "\n\
-    [l] Load to Current\n\
+    [l] Load to Current..\n\
     [s] Save from Current\n\
-    [d] Delelet Playlist\n\
-    [r] Rename Playlist");
+    [d] Delelet Playlist.\n\
+    [r] Rename Playlist..\n\
+    [R] Replace Current..");
   wprintw(win, "\n\n\
-    [c] Clear Current");
+    [c] Clear Current....");
 }
 
 void playlist_update_checking(void)
@@ -183,4 +185,22 @@ void playlist_delete(void)
   popup_simple_dialog(message);
 
   playlist->update_signal = 1;  
+}
+
+void playlist_replace(void)
+{
+  int choice =
+	popup_confirm_dialog("Replacing Confirm:", 1);
+
+  if(!choice) // action canceled
+	return;
+
+  const char *name = playlist->tapename[playlist->cursor - 1];
+
+  mpd_run_clear(conn);
+  mpd_run_load(conn, name);
+
+  char message[512];
+  snprintf(message, sizeof(message), "Replace With \"%s\".", name);
+  popup_simple_dialog(message);
 }

@@ -2,7 +2,8 @@ CC = gcc
 CLIBS = -lm -lmpdclient -lncursesw
 CFLAGS = -std=gnu99 -Wall -g
 
-BIN = mpc
+BIN = mpc_d
+PREFIX = /usr/local/bin
 OBJECTS = basic_info.o commands.o directory.o initial.o keyboards.o songs.o playlists.o utils.o visualizer.o windows.o
 
 #main: $(HEAD) $(SOURCE)
@@ -49,3 +50,6 @@ clean:
 
 run:
 	@./$(BIN)
+
+install: $(BIN)
+	mv $(BIN) $(PREFIX)
