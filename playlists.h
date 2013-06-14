@@ -26,6 +26,7 @@ void playlist_helper(void);
 void playlist_rename(void);
 void playlist_load(void);
 void playlist_save(void);
+void playlist_cover(void);
 void playlist_delete(void);
 void playlist_replace(void);
 

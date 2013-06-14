@@ -37,6 +37,7 @@ Playlists:");
     [s] Save from Current\n\
     [d] Delelet Playlist.\n\
     [r] Rename Playlist..\n\
+    [C] Cover Playlist...\n\
     [R] Replace Current..");
   wprintw(win, "\n\n\
     [c] Clear Current....");
@@ -166,6 +167,24 @@ void playlist_save(void)
   mpd_run_save(conn, name);
 
   playlist->update_signal = 1;  
+}
+
+void playlist_cover(void)
+{
+  const char *name = playlist->tapename[playlist->cursor - 1];
+
+  char message[512];
+
+  int c =
+	popup_confirm_dialog("Covering Confirm:", 0);
+
+  if(!c) return;
+  
+  mpd_run_rm(conn, name);
+  mpd_run_save(conn, name);
+
+  snprintf(message, sizeof(message), "\"%s\" Has Been Covered.", name);
+  popup_simple_dialog(message);
 }
 
 void playlist_delete(void)

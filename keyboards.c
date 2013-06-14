@@ -207,6 +207,9 @@ playlist_keymap_template(int key)
 	  playlist_replace();
 	  songlist_scroll_to(1);
 	  break;
+	case 'C': // cover the selected playlist
+	  playlist_cover();
+	  break;
 	  
 	case 14: ; // ctrl-n
 	case KEY_DOWN:;
