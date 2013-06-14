@@ -226,6 +226,8 @@ turnon_search_mode(void)
   wchain[SONGLIST].update_checking = &searchmode_update_checking;
 
   being_mode_update(&songlist->wmode);
+
+  songlist->search_mode = 1;
 }
 
 void
@@ -243,6 +245,10 @@ turnoff_search_mode(void)
   // switch the keboard and update_checking() back
   songlist->wmode.listen_keyboard = &songlist_keymap;
   wchain[SONGLIST].update_checking = &songlist_update_checking;
+
+  songlist->update_signal = 1;
+
+  songlist->search_mode = 0;  
 }
 
 void

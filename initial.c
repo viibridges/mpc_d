@@ -49,6 +49,7 @@ dynamic_initial(void)
   songlist =
 	(struct Songlist*) malloc(sizeof(struct Songlist));
   songlist->update_signal = 0;
+  songlist->search_mode = 0;
   songlist->total = 0;
   
   songlist->begin = 1;

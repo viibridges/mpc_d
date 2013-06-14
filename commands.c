@@ -466,7 +466,11 @@ songlist_delete_song()
 	songlist_delete_song_in_cursor();
 
   /* easest way to realign the songlist */
-  songlist_update();
+  if(songlist->search_mode)
+	searchmode_update();
+  else
+	songlist_update();
+  
   songlist_scroll_to(songlist->cursor);
 }
 

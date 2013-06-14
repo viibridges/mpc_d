@@ -28,6 +28,8 @@ struct Songlist
 
   int total; // total number of song, maybe out of the range
              // that Songlist can manage
+
+  int search_mode; // 1 for on
   
   int length;
   int begin;
