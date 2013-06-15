@@ -16,6 +16,9 @@ dynamic_initial(void)
   interval_level = 1;
   quit_signal = 0;
 
+  /** windows chain initilization **/
+  wchain_init();
+
   /* check the screen size */
   if(stdscr->_maxy < 3 || stdscr->_maxx < 68)
 	{
@@ -51,19 +54,16 @@ dynamic_initial(void)
 static
 void dynamic_destroy(void)
 {
+  wchain_free();
+
   songlist_free(songlist);
   directory_free(directory);
   playlist_free(playlist);
   visualizer_free(visualizer);
 }
 
-
-int main(int argc, char **args)
+static void init_ncurses(void)
 {
-  // ncurses for unicode support
-  setlocale(LC_ALL, "");
-
-  // ncurses basic setting
   initscr();
 
   timeout(1); // enable the non block getch()
@@ -71,9 +71,15 @@ int main(int argc, char **args)
   noecho();
   keypad(stdscr, TRUE); // enable getch() get KEY_UP/DOWN
   color_init();
+}
 
-  /** windows chain initilization **/
-  wchain_init();
+int main(int argc, char **args)
+{
+  // ncurses for unicode support
+  setlocale(LC_ALL, "");
+
+  // ncurses basic setting
+  init_ncurses();
 
   dynamic_initial();
   
@@ -91,9 +97,9 @@ int main(int argc, char **args)
 	  smart_sleep();
 	}
 
-  endwin();
-  wchain_free();
   dynamic_destroy();
+
+  endwin();
 
   return 0;
 }

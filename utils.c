@@ -93,28 +93,6 @@ init_mpd_status(struct mpd_connection *conn)
   return status;
 }
 
-int
-is_dir_exist(char *path)
-{
-  struct stat s;
-
-  if (!stat(path, &s) && (s.st_mode & S_IFDIR))
-	return 1;
-  else
-	return 0;
-}
-
-int
-is_path_exist(char *path)
-{
-  struct stat s;
-
-  if (!stat(path, &s) && (s.st_mode & (S_IFDIR | S_IFREG | S_IFLNK)))
-	return 1;
-  else
-	return 0;
-}
-
 const char *
 get_song_format(const struct mpd_song *song)
 {

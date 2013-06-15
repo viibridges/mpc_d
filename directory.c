@@ -3,12 +3,36 @@
 #include "utils.h"
 #include "keyboards.h"
 
-int
-is_path_valid_format(char *path)
+int is_dir_exist(const char *path)
 {
-  #define MUSIC_FORMAT_NUM 6
+  struct stat s;
 
-  char valid_format[][MUSIC_FORMAT_NUM] = {
+  if (!stat(path, &s) && (s.st_mode & S_IFDIR))
+	return 1;
+  else
+	return 0;
+}
+
+int is_nondir_exist(const char *path)
+{
+  struct stat s;
+
+  if (!stat(path, &s) && (s.st_mode & (S_IFREG | S_IFLNK)))
+	return 1;
+  else
+	return 0;
+}
+
+int is_path_exist(const char *path)
+{
+  return is_dir_exist(path) || is_nondir_exist(path);
+}
+
+int is_path_valid_format(const char *path)
+{
+  const int music_format_num = 6;
+
+  char valid_format[][12] = {
 	"mp3", "flac", "wav", "wma", "ape", "ogg"
   };
 
@@ -18,7 +42,7 @@ is_path_valid_format(char *path)
   
   if(path_suffix)
 	{
-	  for(i = 0; i < MUSIC_FORMAT_NUM; i++)
+	  for(i = 0; i < music_format_num; i++)
 		if(is_substring_ignorecase(path_suffix, valid_format[i]))
 		  return 1;
 	}
@@ -28,32 +52,61 @@ is_path_valid_format(char *path)
   return 0;
 }
 
-char*
-get_abs_crt_path(void)
+// whether the path should be in the list
+int is_path_visible(const char *path)
+{
+  char *path_suffix = strrchr(path, '/');
+
+  if(!path_suffix)
+	return 0;
+  
+  return path_suffix[1] != '.' &&
+	(is_dir_exist(path)
+	 || (is_path_valid_format(path) && is_nondir_exist(path)));
+}
+
+char* get_abs_path(const char *filename)
 {
   static char temp[512];
 
-  snprintf(temp, 512, "%s/%s",
-		   directory->crt_dir,
-		   directory->filename[directory->cursor - 1]);
+  char crt_dir[512];
+  strncpy(crt_dir, directory->crt_dir, sizeof(crt_dir));
+
+  if(*crt_dir)
+	{
+	  char *pt = crt_dir + strlen(crt_dir) - 1;
+	  
+	  while(*pt == '/') *pt = '\0'; // drop '/'
+  
+	  snprintf(temp, 512, "%s/%s", crt_dir, filename);
+	}
 
   return temp;
 }
 
-char*
-get_mpd_crt_path(void)
+char* get_abs_crt_path(void)
 {
-  static char *root, *crt;
+  return get_abs_path(directory->filename[directory->cursor - 1]);
+}
+
+char* get_mpd_path(char *abs_path)
+{
+  static char *root, *absp;
   
   root = directory->root_dir;
-  crt = get_abs_crt_path();
+  absp = abs_path;
   
-  while(*root && *crt && *root++ == *crt++);
+  while(*root && *absp && *root++ == *absp++);
 
   if(!*root) // current directory is under the root directory
-	return crt + 1;
+	return absp + 1;
   else
 	return NULL;
+} 
+ 
+char* get_mpd_crt_path(void)
+{
+  return get_mpd_path(get_abs_crt_path());
 }
 
 void directory_redraw_screen(void)
@@ -73,6 +126,9 @@ void directory_redraw_screen(void)
 	  else
 		print_list_item(win, line++, 0, i + 1, filename, NULL);
 	}
+
+  if(directory->length < 1) // no item in the list
+	print_list_item(win, line, 1, 0, "no item in the list", NULL);
 }
 
 void
@@ -112,10 +168,18 @@ directory_update(void)
   
 	  while ((dir = readdir(d)) != NULL)
 		{
-		  if(dir->d_name[0] != '.')
+		  char * absp = get_abs_path(dir->d_name);
+		  if(is_path_visible(absp))
 			{
 			  strncpy(directory->filename[i], dir->d_name, 128);
-			  pretty_copy(directory->prettyname[i], dir->d_name, 128, 25);
+			  pretty_copy(directory->prettyname[i], dir->d_name, 127, 24);
+			  if(is_dir_exist(absp))
+				{
+				  char *pname = directory->prettyname[i];
+				  int j = strlen(pname);
+				  pname[j] = '/';
+				  pname[j + 1] = '\0';
+				}
 			  i++;
 			}
 		}

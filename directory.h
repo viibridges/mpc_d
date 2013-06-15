@@ -22,8 +22,14 @@ struct Directory
 
 struct Directory *directory;
 
+int is_dir_exist(const char *path);
+int is_nondir_exist(const char *path);
+int is_path_exist(const char *path);
+int is_path_valid_format(const char *path);
+int is_path_visible(const char *path);
+char* get_abs_path(const char *filename);
 char* get_abs_crt_path(void);
-int is_path_valid_format(char *path);
+char* get_mpd_path(char *abs_path);
 char* get_mpd_crt_path(void);
 void directory_redraw_screen(void);
 void directory_helper(void);
