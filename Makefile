@@ -1,6 +1,6 @@
 CC = gcc
 CLIBS = -lm -lmpdclient -lncursesw
-CFLAGS = -std=gnu99 -Wall -g
+CFLAGS = -std=gnu99 -Wall
 
 BIN = mpc_d
 PREFIX = /usr/local/bin
@@ -48,5 +48,5 @@ clean:
 run:
 	@./$(BIN)
 
-install: $(BIN)
+install: ./$(BIN)
 	mv $(BIN) $(PREFIX)

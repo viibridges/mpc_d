@@ -22,6 +22,7 @@ struct Playlist *playlist;
 void playlist_redraw_screen(void);
 void playlist_update_checking(void);
 void playlist_update(void);
+void playlist_display_icon(void);
 void playlist_helper(void);
 void playlist_rename(void);
 void playlist_load(void);

@@ -274,6 +274,7 @@ wchain_init(void)
 	  &directory_redraw_screen,  // DIRECTORY
 	  &directory_helper,         // DIRHELPER
 	  &playlist_redraw_screen,   // PLAYLIST
+	  &playlist_display_icon,    // PLAYICON
 	  &playlist_helper,          // TAPEHELPER
 	  &search_prompt,			 // SEARCH_INPUT
 	  NULL						 // DEBUG_INFO  
@@ -293,6 +294,7 @@ wchain_init(void)
 	  &directory_update_checking,    // DIRECTORY
 	  NULL,                          // DIRHELPER
 	  &playlist_update_checking,     // PLAYLIST
+	  NULL,                          // PLAYICON
 	  NULL,                          // TAPEHELPER
 	  NULL,			                 // SEARCH_INPUT
 	  NULL						     // DEBUG_INFO  
@@ -347,7 +349,8 @@ wchain_size_update(void)
 	  {1, width, height - 3, 0},	// SLIST_DOWN_STATE_BAR
 	  {height - 8, 36, 6, 41},	    // DIRECTORY
 	  {height - 6, 36, 3, 0},       // DIRHELPER
-	  {height - 8, 36, 6, 41},	    // PLAYLIST
+	  {8, 36, 6, 41},	            // PLAYLIST
+	  {5, 12, 16, 52},	            // PLAYICON
 	  {height - 6, 26, 3, 0},       // TAPEHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       

@@ -23,6 +23,18 @@ playlist_redraw_screen(void)
 }
 
 void
+playlist_display_icon(void)
+{
+  WINDOW *win = specific_win(PLAYICON);
+  color_print(win, 1, "\
+╔══╗ ♫\n\
+║██║ ♪♪\n\
+║██║♫♪\n\
+║ ◎♫♪♫\n\
+╚══╝");
+}
+
+void
 playlist_helper(void)
 {
   WINDOW *win = specific_win(TAPEHELPER);
@@ -236,7 +248,7 @@ struct Playlist *playlist_setup(void)
   plist->cursor = 1;
 
   // window mode setup
-  plist->wmode.size = 5;
+  plist->wmode.size = 6;
   plist->wmode.wins = (struct WindowUnit**)
 	malloc(plist->wmode.size * sizeof(struct WindowUnit*));
   plist->wmode.wins[0] = &wchain[TAPEHELPER];
@@ -244,6 +256,7 @@ struct Playlist *playlist_setup(void)
   plist->wmode.wins[2] = &wchain[PLAYLIST];  
   plist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
   plist->wmode.wins[4] = &wchain[BASIC_INFO];
+  plist->wmode.wins[5] = &wchain[PLAYICON];
   plist->wmode.listen_keyboard = &playlist_keymap;
 
   return plist;
