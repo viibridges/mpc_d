@@ -166,44 +166,38 @@ int popup_confirm_dialog(const char *prompt, int dflt)
   
   wborder(dialog, 0, 0, 0, 0, 0, 0, 0, 0);
 
-  int offset = width / 4;
-  
-  wmove(dialog, 4, offset);
-  color_print(dialog, ret ? 2 : 0, "YES");
-  wmove(dialog, 4, width - offset - 3);
-  color_print(dialog, ret ? 0 : 2, "NO ");
-  wrefresh(dialog);
-  
   notimeout(dialog, TRUE); // block the wgetch()
 
   keypad(dialog, TRUE);
-  int key, out = 0;
-  while(!out && (key = wgetch(dialog)) != '\n')
-	{
-	  switch(key)
-		{
-		case KEY_LEFT: case KEY_RIGHT:
-		case '\t':
-		  ret = !ret;
-		  break;
-		case 'y': case 'Y':
-		  ret = 1;
-		  out = 1;
-		  break;
-		case 'n': case 'N':
-		  ret = 0;
-		  out = 1;
-		  break;
-		default:
-		  break;
-		}
+  int key = -1, out = 0;
+  do{
+	switch(key)
+	  {
+	  case KEY_LEFT: case KEY_RIGHT:
+	  case '\t':
+		ret = !ret;
+		break;
+	  case 'y': case 'Y':
+		ret = 1;
+		out = 1;
+		break;
+	  case 'n': case 'N':
+		ret = 0;
+		out = 1;
+		break;
+	  default:
+		break;
+	  }
 
-	  wmove(dialog, 4, offset);
-	  color_print(dialog, ret ? 2 : 0, "YES ");
-	  wmove(dialog, 4, width - offset - 3);
-	  color_print(dialog, ret ? 0 : 2, " NO ");
-	  wrefresh(dialog);
-	}
+	int offset = width / 4;
+  
+	wmove(dialog, 4, offset);
+	color_print(dialog, ret ? 2 : 0, "YES ");
+	wmove(dialog, 4, width - offset - 3);
+	color_print(dialog, ret ? 0 : 2, " NO ");
+	wrefresh(dialog);
+	
+  }while(!out && (key = wgetch(dialog)) != '\n');
 
   // destroy the window
   werase(dialog);
@@ -353,7 +347,7 @@ wchain_size_update(void)
 	  {6, 20, 4, 10},               // DIRICON
 	  {10, 29, 12, 2},              // DIRHELPER
 	  {8, 36, 6, 41},	            // PLAYLIST
-	  {5, 12, 16, 45},	            // PLAYICON
+	  {5, 15, 16, 48},	            // PLAYICON
 	  {13, 26, 4, 2},               // PLAYHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
