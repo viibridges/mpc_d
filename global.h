@@ -31,6 +31,8 @@ int quit_signal;
 // INTERVAL_MIN_UNIT and  INTERVAL_MAX_UNIT
 int interval_level;
 
+int crt_menu; // current menu id
+
 struct mpd_connection *conn;
 
 #endif

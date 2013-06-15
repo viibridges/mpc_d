@@ -138,7 +138,7 @@ directory_display_icon(void)
 
   color_print(win, 1, "\
 .----.______\n\
-|DIR ______ |___\n\
+|DIR _______|___\n\
 |   /          /\n\
 |  /          /\n\
 | /          /\n\

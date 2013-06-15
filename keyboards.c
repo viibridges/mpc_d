@@ -43,7 +43,8 @@ void fundamental_keymap_template(int key)
 	  clean_screen();
 	  break;
 	case '/':
-	  turnon_search_mode(); break;
+	  turnon_search_mode();
+	  break;
 	case 'S':
 	  change_searching_scope(); break;
 	case '\t':

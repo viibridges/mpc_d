@@ -353,7 +353,7 @@ wchain_size_update(void)
 	  {6, 20, 4, 10},               // DIRICON
 	  {10, 29, 12, 2},              // DIRHELPER
 	  {8, 36, 6, 41},	            // PLAYLIST
-	  {5, 12, 16, 52},	            // PLAYICON
+	  {5, 12, 16, 45},	            // PLAYICON
 	  {13, 26, 4, 2},               // PLAYHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       

@@ -26,12 +26,18 @@ void
 playlist_display_icon(void)
 {
   WINDOW *win = specific_win(PLAYICON);
+/*   color_print(win, 1, "\ */
+/* ╔══╗ ♫\n\ */
+/* ║██║ ♪♪\n\ */
+/* ║██║♫♪\n\ */
+/* ║ ◎♫♪♫\n\ */
+/* ╚══╝"); */
   color_print(win, 1, "\
-╔══╗ ♫\n\
-║██║ ♪♪\n\
-║██║♫♪\n\
-║ ◎♫♪♫\n\
-╚══╝");
+ ♫\n\
+♪♪ ╔══╗  _\n\
+ ♪♫║██║*´ )\n\
+ ♫♪♫◎ ║.•´\n\
+   ╚══╝¸.•o");
 }
 
 void

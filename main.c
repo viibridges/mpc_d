@@ -15,6 +15,7 @@ dynamic_initial(void)
   /* initialization require redraw too */
   interval_level = 1;
   quit_signal = 0;
+  crt_menu = 0;
 
   /** windows chain initilization **/
   wchain_init();

@@ -181,6 +181,8 @@ switch_to_main_menu(void)
   clean_screen();
 
   being_mode_update(&basic_info->wmode);
+
+  crt_menu = 0;  
 }
 
 void
@@ -189,6 +191,8 @@ switch_to_songlist_menu(void)
   clean_screen();
 
   being_mode_update(&songlist->wmode);
+
+  crt_menu = 1;
 }
 
 void
@@ -197,6 +201,8 @@ switch_to_directory_menu(void)
   clean_screen();
 
   being_mode_update(&directory->wmode);
+  
+  crt_menu = 3;
 }
 
 void
@@ -205,22 +211,23 @@ switch_to_playlist_menu(void)
   clean_screen();
 
   being_mode_update(&playlist->wmode);
+
+  crt_menu = 2;
 }
+
+
+void (*menu_list[4])(void) = {
+  &switch_to_main_menu,
+  &switch_to_songlist_menu,
+  &switch_to_playlist_menu,
+  &switch_to_directory_menu
+};
 
 void
 switch_to_next_menu(void)
 {
-  static int imenu = 0;
-  static void (*menu_list[4])(void) = {
-	&switch_to_main_menu,
-	&switch_to_songlist_menu,
-	&switch_to_playlist_menu,
-	&switch_to_directory_menu
-  };
-
-  imenu = (imenu+1) % 4;
-
-  menu_list[imenu]();
+  int next_menu = (crt_menu+1) % 4;
+  menu_list[next_menu]();
 }
 
 void

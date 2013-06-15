@@ -228,6 +228,8 @@ turnon_search_mode(void)
   being_mode_update(&songlist->wmode);
 
   songlist->search_mode = 1;
+
+  crt_menu = 1;
 }
 
 void
