@@ -343,7 +343,7 @@ wchain_size_update(void)
 	  {2, width, 0, 0},             // BASIC_INFO
 	  {1, width - 47, 2, 46},       // EXTRA_INFO
 	  {1, 42, 2, 0},				// VERBOSE_PROC_BAR
-	  {1, 72, 3, 0},				// VISUALIZER
+	  {1, 72, 4, 0},				// VISUALIZER
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// SLIST_UP_STATE_BAR
