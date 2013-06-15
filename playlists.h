@@ -30,4 +30,6 @@ void playlist_cover(void);
 void playlist_delete(void);
 void playlist_replace(void);
 
+struct Playlist *playlist_setup(void);
+
 #endif

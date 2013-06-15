@@ -348,3 +348,40 @@ void songlist_clear(void)
   
   mpd_run_clear(conn);
 }
+
+struct Songlist* songlist_setup(void)
+{
+  struct Songlist *slist =
+	(struct Songlist*) malloc(sizeof(struct Songlist));
+
+  slist->update_signal = 0;
+  slist->search_mode = 0;
+  slist->total = 0;
+  
+  slist->begin = 1;
+  slist->length = 0;
+  slist->current = 0;
+  slist->cursor = 1;
+
+  slist->tags[0] = MPD_TAG_NAME;
+  slist->tags[1] = MPD_TAG_TITLE;
+  slist->tags[2] = MPD_TAG_ARTIST;
+  slist->tags[3] = MPD_TAG_ALBUM;
+  slist->crt_tag_id = 0;
+  slist->key[0] = '\0';
+
+  // window mode setup
+  slist->wmode.size = 7;
+  slist->wmode.wins = (struct WindowUnit**)
+	malloc(slist->wmode.size * sizeof(struct WindowUnit*));
+  slist->wmode.wins[0] = &wchain[SLIST_DOWN_STATE_BAR];
+  slist->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  slist->wmode.wins[2] = &wchain[SLIST_UP_STATE_BAR];
+  slist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  slist->wmode.wins[4] = &wchain[BASIC_INFO];
+  slist->wmode.wins[5] = &wchain[SONGLIST];
+  slist->wmode.wins[6] = &wchain[SEARCH_INPUT];  
+  slist->wmode.listen_keyboard = &songlist_keymap;  
+
+  return slist;
+}

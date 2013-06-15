@@ -9,7 +9,7 @@ OBJECTS = basic_info.o commands.o directory.o initial.o keyboards.o songs.o play
 #main: $(HEAD) $(SOURCE)
 #	$(CC) $(SOURCE) -o $(BIN) $(CLIBS) $(CFLAGS)
 
-mpc: main.c $(OBJECTS)
+mpc_d: main.c $(OBJECTS)
 	$(CC) $(OBJECTS) main.c -o $(BIN) $(CLIBS) $(CFLAGS)
 
 initial.o: initial.c initial.h 

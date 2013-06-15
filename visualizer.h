@@ -17,3 +17,4 @@ void print_uv_meter(int bars, int max);
 void draw_sound_wave(int16_t *buf);
 void print_visualizer(void);
 
+struct Visualizer *visualizer_setup(void);

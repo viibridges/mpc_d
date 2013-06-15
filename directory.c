@@ -1,6 +1,7 @@
 #include "directory.h"
 #include "windows.h"
 #include "utils.h"
+#include "keyboards.h"
 
 int
 is_path_valid_format(char *path)
@@ -190,4 +191,30 @@ void replace_songlist(void)
 	  snprintf(message, sizeof(message), "Replace With \"%s\".", path);
 	  popup_simple_dialog(message);
 	}	  
+}
+
+struct Directory* directory_setup(void)
+{
+  struct Directory *dir =
+	(struct Directory*) malloc(sizeof(struct Directory));
+  dir->update_signal = 0;
+  
+  dir->begin = 1;
+  dir->length = 0;
+  dir->cursor = 1;
+  strncpy(dir->root_dir, "/home/ted/Music", 128);
+  strncpy(dir->crt_dir, dir->root_dir, 512);
+
+  // window mode setup
+  dir->wmode.size = 5;
+  dir->wmode.wins = (struct WindowUnit**)
+	malloc(dir->wmode.size * sizeof(struct WindowUnit*));
+  dir->wmode.wins[0] = &wchain[EXTRA_INFO];  
+  dir->wmode.wins[1] = &wchain[DIRECTORY];  
+  dir->wmode.wins[2] = &wchain[DIRHELPER];  
+  dir->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  dir->wmode.wins[4] = &wchain[BASIC_INFO];
+  dir->wmode.listen_keyboard = &directory_keymap;  
+
+  return dir;
 }

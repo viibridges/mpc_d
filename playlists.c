@@ -1,5 +1,6 @@
 #include "playlists.h"
 #include "utils.h"
+#include "keyboards.h"
 
 void
 playlist_redraw_screen(void)
@@ -222,4 +223,28 @@ void playlist_replace(void)
   char message[512];
   snprintf(message, sizeof(message), "Replace With \"%s\".", name);
   popup_simple_dialog(message);
+}
+
+struct Playlist *playlist_setup(void)
+{
+  struct Playlist *plist =
+	(struct Playlist*) malloc(sizeof(struct Playlist));
+
+  plist->update_signal = 0;
+  plist->begin = 1;
+  plist->length = 0;
+  plist->cursor = 1;
+
+  // window mode setup
+  plist->wmode.size = 5;
+  plist->wmode.wins = (struct WindowUnit**)
+	malloc(plist->wmode.size * sizeof(struct WindowUnit*));
+  plist->wmode.wins[0] = &wchain[TAPEHELPER];
+  plist->wmode.wins[1] = &wchain[EXTRA_INFO];  
+  plist->wmode.wins[2] = &wchain[PLAYLIST];  
+  plist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
+  plist->wmode.wins[4] = &wchain[BASIC_INFO];
+  plist->wmode.listen_keyboard = &playlist_keymap;
+
+  return plist;
 }

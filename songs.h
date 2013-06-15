@@ -60,4 +60,6 @@ void search_prompt(void);
 
 void songlist_clear(void);
 
+struct Songlist* songlist_setup(void);
+
 #endif

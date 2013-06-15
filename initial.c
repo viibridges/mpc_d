@@ -42,64 +42,25 @@ dynamic_initial(void)
 	}
 
   /** BasicInfo initialization **/
-  basic_info =
-	(struct BasicInfo*) malloc(sizeof(struct BasicInfo));
+  basic_info = basic_info_setup();
   
   /** songlist arguments */
-  songlist =
-	(struct Songlist*) malloc(sizeof(struct Songlist));
-  songlist->update_signal = 0;
-  songlist->search_mode = 0;
-  songlist->total = 0;
-  
-  songlist->begin = 1;
-  songlist->length = 0;
-  songlist->current = 0;
-  songlist->cursor = 1;
-
-  songlist->tags[0] = MPD_TAG_NAME;
-  songlist->tags[1] = MPD_TAG_TITLE;
-  songlist->tags[2] = MPD_TAG_ARTIST;
-  songlist->tags[3] = MPD_TAG_ALBUM;
-  songlist->crt_tag_id = 0;
-  songlist->key[0] = '\0';
-   
-  /** it's turn out to be good that updating
-	  the songlist in the first place **/
+  songlist = songlist_setup();
   songlist_update();
-
+   
   /** directory arguments **/
-  // TODO add this automatically according to the mpd setting
-  directory =
-	(struct Directory*) malloc(sizeof(struct Directory));
-  directory->update_signal = 0;
-  
-  directory->begin = 1;
-  directory->length = 0;
-  directory->cursor = 1;
-  strncpy(directory->root_dir, "/home/ted/Music", 128);
-  strncpy(directory->crt_dir, directory->root_dir, 512);
+  directory = directory_setup();
   directory_update();
 
   /** playlist arguments **/
-  playlist =
-	(struct Playlist*) malloc(sizeof(struct Playlist));
-  playlist->update_signal = 0;
-  
-  playlist->begin = 1;
-  playlist->length = 0;
-  playlist->cursor = 1;
+  playlist = playlist_setup();
   playlist_update();
-  
+
   /** the visualizer **/
-  visualizer =
-	(struct Visualizer*) malloc(sizeof(struct Visualizer));
-  // TODO add this automatically according to the mpd setting
-  strncpy(visualizer->fifo_file, "/tmp/mpd.fifo", 64);
+  visualizer = visualizer_setup();
   get_fifo_id();
   
   /** windows set initialization **/
-  winmod_init();
   being_mode_update(&basic_info->wmode);
   //being_mode_update(&songlist->wmode);
 }
@@ -224,56 +185,6 @@ wchain_free(void)
   free(wchain);
 }
 	
-void
-winmod_init(void)
-{
-  // for basic mode (main menu)
-  basic_info->wmode.size = 5;
-  basic_info->wmode.wins = (struct WindowUnit**)
-	malloc(basic_info->wmode.size * sizeof(struct WindowUnit*));
-  basic_info->wmode.wins[0] = &wchain[BASIC_INFO];
-  basic_info->wmode.wins[1] = &wchain[EXTRA_INFO];  
-  basic_info->wmode.wins[2] = &wchain[VERBOSE_PROC_BAR];
-  basic_info->wmode.wins[3] = &wchain[VISUALIZER];
-  basic_info->wmode.wins[4] = &wchain[HELPER];
-  basic_info->wmode.listen_keyboard = &basic_keymap;
-
-  // songlist wmode
-  songlist->wmode.size = 7;
-  songlist->wmode.wins = (struct WindowUnit**)
-	malloc(songlist->wmode.size * sizeof(struct WindowUnit*));
-  songlist->wmode.wins[0] = &wchain[SLIST_DOWN_STATE_BAR];
-  songlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
-  songlist->wmode.wins[2] = &wchain[SLIST_UP_STATE_BAR];
-  songlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
-  songlist->wmode.wins[4] = &wchain[BASIC_INFO];
-  songlist->wmode.wins[5] = &wchain[SONGLIST];
-  songlist->wmode.wins[6] = &wchain[SEARCH_INPUT];  
-  songlist->wmode.listen_keyboard = &songlist_keymap;
-
-  // directory wmode
-  directory->wmode.size = 5;
-  directory->wmode.wins = (struct WindowUnit**)
-	malloc(directory->wmode.size * sizeof(struct WindowUnit*));
-  directory->wmode.wins[0] = &wchain[EXTRA_INFO];  
-  directory->wmode.wins[1] = &wchain[DIRECTORY];  
-  directory->wmode.wins[2] = &wchain[DIRHELPER];  
-  directory->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
-  directory->wmode.wins[4] = &wchain[BASIC_INFO];
-  directory->wmode.listen_keyboard = &directory_keymap;
-
-  // playlist wmode
-  playlist->wmode.size = 5;
-  playlist->wmode.wins = (struct WindowUnit**)
-	malloc(playlist->wmode.size * sizeof(struct WindowUnit*));
-  playlist->wmode.wins[0] = &wchain[TAPEHELPER];
-  playlist->wmode.wins[1] = &wchain[EXTRA_INFO];  
-  playlist->wmode.wins[2] = &wchain[PLAYLIST];  
-  playlist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
-  playlist->wmode.wins[4] = &wchain[BASIC_INFO];
-  playlist->wmode.listen_keyboard = &playlist_keymap;
-}
-
 void
 winmod_free(void)
 {

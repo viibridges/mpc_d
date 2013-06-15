@@ -179,3 +179,13 @@ print_visualizer(void)
   draw_sound_wave(buf);
   interval_level = 1;
 }
+
+struct Visualizer *visualizer_setup(void)
+{
+  struct Visualizer * vis =
+	(struct Visualizer*) malloc(sizeof(struct Visualizer));
+  // TODO add this automatically according to the mpd setting
+  strncpy(vis->fifo_file, "/tmp/mpd.fifo", 64);
+
+  return vis;
+}
