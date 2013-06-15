@@ -189,3 +189,8 @@ struct Visualizer *visualizer_setup(void)
 
   return vis;
 }
+
+void visualizer_free(struct Visualizer *vis)
+{
+  free(vis);
+}

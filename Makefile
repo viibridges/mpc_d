@@ -4,16 +4,13 @@ CFLAGS = -std=gnu99 -Wall -g
 
 BIN = mpc_d
 PREFIX = /usr/local/bin
-OBJECTS = basic_info.o commands.o directory.o initial.o keyboards.o songs.o playlists.o utils.o visualizer.o windows.o
+OBJECTS = basic_info.o commands.o directory.o keyboards.o songs.o playlists.o utils.o visualizer.o windows.o
 
 #main: $(HEAD) $(SOURCE)
 #	$(CC) $(SOURCE) -o $(BIN) $(CLIBS) $(CFLAGS)
 
 mpc_d: main.c $(OBJECTS)
 	$(CC) $(OBJECTS) main.c -o $(BIN) $(CLIBS) $(CFLAGS)
-
-initial.o: initial.c initial.h 
-	$(CC) -c initial.c -o initial.o $(CLIBS) $(CFLAGS)	
 
 keyboards.o: keyboards.c keyboards.h 
 	$(CC) -c keyboards.c -o keyboards.o $(CLIBS) $(CFLAGS)	

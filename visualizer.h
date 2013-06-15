@@ -18,3 +18,4 @@ void draw_sound_wave(int16_t *buf);
 void print_visualizer(void);
 
 struct Visualizer *visualizer_setup(void);
+void visualizer_free(struct Visualizer *vis);

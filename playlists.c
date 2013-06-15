@@ -248,3 +248,51 @@ struct Playlist *playlist_setup(void)
 
   return plist;
 }
+
+void playlist_free(struct Playlist *plist)
+{
+  free(plist->wmode.wins);
+  free(plist);
+}
+
+void
+playlist_scroll_to(int line)
+{
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  playlist->cursor = 0;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, line);
+}
+
+void
+playlist_scroll_down_line(void)
+{
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, +1);
+}
+
+void
+playlist_scroll_up_line(void)
+{
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, -1);
+}
+
+void
+playlist_scroll_up_page(void)
+{
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, -15);  
+}
+
+void
+playlist_scroll_down_page(void)
+{
+  int height = wchain[PLAYLIST].win->_maxy + 1;
+  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
+						  playlist->length, height, +15);  
+}
+

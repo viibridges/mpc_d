@@ -34,5 +34,15 @@ void append_to_songlist(void);
 void replace_songlist(void);
 
 struct Directory* directory_setup(void);
+void directory_free(struct Directory *dir);
+
+// list manipulation commands
+void enter_selected_dir(void);
+void exit_current_dir(void);
+void directory_scroll_to(int line);
+void directory_scroll_down_line(void);
+void directory_scroll_up_line(void);
+void directory_scroll_up_page(void);
+void directory_scroll_down_page(void);
 
 #endif

@@ -68,6 +68,12 @@ void popup_simple_dialog(const char *message);
 char* popup_input_dialog(const char *prompt);
 int popup_confirm_dialog(const char *prompt, int dflt);
 
+void wchain_init(void);
+void wchain_size_update(void);
+void wchain_free(void);
+
+void color_init(void);
+
 void debug(const char *debug_info);
 void debug_static(const char *debug_info);
 void debug_int(const int num);

@@ -31,19 +31,19 @@ cmd_seek_second(int perc)
 }
 
 void
-cmd_forward()
+cmd_forward(void)
 {
   cmd_seek_second(SEEK_UNIT);
 }
 
 void
-cmd_backward()
+cmd_backward(void)
 {
   cmd_seek_second(-SEEK_UNIT);
 }
 
 int
-cmd_volup()
+cmd_volup(void)
 {
   struct mpd_status *status;
   int volume;
@@ -63,7 +63,7 @@ cmd_volup()
 }
   
 int
-cmd_voldown()
+cmd_voldown(void)
 {
   struct mpd_status *status;
   int volume;
@@ -85,7 +85,7 @@ cmd_voldown()
 }
 
 void
-cmd_Repeat()
+cmd_Repeat(void)
 {
   struct mpd_status *status;
 
@@ -97,10 +97,8 @@ cmd_Repeat()
 	printErrorAndExit(conn);
 }
 
-/* different from the old cmd_single, this new function
-   turn on the Repeat command simultaneously */
 void
-cmd_Single()
+cmd_Single(void)
 {
   struct mpd_status *status;
   
@@ -118,7 +116,7 @@ cmd_Single()
 }
 
 void
-cmd_Toggle()
+cmd_Toggle(void)
 {
 	struct mpd_status *status;
 	
@@ -133,7 +131,7 @@ cmd_Toggle()
 }
 
 void
-cmd_Playback()
+cmd_Playback(void)
 {
   struct mpd_status *status;
 	
@@ -148,7 +146,7 @@ cmd_Playback()
 }
 
 void
-cmd_Random()
+cmd_Random(void)
 {
   struct mpd_status *status;
   
@@ -161,258 +159,8 @@ cmd_Random()
 
 }
 
-// current cursor song move up
 void
-song_in_cursor_move_to(int offset)
-{
-  int from = get_songlist_cursor_item_index();
-  int to = from + offset;
-
-  // check whether new position valid
-  if(to < 0 || to >= songlist->length)
-	return;
-  
-  // now check from
-  if(from < 0 || from >= songlist->length)
-	return;
-
-  // no problem
-  mpd_run_move(conn, songlist->meta[from].id - 1,
-			   songlist->meta[to].id - 1);
-
-  // inform them to update the songlist
-  songlist->update_signal = 1;
-
-  //swap_songlist_items(from, to);
-}
-
-void
-song_move_up()
-{
-  song_in_cursor_move_to(-1);
-
-  // scroll up cursor also
-  songlist_scroll_up_line();
-}
-
-void
-song_move_down()
-{
-  song_in_cursor_move_to(+1);
-
-  // scroll down cursor also
-  songlist_scroll_down_line();
-}
-
-void
-toggle_select_item(int id)
-{
-  if(id < 0 || id >= songlist->length)
-	return;
-  else
-	songlist->meta[id].selected ^= 1;
-}
-
-void
-toggle_select()
-{
-  int id = get_songlist_cursor_item_index();
-
-  toggle_select_item(id);
-
-  // move cursor forward by one step
-  songlist_scroll_down_line();
-}
-
-void
-songlist_scroll_to(int line)
-{
-  int height = wchain[SONGLIST].win->_maxy + 1;
-  songlist->cursor = 0;
-  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
-						  songlist->length, height, line);
-}
-
-void
-songlist_scroll_down_line()
-{
-  int height = wchain[SONGLIST].win->_maxy + 1;
-  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
-						  songlist->length, height, +1);
-}
-
-void
-songlist_scroll_up_line()
-{
-  int height = wchain[SONGLIST].win->_maxy + 1;
-  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
-						  songlist->length, height, -1);
-}
-
-void
-songlist_scroll_up_page()
-{
-  int height = wchain[SONGLIST].win->_maxy + 1;
-  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
-						  songlist->length, height, -15);
-}
-
-void
-songlist_scroll_down_page()
-{
-  int height = wchain[SONGLIST].win->_maxy + 1;
-  scroll_line_shift_style(&songlist->cursor, &songlist->begin,
-						  songlist->length, height, +15);
-}
-
-void
-songlist_play_cursor()
-{
-  int id = get_songlist_cursor_item_index();
-  
-  if(id > -1)
-	mpd_run_play_pos(conn, songlist->meta[id].id - 1);
-}
-
-void
-songlist_scroll_to_current()
-{
-  struct mpd_status *status;
-  int song_id;
-  status = getStatus(conn);
-  song_id = mpd_status_get_song_pos(status) + 1;
-  mpd_status_free(status);
-
-  songlist_scroll_to(song_id);
-}
-
-void
-songlist_cursor_hide()
-{
-  // because the minimum visible position is 1
-  songlist->cursor = -1;
-}
-
-void
-enter_selected_dir()
-{
-  char *temp =  get_abs_crt_path();
-  
-  if(is_dir_exist(temp))
-	{
-	  strcpy(directory->crt_dir, temp);
-
-	  directory->begin = 1;
-	  directory->cursor = 1;
-	  directory->update_signal = 1;
-	}
-}
-
-void
-exit_current_dir()
-{
-  char *p;
-
-  p = strrchr(directory->crt_dir, '/');
-
-  // prehibit exiting from root directory
-  if(p - directory->crt_dir < (int)strlen(directory->root_dir))
-	return;
-
-  if(p && p != directory->crt_dir)
-	{
-	  *p = '\0';
-
-	  directory->begin = 1;
-	  directory->cursor = 1;
-	  directory->update_signal = 1;
-	}
-}
-
-void
-directory_scroll_to(int line)
-{
-  int height = wchain[DIRECTORY].win->_maxy + 1;
-  directory->cursor = 0;
-  scroll_line_shift_style(&directory->cursor, &directory->begin,
-						  directory->length, height, line);
-}
-
-void
-directory_scroll_down_line()
-{
-  int height = wchain[DIRECTORY].win->_maxy + 1;
-  scroll_line_shift_style(&directory->cursor, &directory->begin,
-						  directory->length, height, +1);
-}
-
-void
-directory_scroll_up_line()
-{
-  int height = wchain[DIRECTORY].win->_maxy + 1;
-  scroll_line_shift_style(&directory->cursor, &directory->begin,
-						  directory->length, height, -1);  
-}
-
-void
-directory_scroll_up_page()
-{
-  int height = wchain[DIRECTORY].win->_maxy + 1;
-  scroll_line_shift_style(&directory->cursor, &directory->begin,
-						  directory->length, height, -15);  
-}
-
-void
-directory_scroll_down_page()
-{
-  int height = wchain[DIRECTORY].win->_maxy + 1;
-  scroll_line_shift_style(&directory->cursor, &directory->begin,
-						  directory->length, height, +15);  
-}
-
-void
-playlist_scroll_to(int line)
-{
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  playlist->cursor = 0;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, line);
-}
-
-void
-playlist_scroll_down_line()
-{
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, +1);
-}
-
-void
-playlist_scroll_up_line()
-{
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, -1);
-}
-
-void
-playlist_scroll_up_page()
-{
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, -15);  
-}
-
-void
-playlist_scroll_down_page()
-{
-  int height = wchain[PLAYLIST].win->_maxy + 1;
-  scroll_line_shift_style(&playlist->cursor, &playlist->begin,
-						  playlist->length, height, +15);  
-}
-
-void
-cmd_Next()
+cmd_Next(void)
 {
   mpd_run_next(conn);
 
@@ -420,7 +168,7 @@ cmd_Next()
 }
 
 void
-cmd_Prev()
+cmd_Prev(void)
 {
   mpd_run_previous(conn);
   
@@ -428,50 +176,7 @@ cmd_Prev()
 }
 
 void
-change_searching_scope()
-{
-  songlist->crt_tag_id ++;
-  songlist->crt_tag_id %= 4;	  
-}
-
-void
-songlist_delete_song_in_cursor()
-{
-  int i = get_songlist_cursor_item_index();
-  
-  if(i < 0 || i >= songlist->length)
-	return;
-	
-  mpd_run_delete(conn, songlist->meta[i].id - 1);
-}
-
-// if any is deleted then return 1
-void
-songlist_delete_song_in_batch()
-{
-  int i;
-
-  // delete in descended order won't screw things up
-  for(i = songlist->length - 1; i >= 0; i--)
-	if(songlist->meta[i].selected)
-	  mpd_run_delete(conn, songlist->meta[i].id - 1);
-}
-
-void
-songlist_delete_song()
-{
-  if(is_songlist_selected())
-	songlist_delete_song_in_batch();
-  else
-	songlist_delete_song_in_cursor();
-
-  /* easest way to realign the songlist */
-  songlist->update_signal = 1;
-  songlist_scroll_to(songlist->cursor);
-}
-
-void
-switch_to_main_menu()
+switch_to_main_menu(void)
 {
   clean_screen();
 
@@ -479,7 +184,7 @@ switch_to_main_menu()
 }
 
 void
-switch_to_songlist_menu()
+switch_to_songlist_menu(void)
 {
   clean_screen();
 
@@ -487,7 +192,7 @@ switch_to_songlist_menu()
 }
 
 void
-switch_to_directory_menu()
+switch_to_directory_menu(void)
 {
   clean_screen();
 
@@ -495,7 +200,7 @@ switch_to_directory_menu()
 }
 
 void
-switch_to_playlist_menu()
+switch_to_playlist_menu(void)
 {
   clean_screen();
 

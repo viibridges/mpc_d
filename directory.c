@@ -218,3 +218,86 @@ struct Directory* directory_setup(void)
 
   return dir;
 }
+
+void directory_free(struct Directory *dir)
+{
+  free(dir->wmode.wins);
+  free(dir);
+}
+
+void
+enter_selected_dir(void)
+{
+  char *temp =  get_abs_crt_path();
+  
+  if(is_dir_exist(temp))
+	{
+	  strcpy(directory->crt_dir, temp);
+
+	  directory->begin = 1;
+	  directory->cursor = 1;
+	  directory->update_signal = 1;
+	}
+}
+
+void
+exit_current_dir(void)
+{
+  char *p;
+
+  p = strrchr(directory->crt_dir, '/');
+
+  // prehibit exiting from root directory
+  if(p - directory->crt_dir < (int)strlen(directory->root_dir))
+	return;
+
+  if(p && p != directory->crt_dir)
+	{
+	  *p = '\0';
+
+	  directory->begin = 1;
+	  directory->cursor = 1;
+	  directory->update_signal = 1;
+	}
+}
+
+void
+directory_scroll_to(int line)
+{
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  directory->cursor = 0;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, line);
+}
+
+void
+directory_scroll_down_line(void)
+{
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, +1);
+}
+
+void
+directory_scroll_up_line(void)
+{
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, -1);  
+}
+
+void
+directory_scroll_up_page(void)
+{
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, -15);  
+}
+
+void
+directory_scroll_down_page(void)
+{
+  int height = wchain[DIRECTORY].win->_maxy + 1;
+  scroll_line_shift_style(&directory->cursor, &directory->begin,
+						  directory->length, height, +15);  
+}

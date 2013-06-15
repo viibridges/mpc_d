@@ -7,6 +7,7 @@ void ErrorAndExit(const char *message);
 void printErrorAndExit(struct mpd_connection *conn);
 void smart_sleep(void);
 void my_finishCommand(struct mpd_connection *conn);
+struct mpd_connection* setup_connection(void);
 struct mpd_status * getStatus(struct mpd_connection *conn);
 struct mpd_status* init_mpd_status(struct mpd_connection *conn);
 int is_dir_exist(char *path);

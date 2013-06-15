@@ -52,6 +52,20 @@ void my_finishCommand(struct mpd_connection *conn) {
 	printErrorAndExit(conn);
 }
 
+struct mpd_connection* setup_connection(void)
+{
+  struct mpd_connection *conn;
+
+  conn = mpd_connection_new(NULL, 0, 0);
+  if (conn == NULL) 
+	ErrorAndExit("Out of memory\n");
+
+  if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS)
+	printErrorAndExit(conn);
+
+  return conn;
+}
+
 struct mpd_status *
 getStatus(struct mpd_connection *conn) {
   struct mpd_status *ret = mpd_run_status(conn);

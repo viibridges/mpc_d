@@ -31,5 +31,13 @@ void playlist_delete(void);
 void playlist_replace(void);
 
 struct Playlist *playlist_setup(void);
+void playlist_free(struct Playlist *plist);
+
+// list manipulation commands
+void playlist_scroll_to(int line);
+void playlist_scroll_down_line(void);
+void playlist_scroll_up_line(void);
+void playlist_scroll_up_page(void);
+void playlist_scroll_down_page(void);
 
 #endif
