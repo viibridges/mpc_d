@@ -208,6 +208,22 @@ switch_to_playlist_menu(void)
 }
 
 void
+switch_to_next_menu(void)
+{
+  static int imenu = 0;
+  static void (*menu_list[4])(void) = {
+	&switch_to_main_menu,
+	&switch_to_songlist_menu,
+	&switch_to_playlist_menu,
+	&switch_to_directory_menu
+  };
+
+  imenu = (imenu+1) % 4;
+
+  menu_list[imenu]();
+}
+
+void
 toggle_visualizer(void)
 {
   if(wchain[VISUALIZER].visible)
@@ -218,4 +234,3 @@ toggle_visualizer(void)
   else
 	wchain[VISUALIZER].visible = 1;
 }
-

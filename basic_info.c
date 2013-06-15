@@ -167,7 +167,7 @@ print_basic_song_info(void)
 
   mvwprintw(win, 1, 16, "[%s]", basic_info->format); // music format
 
-  mvwprintw(win, 1, 46, "%02i:%i",
+  mvwprintw(win, 1, 46, "%02i:%02i",
 			basic_info->total_time / 60, basic_info->total_time % 60);
 
   static int old_bit_rate = 111;
@@ -186,7 +186,7 @@ print_basic_bar(void)
 	fill_len, empty_len, i;
 
   WINDOW *win = specific_win(VERBOSE_PROC_BAR);
-  const int axis_length = win->_maxx - 7;
+  const int axis_length = win->_maxx - 8;
   
   crt_time = basic_info->crt_time;
   total_time = basic_info->total_time;
@@ -205,7 +205,10 @@ print_basic_bar(void)
   wattroff(win, my_color_pairs[2]);
   wprintw(win, "]");
 
-  wprintw(win, "%3i%% ", crt_time_perc);
+  //wprintw(win, "%3i%% ", crt_time_perc);
+
+  int left_time = total_time - crt_time;
+  wprintw(win, " %02i:%02i", left_time / 60, left_time % 60);
 }
 
 struct BasicInfo* basic_info_setup(void)

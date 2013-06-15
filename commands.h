@@ -16,4 +16,5 @@ void switch_to_main_menu(void);
 void switch_to_songlist_menu(void);
 void switch_to_directory_menu(void);
 void switch_to_playlist_menu(void);
+void switch_to_next_menu(void);
 void toggle_visualizer(void); 

@@ -47,7 +47,7 @@ void fundamental_keymap_template(int key)
 	case 'S':
 	  change_searching_scope(); break;
 	case '\t':
-	  switch_to_songlist_menu();
+	  switch_to_next_menu();
 	  break;
 	case '1':
 	  switch_to_main_menu();
@@ -111,9 +111,6 @@ void songlist_keymap_template(int key)
 	case 'D':
 	  songlist_delete_song();
 	  break;
-	case '\t':
-	  switch_to_main_menu();
-	  break;
 	case 'U':
 	case 'K':
 	  song_move_up();
@@ -169,9 +166,6 @@ directory_keymap_template(int key)
 	  break;
 	case 'G':  // cursor goto the end
 	  directory_scroll_to(directory->length);
-	  break;
-	case '\t':
-	  switch_to_main_menu();
 	  break;
 	  
 	default:
@@ -229,9 +223,6 @@ playlist_keymap_template(int key)
 	  break;
 	case 'G':  // cursor goto the end
 	  playlist_scroll_to(playlist->length);
-	  break;
-	case '\t':
-	  switch_to_main_menu();
 	  break;
 	  
 	default:
