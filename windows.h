@@ -19,10 +19,11 @@ enum window_id
 	SONGLIST,				 // songlist
 	SLIST_DOWN_STATE_BAR,	 // implies scroll down and copy right
 	DIRECTORY,				 // window list item in current directory
+	DIRICON,                 // directory icon
 	DIRHELPER,               // directory instruction 
 	PLAYLIST,                // window list all playlists
 	PLAYICON,                // icon window for playlist
-	TAPEHELPER,              // playlist instruction 
+	PLAYHELPER,              // playlist instruction 
 	SEARCH_INPUT,			 // search prompt area
 	DEBUG_INFO,				 // for debug perpuse only
 	WIN_NUM                  // number of windows

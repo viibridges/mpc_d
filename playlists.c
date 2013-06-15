@@ -37,15 +37,14 @@ playlist_display_icon(void)
 void
 playlist_helper(void)
 {
-  WINDOW *win = specific_win(TAPEHELPER);
+  WINDOW *win = specific_win(PLAYHELPER);
 
-  color_print(win, 3, "\
+  color_print(win, 4, "\
 Playlists:");
-  wprintw(win,  "\n\
--------------------------\n\n\
+  wprintw(win,  "\n\n\
     <k> Move Cursor Up...\n\
     <j> Move Cursor Down.\n");
-  color_print(win, 5, "\n\
+  color_print(win, 6, "\n\
     [l] Load to Current..\n\
     [s] Save from Current\n\
     [d] Delelet Playlist.\n\
@@ -251,7 +250,7 @@ struct Playlist *playlist_setup(void)
   plist->wmode.size = 6;
   plist->wmode.wins = (struct WindowUnit**)
 	malloc(plist->wmode.size * sizeof(struct WindowUnit*));
-  plist->wmode.wins[0] = &wchain[TAPEHELPER];
+  plist->wmode.wins[0] = &wchain[PLAYHELPER];
   plist->wmode.wins[1] = &wchain[EXTRA_INFO];  
   plist->wmode.wins[2] = &wchain[PLAYLIST];  
   plist->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];

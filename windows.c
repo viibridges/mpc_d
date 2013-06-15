@@ -272,10 +272,11 @@ wchain_init(void)
 	  &songlist_redraw_screen,	 // SONGLIST
 	  &songlist_down_state_bar,  // SLIST_DOWN_STATE_BAR
 	  &directory_redraw_screen,  // DIRECTORY
+	  &directory_display_icon,   // DIRICON
 	  &directory_helper,         // DIRHELPER
 	  &playlist_redraw_screen,   // PLAYLIST
 	  &playlist_display_icon,    // PLAYICON
-	  &playlist_helper,          // TAPEHELPER
+	  &playlist_helper,          // PLAYHELPER
 	  &search_prompt,			 // SEARCH_INPUT
 	  NULL						 // DEBUG_INFO  
 	};
@@ -292,10 +293,11 @@ wchain_init(void)
 	  &songlist_update_checking,	 // SONGLIST
 	  NULL,                          // SLIST_DOWN_STATE_BAR
 	  &directory_update_checking,    // DIRECTORY
+	  NULL,                          // DIRHICON
 	  NULL,                          // DIRHELPER
 	  &playlist_update_checking,     // PLAYLIST
 	  NULL,                          // PLAYICON
-	  NULL,                          // TAPEHELPER
+	  NULL,                          // PLAYHELPER
 	  NULL,			                 // SEARCH_INPUT
 	  NULL						     // DEBUG_INFO  
 	};
@@ -348,10 +350,11 @@ wchain_size_update(void)
 	  {height - 8, 73, 5, 0},	    // SONGLIST
 	  {1, width, height - 3, 0},	// SLIST_DOWN_STATE_BAR
 	  {height - 8, 36, 6, 41},	    // DIRECTORY
-	  {height - 6, 36, 3, 0},       // DIRHELPER
+	  {6, 20, 4, 10},               // DIRICON
+	  {10, 29, 12, 2},              // DIRHELPER
 	  {8, 36, 6, 41},	            // PLAYLIST
 	  {5, 12, 16, 52},	            // PLAYICON
-	  {height - 6, 26, 3, 0},       // TAPEHELPER
+	  {13, 26, 4, 2},               // PLAYHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
 	}; 

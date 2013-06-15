@@ -132,23 +132,38 @@ void directory_redraw_screen(void)
 }
 
 void
+directory_display_icon(void)
+{
+  WINDOW *win = specific_win(DIRICON);
+
+  color_print(win, 1, "\
+.----.______\n\
+|DIR ______ |___\n\
+|   /          /\n\
+|  /          /\n\
+| /          /\n\
+|/__________/");
+}
+
+void
 directory_helper(void)
 {
   WINDOW *win = specific_win(DIRHELPER);
 
-  color_print(win, 3, "\
-Directories:");
-  wprintw(win,  "\n\
-----------------------------\n\n\
-    < k > Move Cursor Up...\n\
-    < j > Move Cursor Down.\n\
-    <Ent> Enter Directory..\n\
-    <Bck> Exit  Directory..");
-  color_print(win, 5, "\n\n\
-    [a] Append to Current..\n\
-    [r] Replace Current....");
-  wprintw(win, "\n\n\
-    [c] Clear Current......");
+  wmove(win, 2, 0);
+  wprintw(win,  "\
+    <k> Move Cursor Up...\n\
+    <j> Move Cursor Down.\n\
+    <Ent> Enter Directory\n\
+    <Bck> Exit  Directory");
+  color_print(win, 6, "\n\
+    [a] Append to Current\n\
+    [r] Replace Current..");
+  wprintw(win, "\n\
+    [c] Clear Current....");
+
+  box(win, 0, ' ');
+  mvwprintw(win, 0, 2, "Keys:");
 }
 
 void
@@ -270,7 +285,7 @@ struct Directory* directory_setup(void)
   strncpy(dir->crt_dir, dir->root_dir, 512);
 
   // window mode setup
-  dir->wmode.size = 5;
+  dir->wmode.size = 6;
   dir->wmode.wins = (struct WindowUnit**)
 	malloc(dir->wmode.size * sizeof(struct WindowUnit*));
   dir->wmode.wins[0] = &wchain[EXTRA_INFO];  
@@ -278,6 +293,7 @@ struct Directory* directory_setup(void)
   dir->wmode.wins[2] = &wchain[DIRHELPER];  
   dir->wmode.wins[3] = &wchain[SIMPLE_PROC_BAR];
   dir->wmode.wins[4] = &wchain[BASIC_INFO];
+  dir->wmode.wins[5] = &wchain[DIRICON];
   dir->wmode.listen_keyboard = &directory_keymap;  
 
   return dir;

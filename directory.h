@@ -32,6 +32,7 @@ char* get_abs_crt_path(void);
 char* get_mpd_path(char *abs_path);
 char* get_mpd_crt_path(void);
 void directory_redraw_screen(void);
+void directory_display_icon(void);
 void directory_helper(void);
 void directory_update(void);
 void directory_update_checking(void);
