@@ -23,22 +23,22 @@ void fundamental_keymap_template(int key)
 	case KEY_LEFT:
 	  cmd_backward(); break;
 	case 'b':
-	  cmd_Playback(); break;
+	  cmd_playback(); break;
 	case 'n':
-	  cmd_Next(); break;
+	  cmd_next(); break;
 	case 'p':
-	  cmd_Prev(); break;
+	  cmd_prev(); break;
 	case 't': ;
 	case ' ':
-	  cmd_Toggle(); break;
+	  cmd_toggle(); break;
 	case 'r':
-	  cmd_Random(); break;
+	  cmd_random(); break;
 	case 's':
-	  cmd_Single(); break;
+	  cmd_single(); break;
 	case 'O':;
 	case 'o':;
 	case 'R':
-	  cmd_Repeat(); break;
+	  cmd_repeat(); break;
 	case 'L': // redraw screen
 	  clean_screen();
 	  break;

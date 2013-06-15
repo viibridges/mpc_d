@@ -85,7 +85,7 @@ cmd_voldown(void)
 }
 
 void
-cmd_Repeat(void)
+cmd_repeat(void)
 {
   struct mpd_status *status;
 
@@ -98,13 +98,13 @@ cmd_Repeat(void)
 }
 
 void
-cmd_Single(void)
+cmd_single(void)
 {
   struct mpd_status *status;
   
   status = getStatus(conn);  
   if(!mpd_status_get_repeat(status))
-	cmd_Repeat();
+	cmd_repeat();
   
   int mode = !mpd_status_get_single(status);
 
@@ -116,7 +116,7 @@ cmd_Single(void)
 }
 
 void
-cmd_Toggle(void)
+cmd_toggle(void)
 {
 	struct mpd_status *status;
 	
@@ -131,7 +131,7 @@ cmd_Toggle(void)
 }
 
 void
-cmd_Playback(void)
+cmd_playback(void)
 {
   struct mpd_status *status;
 	
@@ -146,7 +146,7 @@ cmd_Playback(void)
 }
 
 void
-cmd_Random(void)
+cmd_random(void)
 {
   struct mpd_status *status;
   
@@ -160,7 +160,7 @@ cmd_Random(void)
 }
 
 void
-cmd_Next(void)
+cmd_next(void)
 {
   mpd_run_next(conn);
 
@@ -168,7 +168,7 @@ cmd_Next(void)
 }
 
 void
-cmd_Prev(void)
+cmd_prev(void)
 {
   mpd_run_previous(conn);
   
