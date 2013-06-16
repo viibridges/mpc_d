@@ -122,6 +122,9 @@ void songlist_keymap_template(int key)
 	case 'm':
 	  toggle_select();
 	  break;
+	case 'M':
+	  select_all();
+	  break;
 	  
 	default:
 	  fundamental_keymap_template(key);

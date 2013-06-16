@@ -353,11 +353,11 @@ wchain_size_update(void)
 	  {height - 8, 73, 5, 0},	    // SONGLIST
 	  {1, width, height - 3, 0},	// SLIST_DOWN_STATE_BAR
 	  {height - 8, 36, 6, 41},	    // DIRECTORY
-	  {6, 20, 4, 10},               // DIRICON
-	  {10, 29, 12, 2},              // DIRHELPER
-	  {8, 36, 6, 41},	            // PLAYLIST
-	  {5, 15, 16, 48},	            // PLAYICON
-	  {13, 26, 4, 2},               // PLAYHELPER
+	  {6, 20, 4, 11},               // DIRICON
+	  {10, 30, 12, 2},              // DIRHELPER
+	  {10, 36, 5, 2},	            // PLAYLIST
+	  {5, 15, 16, 10},	            // PLAYICON
+	  {15, 29, 6, 43},              // PLAYHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT
 	  {1, width, height - 2, 0}		// DEBUG_INFO       
 	}; 

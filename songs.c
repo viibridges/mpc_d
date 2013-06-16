@@ -201,6 +201,11 @@ swap_songlist_items(int i, int j)
 
   memmove(songlist->meta + j, &temp,
 		  sizeof(struct MetaInfo) / sizeof(char));
+
+  // swap the song pos id back
+  int temp_id = songlist->meta[i].id;
+  songlist->meta[i].id = songlist->meta[j].id;
+  songlist->meta[j].id = temp_id;
 }
 
 
@@ -394,7 +399,7 @@ void songlist_free(struct Songlist *slist)
 
 // current cursor song move up
 void
-song_in_cursor_move_to(int offset)
+song_in_cursor_move_by(int offset)
 {
   int from = get_songlist_cursor_item_index();
   int to = from + offset;
@@ -413,14 +418,12 @@ song_in_cursor_move_to(int offset)
 
   // inform them to update the songlist
   songlist->update_signal = 1;
-
-  //swap_songlist_items(from, to);
 }
 
 void
 song_move_up()
 {
-  song_in_cursor_move_to(-1);
+  song_in_cursor_move_by(-1);
 
   // scroll up cursor also
   songlist_scroll_up_line();
@@ -429,7 +432,7 @@ song_move_up()
 void
 song_move_down()
 {
-  song_in_cursor_move_to(+1);
+  song_in_cursor_move_by(+1);
 
   // scroll down cursor also
   songlist_scroll_down_line();
@@ -445,7 +448,7 @@ toggle_select_item(int id)
 }
 
 void
-toggle_select()
+toggle_select(void)
 {
   int id = get_songlist_cursor_item_index();
 
@@ -453,6 +456,14 @@ toggle_select()
 
   // move cursor forward by one step
   songlist_scroll_down_line();
+}
+
+void
+select_all(void)
+{
+  int i;
+  for(i = 0; i < songlist->length; i ++)
+	songlist->meta[i].selected = 1;
 }
 
 void
@@ -563,6 +574,10 @@ songlist_delete_song(void)
 	songlist_delete_song_in_cursor();
 
   /* easest way to realign the songlist */
-  songlist->update_signal = 1;
+  if(songlist->search_mode)
+	songlist->update_signal = 1;
+  else
+	songlist_update();
+  
   songlist_scroll_to(songlist->cursor);
 }

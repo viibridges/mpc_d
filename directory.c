@@ -168,20 +168,20 @@ directory_helper(void)
 
   wmove(win, 2, 0);
   wprintw(win,  "\
-    <k> Move Cursor Up...\n\
-    <j> Move Cursor Down.\n\
-    <Ent> Enter Directory\n\
-    <Bck> Exit  Directory");
+   <k>\t  Move Cursor Up\n\
+   <j>\t  Move Cursor Down\n\
+   Ent\t  Enter Directory\n\
+   Bck\t  Exit  Directory");
   color_print(win, 6, "\n\
-    [a] Append to Current\n\
-    [r] Replace Current..");
+   [a]\t  Append to Current\n\
+   [r]\t  Replace Current");
   wprintw(win, "\n\
-    [c] Clear Current....");
+   [c]\t  Clear Current");
 
-  box(win, 0, ' ');
+  box(win, '.', ' ');
   
   wmove(win, 0, 2);
-  color_print(win, 3, "Keys:");
+  color_print(win, 3, "Instruction:");
 }
 
 void

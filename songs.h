@@ -64,11 +64,12 @@ struct Songlist* songlist_setup(void);
 void songlist_free(struct Songlist *slist);
 
 // commands
-void song_in_cursor_move_to(int offset);
+void song_in_cursor_move_by(int offset);
 void song_move_up(void);
 void song_move_down(void);
 void toggle_select_item(int id);
 void toggle_select(void);
+void select_all(void);
 void songlist_scroll_to(int line);
 void songlist_scroll_down_line(void);
 void songlist_scroll_up_line(void);

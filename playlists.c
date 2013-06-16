@@ -5,11 +5,12 @@
 void
 playlist_redraw_screen(void)
 {
-  int line = 0, i, height = wchain[PLAYLIST].win->_maxy + 1;
-
+  int i, height = wchain[PLAYLIST].win->_maxy + 1;
+  
   WINDOW *win = specific_win(PLAYLIST);  
 
   char *filename;
+  int line = 0;
   for(i = playlist->begin - 1; i < playlist->begin
 		+ height - 1 && i < playlist->length; i++)
 	{
@@ -45,20 +46,23 @@ playlist_helper(void)
 {
   WINDOW *win = specific_win(PLAYHELPER);
 
-  color_print(win, 4, "\
-Playlists:");
   wprintw(win,  "\n\n\
-    <k> Move Cursor Up...\n\
-    <j> Move Cursor Down.\n");
+  <k>\t  Move Cursor Up\n\
+  <j>\t  Move Cursor Down\n\n");
   color_print(win, 6, "\n\
-    [l] Load to Current..\n\
-    [s] Save from Current\n\
-    [d] Delelet Playlist.\n\
-    [r] Rename Playlist..\n\
-    [C] Cover Playlist...\n\
-    [R] Replace Current..");
+  [l]\t  Load to Current\n\
+  [s]\t  Save from Current\n\
+  [d]\t  Delelet Playlist\n\
+  [r]\t  Rename Playlist\n\
+  [C]\t  Cover Playlist\n\
+  [R]\t  Replace Current");
   wprintw(win, "\n\n\
-    [c] Clear Current....");
+  [c]\t  Clear Current");
+
+  box(win, '.', ' ');
+
+  wmove(win, 0, 1);
+  color_print(win, 3, " Instruction: ");
 }
 
 void playlist_update_checking(void)
