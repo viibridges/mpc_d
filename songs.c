@@ -139,8 +139,6 @@ songlist_update_checking(void)
   struct mpd_status *status;
   int queue_len, song_id;
 
-  basic_state_checking();
-
   status = getStatus(conn);
   queue_len = mpd_status_get_queue_length(status);
   song_id = mpd_status_get_song_pos(status) + 1;

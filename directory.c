@@ -358,7 +358,7 @@ exit_current_dir(void)
 
 	  set_level_by(-1); // level--
 
-	  directory_update();
+	  directory_update(); // must be done before scrolling
 	  directory_scroll_to(get_last_dir_id());
 	}
 }
