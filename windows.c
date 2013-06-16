@@ -236,6 +236,15 @@ void debug_int(const int num)
   wrefresh(win);
 }
 
+void debug_int_static(const int num)
+{
+  static int t = 1;
+  WINDOW *win = specific_win(DEBUG_INFO);
+  wprintw(win, "[%i] ", t++);
+  wprintw(win, "%d", num);
+  wrefresh(win);
+}
+
 /* draw border for all window, this is for debugging
    purpose */
 void outline_all_windows(void)

@@ -109,6 +109,22 @@ char* get_mpd_crt_path(void)
   return get_mpd_path(get_abs_crt_path());
 }
 
+int get_last_dir_id(void)
+{
+  return directory->curs_history[directory->level];
+}
+
+void set_level_by(int offset)
+{
+  directory->level += offset;
+  
+  if(directory->level >= 64)
+	directory->level = 64;
+  
+  if(directory->level < 0)
+	directory->level = 0;
+}
+
 void directory_redraw_screen(void)
 {
   int line = 0, i, height = wchain[DIRECTORY].win->_maxy + 1;
@@ -163,7 +179,9 @@ directory_helper(void)
     [c] Clear Current....");
 
   box(win, 0, ' ');
-  mvwprintw(win, 0, 2, "Keys:");
+  
+  wmove(win, 0, 2);
+  color_print(win, 3, "Keys:");
 }
 
 void
@@ -281,6 +299,7 @@ struct Directory* directory_setup(void)
   dir->begin = 1;
   dir->length = 0;
   dir->cursor = 1;
+  dir->level = 0;
   strncpy(dir->root_dir, "/home/ted/Music", 128);
   strncpy(dir->crt_dir, dir->root_dir, 512);
 
@@ -314,8 +333,10 @@ enter_selected_dir(void)
 	{
 	  strcpy(directory->crt_dir, temp);
 
-	  directory->begin = 1;
-	  directory->cursor = 1;
+	  directory->curs_history[directory->level] = directory->cursor;
+	  set_level_by(1); // level++
+
+	  directory_scroll_to(1);
 	  directory->update_signal = 1;
 	}
 }
@@ -335,9 +356,10 @@ exit_current_dir(void)
 	{
 	  *p = '\0';
 
-	  directory->begin = 1;
-	  directory->cursor = 1;
-	  directory->update_signal = 1;
+	  set_level_by(-1); // level--
+
+	  directory_update();
+	  directory_scroll_to(get_last_dir_id());
 	}
 }
 

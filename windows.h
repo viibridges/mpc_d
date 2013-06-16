@@ -79,6 +79,7 @@ void color_init(void);
 void debug(const char *debug_info);
 void debug_static(const char *debug_info);
 void debug_int(const int num);
+void debug_int_static(const int num);
 void outline_all_windows(void);
 
 void screen_update_checking(void);

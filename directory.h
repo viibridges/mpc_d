@@ -18,6 +18,9 @@ struct Directory
   int length;
   int begin;
   int cursor;
+
+  int curs_history[64]; //record the path id
+  int level; // cursor depth from root, root is 0
 };
 
 struct Directory *directory;
@@ -31,6 +34,8 @@ char* get_abs_path(const char *filename);
 char* get_abs_crt_path(void);
 char* get_mpd_path(char *abs_path);
 char* get_mpd_crt_path(void);
+char* get_mpd_crt_path(void);
+int get_last_dir_id(void);
 void directory_redraw_screen(void);
 void directory_display_icon(void);
 void directory_helper(void);
