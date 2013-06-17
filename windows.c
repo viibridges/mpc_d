@@ -70,8 +70,8 @@ void
 print_list_item(WINDOW *win, int line, int color, int id,
 					char *ltext, char *rtext)
 {
-  const int ltext_left = 6, rtext_left = 43;
-  const int width = win->_maxx - 8;
+  const int ltext_left = 6, rtext_left = 55;
+  const int width = win->_maxx;
 
   wattron(win, my_color_pairs[color - 1]);
 
@@ -350,12 +350,12 @@ wchain_size_update(void)
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
 	  {1, 42, 4, 0},				// SLIST_UP_STATE_BAR
-	  {height - 8, 73, 5, 0},	    // SONGLIST
+	  {height - 8, 71, 5, 2},	    // SONGLIST
 	  {1, width, height - 3, 0},	// SLIST_DOWN_STATE_BAR
-	  {height - 8, 36, 6, 41},	    // DIRECTORY
+	  {height - 8, 32, 6, 41},	    // DIRECTORY
 	  {6, 20, 4, 11},               // DIRICON
 	  {10, 30, 12, 2},              // DIRHELPER
-	  {9, 36, 5, 2},	            // PLAYLIST
+	  {9, 31, 5, 2},	            // PLAYLIST
 	  {5, 15, 16, 10},	            // PLAYICON
 	  {15, 29, 6, 43},              // PLAYHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT

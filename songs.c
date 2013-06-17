@@ -118,7 +118,7 @@ songlist_update(void)
 					128, 26);
 	  pretty_copy(songlist->meta[i].artist,
 					get_song_tag(song, MPD_TAG_ARTIST),
-					128, 20);	  
+					128, 14);	  
 	  pretty_copy(songlist->meta[i].album,
 					get_song_tag(song, MPD_TAG_ALBUM),
 					128, -1);
@@ -354,6 +354,9 @@ struct Songlist* songlist_setup(void)
   slist->length = 0;
   slist->current = 0;
   slist->cursor = 1;
+
+  memset(slist->selected, 0,
+		 MAX_SONGLIST_STORE_LENGTH * sizeof(int)/sizeof(char));	
 
   slist->tags[0] = MPD_TAG_NAME;
   slist->tags[1] = MPD_TAG_TITLE;

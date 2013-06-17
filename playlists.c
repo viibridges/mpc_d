@@ -36,7 +36,7 @@ playlist_display_icon(void)
   color_print(win, 1, "\
  ♫\n\
 ♪♪ ╔═══╗  _\n\
- ♪♫║███║*´ )\n\
+ ♪♫║███║~´ )\n\
  ♫♪♫ @ ║.•´\n\
    ╚═══╝¸.•o");
 }
@@ -48,8 +48,9 @@ playlist_helper(void)
 
   wprintw(win,  "\n\n\
    <k>\t  Move Cursor Up\n\
-   <j>\t  Move Cursor Down\n\n");
-  color_print(win, 6, "\n\
+   <j>\t  Move Cursor Down\n\
+  ___________");
+  color_print(win, 6, "\n\n\
    [l]\t  Load to Current\n\
    [s]\t  Save from Current\n\
    [d]\t  Delelet Playlist\n\
