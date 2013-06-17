@@ -128,6 +128,9 @@ void songlist_keymap_template(int key)
 	case 'M':
 	  reverse_select();
 	  break;
+	case 'C':
+	  clear_select();
+	  break;
 	  
 	default:
 	  fundamental_keymap_template(key);

@@ -81,7 +81,7 @@ songlist_redraw_screen(void)
 		}
 
 	  // selected
-	  if(songlist->meta[i].selected)
+	  if(songlist->selected[i])
 		{
 		  print_list_item(win, line++, 9, id, title, artist);
 		  continue;
@@ -123,7 +123,6 @@ songlist_update(void)
 					get_song_tag(song, MPD_TAG_ALBUM),
 					128, -1);
 	  songlist->meta[i].id = i + 1;
-	  //songlist->meta[i].selected = 0;
 	  ++i;
 	  mpd_song_free(song);
 	}
@@ -174,27 +173,6 @@ int get_songlist_cursor_item_index(void)
 	return -1;
   
   return songlist->cursor - 1;
-}
-
-int
-is_songlist_selected(void)
-{
-  int i;
-
-  for(i = 0; i < songlist->length; i++)
-	if(songlist->meta[i].selected)
-	  return 1;
-
-  return 0;
-}
-
-int
-is_song_selected(int id)
-{
-  if(id < 0 || id >= songlist->length)
-	return 0;
-  else
-	return songlist->meta[id].selected;
 }
 
 void
@@ -406,8 +384,36 @@ void songlist_free(struct Songlist *slist)
   free(slist);
 }
 
-// current cursor song move up
+int
+is_songlist_selected(void)
+{
+  int i;
+
+  for(i = 0; i < songlist->length; i++)
+	if(songlist->selected[i])
+	  return 1;
+
+  return 0;
+}
+
+int
+is_song_selected(int id)
+{
+  if(id < 0 || id >= songlist->length)
+	return 0;
+  else
+	return songlist->selected[id];
+}
+
 void
+clear_select(void)
+{
+  memset(songlist->selected, 0,
+		 MAX_SONGLIST_STORE_LENGTH * sizeof(int)/sizeof(char));
+}
+
+// current cursor song move up
+int
 song_move_by(int id, int offset)
 {
   int from = id;
@@ -416,11 +422,11 @@ song_move_by(int id, int offset)
   // check whether new position valid
   if(to < 0 || to >= songlist->length
 	 || from < 0 || from >= songlist->length)
-	return;
+	return 1;
   
   // now check from
   if(from < 0 || from >= songlist->length)
-	return;
+	return 1;
 
   // no problem
   mpd_run_move(conn, songlist->meta[from].id - 1,
@@ -428,6 +434,8 @@ song_move_by(int id, int offset)
 
   // inform them to update the songlist
   songlist->update_signal = 1;
+
+  return 0;
 }
 
 void
@@ -451,19 +459,31 @@ song_in_batch_move_by(int offset)
 		  
 		  os = offset;
 		  while(is_song_selected(i+os)) os++;
-		  song_move_by(i, os);
+		  if(os >= 0 ) continue;
+		  
+		  if(!song_move_by(i, os))
+			{
+			  songlist->selected[i+os] = 1;
+			  songlist->selected[i] = 0;
+			}
 		}
 	}
   else if(offset > 0)
 	{
-	  for(i = songlist->length - 1; i <= 0; i--)
+	  for(i = songlist->length - 1; i >= 0; i--)
 		{
 		  if(!is_song_selected(i))
 			continue;
 		  
 		  os = offset;
 		  while(is_song_selected(i+os)) os--;
-		  song_move_by(i, os);
+		  if(os <= 0 ) continue;
+		  
+		  if(!song_move_by(i, os))
+			{
+			  songlist->selected[i+os] = 1;
+			  songlist->selected[i] = 0;
+			}
 		}
 	}
 }
@@ -471,7 +491,7 @@ song_in_batch_move_by(int offset)
 void
 song_move_up()
 {
-  if(0 && is_songlist_selected()) // TODO: solve the batch move problem
+  if(is_songlist_selected() && !songlist->search_mode)
 	song_in_batch_move_by(-1);
   else
 	{
@@ -483,7 +503,7 @@ song_move_up()
 void
 song_move_down()
 {
-  if(0 && is_songlist_selected())
+  if(is_songlist_selected() && !songlist->search_mode)
 	song_in_batch_move_by(+1);
   else
 	{
@@ -498,7 +518,7 @@ toggle_select_item(int id)
   if(id < 0 || id >= songlist->length)
 	return;
   else
-	songlist->meta[id].selected ^= 1;
+	songlist->selected[id] ^= 1;
 }
 
 void
@@ -615,7 +635,7 @@ songlist_delete_song_in_batch(void)
 
   // delete in descended order won't screw things up
   for(i = songlist->length - 1; i >= 0; i--)
-	if(songlist->meta[i].selected)
+	if(songlist->selected[i])
 	  mpd_run_delete(conn, songlist->meta[i].id - 1);
 }
 
