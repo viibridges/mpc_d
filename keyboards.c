@@ -50,6 +50,9 @@ void fundamental_keymap_template(int key)
 	case '\t':
 	  switch_to_next_menu();
 	  break;
+	case 127:
+	  switch_to_prev_menu();
+	  break;
 	case '1':
 	  switch_to_main_menu();
 	  break;
@@ -123,7 +126,7 @@ void songlist_keymap_template(int key)
 	  toggle_select();
 	  break;
 	case 'M':
-	  select_all();
+	  reverse_select();
 	  break;
 	  
 	default:
@@ -142,7 +145,9 @@ directory_keymap_template(int key)
 	case '\n':
 	  enter_selected_dir();break;
 	case 127:
-	  exit_current_dir();break;
+	  if(exit_current_dir()) // if already in root dir
+		switch_to_prev_menu();;
+	  break;
 	case 'a':
 	  append_to_songlist();break;
 	case 'c':

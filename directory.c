@@ -178,7 +178,7 @@ directory_helper(void)
   wprintw(win, "\n\
    [c]\t  Clear Current");
 
-  box(win, '.', ' ');
+  box(win, ':', ' ');
   
   wmove(win, 0, 2);
   color_print(win, 3, "Instruction:");
@@ -341,7 +341,7 @@ enter_selected_dir(void)
 	}
 }
 
-void
+int // if succeed return 0
 exit_current_dir(void)
 {
   char *p;
@@ -350,7 +350,7 @@ exit_current_dir(void)
 
   // prehibit exiting from root directory
   if(p - directory->crt_dir < (int)strlen(directory->root_dir))
-	return;
+	return 1;
 
   if(p && p != directory->crt_dir)
 	{
@@ -361,6 +361,8 @@ exit_current_dir(void)
 	  directory_update(); // must be done before scrolling
 	  directory_scroll_to(get_last_dir_id());
 	}
+
+  return 0;
 }
 
 void

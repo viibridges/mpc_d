@@ -35,7 +35,7 @@ char* get_abs_crt_path(void);
 char* get_mpd_path(char *abs_path);
 char* get_mpd_crt_path(void);
 char* get_mpd_crt_path(void);
-int get_last_dir_id(void);
+int  get_last_dir_id(void);
 void directory_redraw_screen(void);
 void directory_display_icon(void);
 void directory_helper(void);
@@ -50,7 +50,7 @@ void directory_free(struct Directory *dir);
 
 // list manipulation commands
 void enter_selected_dir(void);
-void exit_current_dir(void);
+int  exit_current_dir(void);
 void directory_scroll_to(int line);
 void directory_scroll_down_line(void);
 void directory_scroll_up_line(void);

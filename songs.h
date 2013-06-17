@@ -48,7 +48,12 @@ void songlist_redraw_screen(void);
 void songlist_update(void);
 void songlist_update_checking(void);
 int get_songlist_cursor_item_index(void);
-int is_songlist_selected(void);
+
+int  is_songlist_selected(void);
+void song_move_by(int id, int offset);
+void song_in_cursor_move_by(int offset);
+void song_in_batch_move_by(int offset);
+
 void swap_songlist_items(int i, int j);
 
 /** Search Mode Stuffs **/
@@ -64,12 +69,11 @@ struct Songlist* songlist_setup(void);
 void songlist_free(struct Songlist *slist);
 
 // commands
-void song_in_cursor_move_by(int offset);
 void song_move_up(void);
 void song_move_down(void);
 void toggle_select_item(int id);
 void toggle_select(void);
-void select_all(void);
+void reverse_select(void);
 void songlist_scroll_to(int line);
 void songlist_scroll_down_line(void);
 void songlist_scroll_up_line(void);

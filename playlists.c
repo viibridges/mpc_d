@@ -47,19 +47,19 @@ playlist_helper(void)
   WINDOW *win = specific_win(PLAYHELPER);
 
   wprintw(win,  "\n\n\
-  <k>\t  Move Cursor Up\n\
-  <j>\t  Move Cursor Down\n\n");
+   <k>\t  Move Cursor Up\n\
+   <j>\t  Move Cursor Down\n\n");
   color_print(win, 6, "\n\
-  [l]\t  Load to Current\n\
-  [s]\t  Save from Current\n\
-  [d]\t  Delelet Playlist\n\
-  [r]\t  Rename Playlist\n\
-  [C]\t  Cover Playlist\n\
-  [R]\t  Replace Current");
+   [l]\t  Load to Current\n\
+   [s]\t  Save from Current\n\
+   [d]\t  Delelet Playlist\n\
+   [r]\t  Rename Playlist\n\
+   [C]\t  Cover Playlist\n\
+   [R]\t  Replace Current");
   wprintw(win, "\n\n\
-  [c]\t  Clear Current");
+   [c]\t  Clear Current");
 
-  box(win, '.', ' ');
+  box(win, ':', ' ');
 
   wmove(win, 0, 1);
   color_print(win, 3, " Instruction: ");

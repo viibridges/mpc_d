@@ -231,6 +231,13 @@ switch_to_next_menu(void)
 }
 
 void
+switch_to_prev_menu(void)
+{
+  int next_menu = (crt_menu+3) % 4;
+  menu_list[next_menu]();
+}
+
+void
 toggle_visualizer(void)
 {
   if(wchain[VISUALIZER].visible)

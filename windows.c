@@ -355,7 +355,7 @@ wchain_size_update(void)
 	  {height - 8, 36, 6, 41},	    // DIRECTORY
 	  {6, 20, 4, 11},               // DIRICON
 	  {10, 30, 12, 2},              // DIRHELPER
-	  {10, 36, 5, 2},	            // PLAYLIST
+	  {9, 36, 5, 2},	            // PLAYLIST
 	  {5, 15, 16, 10},	            // PLAYICON
 	  {15, 29, 6, 43},              // PLAYHELPER
 	  {1, width, height - 1, 0},	// SEARCH_INPUT

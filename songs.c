@@ -123,7 +123,7 @@ songlist_update(void)
 					get_song_tag(song, MPD_TAG_ALBUM),
 					128, -1);
 	  songlist->meta[i].id = i + 1;
-	  songlist->meta[i].selected = 0;
+	  //songlist->meta[i].selected = 0;
 	  ++i;
 	  mpd_song_free(song);
 	}
@@ -186,6 +186,15 @@ is_songlist_selected(void)
 	  return 1;
 
   return 0;
+}
+
+int
+is_song_selected(int id)
+{
+  if(id < 0 || id >= songlist->length)
+	return 0;
+  else
+	return songlist->meta[id].selected;
 }
 
 void
@@ -399,13 +408,14 @@ void songlist_free(struct Songlist *slist)
 
 // current cursor song move up
 void
-song_in_cursor_move_by(int offset)
+song_move_by(int id, int offset)
 {
-  int from = get_songlist_cursor_item_index();
+  int from = id;
   int to = from + offset;
 
   // check whether new position valid
-  if(to < 0 || to >= songlist->length)
+  if(to < 0 || to >= songlist->length
+	 || from < 0 || from >= songlist->length)
 	return;
   
   // now check from
@@ -421,21 +431,65 @@ song_in_cursor_move_by(int offset)
 }
 
 void
+song_in_cursor_move_by(int offset)
+{
+  song_move_by(get_songlist_cursor_item_index(), offset);
+}
+
+void
+song_in_batch_move_by(int offset)
+{
+  int i, os;
+
+  // move them in a different order according to the offset
+  if(offset < 0)
+	{
+	  for(i = 0; i < songlist->length; i++)
+		{
+		  if(!is_song_selected(i))
+			continue;
+		  
+		  os = offset;
+		  while(is_song_selected(i+os)) os++;
+		  song_move_by(i, os);
+		}
+	}
+  else if(offset > 0)
+	{
+	  for(i = songlist->length - 1; i <= 0; i--)
+		{
+		  if(!is_song_selected(i))
+			continue;
+		  
+		  os = offset;
+		  while(is_song_selected(i+os)) os--;
+		  song_move_by(i, os);
+		}
+	}
+}
+
+void
 song_move_up()
 {
-  song_in_cursor_move_by(-1);
-
-  // scroll up cursor also
-  songlist_scroll_up_line();
+  if(0 && is_songlist_selected()) // TODO: solve the batch move problem
+	song_in_batch_move_by(-1);
+  else
+	{
+	  song_in_cursor_move_by(-1);
+	  songlist_scroll_up_line(); // scroll up cursor also
+	}
 }
 
 void
 song_move_down()
 {
-  song_in_cursor_move_by(+1);
-
-  // scroll down cursor also
-  songlist_scroll_down_line();
+  if(0 && is_songlist_selected())
+	song_in_batch_move_by(+1);
+  else
+	{
+	  song_in_cursor_move_by(+1);
+	  songlist_scroll_down_line(); // scroll down cursor also
+	}
 }
 
 void
@@ -459,11 +513,11 @@ toggle_select(void)
 }
 
 void
-select_all(void)
+reverse_select(void)
 {
   int i;
   for(i = 0; i < songlist->length; i ++)
-	songlist->meta[i].selected = 1;
+	toggle_select_item(i);
 }
 
 void
