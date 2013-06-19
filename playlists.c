@@ -232,7 +232,7 @@ void playlist_delete(void)
 void playlist_replace(void)
 {
   int choice =
-	popup_confirm_dialog("Replacing Confirm:", 1);
+	popup_confirm_dialog("Replacing Confirm:", 0);
 
   if(!choice) // action canceled
 	return;

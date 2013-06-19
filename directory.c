@@ -264,7 +264,7 @@ void replace_songlist(void)
   char *path, *absp;
 
   int choice =
-	popup_confirm_dialog("Replacing Confirm:", 1);
+	popup_confirm_dialog("Replacing Confirm:", 0);
 
   if(!choice) // action canceled
 	return;

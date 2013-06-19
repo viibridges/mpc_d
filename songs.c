@@ -36,7 +36,7 @@ songlist_up_state_bar(void)
   WINDOW *win = specific_win(SLIST_UP_STATE_BAR);  
 
   if(songlist->begin > 1)
-	wprintw(win, "%*s   %s", 3, " ", "^^^ ^^^");
+	wprintw(win, "^^^ ^^^");
 }
 
 void
@@ -54,7 +54,7 @@ songlist_down_state_bar(void)
   color_print(win, 8, "TED MADE");
 
   if(cursor + height / 2 < length)
-  	mvwprintw(win, 0, 0, "%*s   %s", 3, " ", "... ...  ");
+  	mvwprintw(win, 0, 0, "%*s     %s", 3, " ", "... ...  ");
 }
 
 void
@@ -81,7 +81,7 @@ songlist_redraw_screen(void)
 		}
 
 	  // selected
-	  if(songlist->selected[i])
+	  if(songlist->selected[i] && !songlist->search_mode)
 		{
 		  print_list_item(win, line++, 9, id, title, artist);
 		  continue;
@@ -497,10 +497,9 @@ song_move_up()
   if(is_songlist_selected() && !songlist->search_mode)
 	song_in_batch_move_by(-1);
   else
-	{
-	  song_in_cursor_move_by(-1);
-	  songlist_scroll_up_line(); // scroll up cursor also
-	}
+	song_in_cursor_move_by(-1);
+
+  songlist_scroll_up_line(); // scroll up cursor also
 }
 
 void
@@ -509,10 +508,9 @@ song_move_down()
   if(is_songlist_selected() && !songlist->search_mode)
 	song_in_batch_move_by(+1);
   else
-	{
-	  song_in_cursor_move_by(+1);
-	  songlist_scroll_down_line(); // scroll down cursor also
-	}
+	song_in_cursor_move_by(+1);
+
+  songlist_scroll_down_line(); // scroll down cursor also
 }
 
 void

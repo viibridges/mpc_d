@@ -349,7 +349,7 @@ wchain_size_update(void)
 	  {1, 72, 4, 0},				// VISUALIZER
 	  {9, width, 5, 0},				// HELPER
 	  {1, 29, 4, 43},				// SIMPLE_PROC_BAR
-	  {1, 42, 4, 0},				// SLIST_UP_STATE_BAR
+	  {1, 15, 4, 8},				// SLIST_UP_STATE_BAR
 	  {height - 8, 71, 5, 2},	    // SONGLIST
 	  {1, width, height - 3, 0},	// SLIST_DOWN_STATE_BAR
 	  {height - 8, 32, 6, 41},	    // DIRECTORY
