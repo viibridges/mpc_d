@@ -638,6 +638,9 @@ songlist_delete_song_in_batch(void)
   for(i = songlist->length - 1; i >= 0; i--)
 	if(songlist->selected[i])
 	  mpd_run_delete(conn, songlist->meta[i].id - 1);
+
+  // then unselect every thing
+  clear_select();
 }
 
 void

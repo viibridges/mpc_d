@@ -11,8 +11,8 @@ void fundamental_keymap_template(int key)
 {
   switch(key)
 	{
-	case '+': ;
-	case '=': ;
+	case '+':
+	case '=':
 	case '0': 
 	  cmd_volup(); break;
 	case KEY_RIGHT:
@@ -25,8 +25,10 @@ void fundamental_keymap_template(int key)
 	case 'b':
 	  cmd_playback(); break;
 	case 'n':
+	case '>':
 	  cmd_next(); break;
 	case 'p':
+	case '<':
 	  cmd_prev(); break;
 	case 't': ;
 	case ' ':
